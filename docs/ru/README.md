@@ -41,7 +41,7 @@ pip install twc-cli
 
 ## Установка из файла .tar.gz
 
-1. Скачайте пакет twc-cli в формате `.tar.gz` со страницы загрузок.
+1. Скачайте пакет twc-cli в формате `.tar.gz` со [страницы загрузок](https://github.com/timeweb-cloud/twc/releases).
 2. Установите пакет с помощью pip:
 
 ```
