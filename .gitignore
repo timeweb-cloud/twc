@@ -1,0 +1,7 @@
+dist/
+.testenv/
+run
+__pycache__/
+*.pyc
+*.todo
+*~
