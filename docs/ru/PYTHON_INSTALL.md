@@ -67,7 +67,11 @@ sudo pacman -Sy python python-pip
 brew install python
 ```
 
-pip будет установлен вместе с пакетом python.
+pip будет установлен вместе с пакетом python. Для установки twc-cli используйте команду:
+
+```
+pip3 install twc-cli
+```
 
 # Универсальный способ установки pip
 
