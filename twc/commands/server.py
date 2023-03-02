@@ -1044,20 +1044,12 @@ def server_reinstall(
         if not os_id:
             raise click.BadParameter("Wrong image name or ID.")
         payload.update({"os_id": os_id})
+    else:
+        old_state = _server_get(client, server_id).json()["server"]
+        payload.update({"os_id": old_state["os"]["id"]})
 
     if software_id:
-        old_state = _server_get(client, server_id).json()["server"]
-        payload.update(
-            {
-                "os_id": old_state["os"]["id"],
-                "software_id": software_id,
-            }
-        )
-
-    if not payload:
-        raise click.UsageError(
-            "Nothing to do. Set one of ['--image', '--software-id']"
-        )
+        payload.update({"software_id": software_id})
 
     response = _server_update(client, server_id, payload)
     fmt.printer(
