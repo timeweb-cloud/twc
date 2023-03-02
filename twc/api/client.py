@@ -265,6 +265,20 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
             data=json.dumps(payload),
         )
 
+    def clone_server(self, server_id: int):
+        """Clone Cloud Server.
+        Make copy of existing server and return clone object.
+        """
+        url = f"{self.api_url}/servers/{server_id}/clone"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {}
+        return requests.post(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
     def get_server_configurators(self):
         """List configurators."""
         url = f"{self.api_url}/configurator/servers"

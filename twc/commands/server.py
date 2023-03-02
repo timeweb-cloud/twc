@@ -55,6 +55,11 @@ def _server_action(client, *args, **kwargs):
 
 
 @handle_request
+def _server_clone(client, *args):
+    return client.clone_server(*args)
+
+
+@handle_request
 def _server_remove(client, *args):
     return client.delete_server(*args)
 
@@ -1093,9 +1098,23 @@ def server_reinstall(
 
 
 # ------------------------------------------------------------- #
-# $ twc server <action>                                         #
-# remove, boot, reboot, shutdown, clone, reset-root-password    #
+# $ twc server clone                                            #
 # ------------------------------------------------------------- #
+
+
+@server.command("clone", help="Clone Cloud Server.")
+@options(GLOBAL_OPTIONS)
+@options(OUTPUT_FORMAT_OPTION)
+@click.argument("server_id", type=int, required=True)
+def server_clone(config, profile, output_format, verbose, server_id):
+    client = create_client(config, profile)
+    response = _server_clone(client, server_id)
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=lambda response: click.echo(response.json()["server"]["id"]),
+    )
+
 
 # ------------------------------------------------------------- #
 # $ twc server remove                                           #
@@ -1118,6 +1137,12 @@ def server_remove(config, profile, verbose, server_ids):
         else:
             fmt.printer(response)
 
+
+
+# ------------------------------------------------------------- #
+# $ twc server <action>                                         #
+# boot, reboot, shutdown, reset-root-password                   #
+# ------------------------------------------------------------- #
 
 # ------------------------------------------------------------- #
 # $ twc server boot                                             #
@@ -1186,23 +1211,6 @@ def server_shutdown(config, profile, verbose, server_ids, hard_shutdown):
             click.echo(server_id)
         else:
             fmt.printer(response)
-
-
-# ------------------------------------------------------------- #
-# $ twc server clone                                            #
-# ------------------------------------------------------------- #
-
-
-@server.command("clone", help="Clone Cloud Server.")
-@options(GLOBAL_OPTIONS)
-@click.argument("server_id", type=int, required=True)
-def server_clone(config, profile, verbose, server_id):
-    client = create_client(config, profile)
-    response = _server_action(client, server_id, action="clone")
-    if response.status_code == 204:
-        click.echo(server_id)
-    else:
-        fmt.printer(response)
 
 
 # ------------------------------------------------------------- #
