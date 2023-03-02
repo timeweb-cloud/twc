@@ -247,7 +247,13 @@ def print_servers(response: object, filters: str, ids: bool):
 @options(OUTPUT_FORMAT_OPTION)
 @click.option("--filter", "-f", "filters", default="", help="Filter output.")
 @click.option("--region", help="Use region (location).")
-@click.option("--limit", default=100, help="Limit [default: 100].")
+@click.option(
+    "--limit",
+    type=int,
+    default=500,
+    show_default=True,
+    help="Items to display.",
+)
 @click.option("--ids", is_flag=True, help="Print only server IDs.")
 def server_list(
     config, profile, verbose, region, output_format, filters, limit, ids
@@ -1138,7 +1144,6 @@ def server_remove(config, profile, verbose, server_ids):
             fmt.printer(response)
 
 
-
 # ------------------------------------------------------------- #
 # $ twc server <action>                                         #
 # boot, reboot, shutdown, reset-root-password                   #
@@ -1396,7 +1401,13 @@ def print_logs(response: object):
 @server.command("logs", help="View Cloud Server events log.")
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
-@click.option("--limit", default=100, show_default=True, help="Limit.")
+@click.option(
+    "--limit",
+    type=int,
+    default=500,
+    show_default=True,
+    help="Items to display.",
+)
 @click.option(
     "--order",
     default="asc",
