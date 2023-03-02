@@ -707,11 +707,12 @@ def server_create(
 
     # SSH-keys
     ssh_keys_ids = []
-    log("Get SSH-keys...")
-    existing_ssh_keys = _ssh_key_list(client).json()["ssh_keys"]
+    if ssh_key:
+        log("Get SSH-keys...")
+        existing_ssh_keys = _ssh_key_list(client).json()["ssh_keys"]
 
-    for pubkey in ssh_key:
-        ssh_keys_ids.append(add_ssh_key(client, existing_ssh_keys, pubkey))
+        for pubkey in ssh_key:
+            ssh_keys_ids.append(add_ssh_key(client, existing_ssh_keys, pubkey))
 
     # Create Cloud Server from configurator or preset
     if cpu or ram or disk:
