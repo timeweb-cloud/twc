@@ -25,6 +25,7 @@ from . import (
 from .ssh_key import (
     _ssh_key_list,
     _ssh_key_new,
+    _ssh_key_add,
 )
 
 
@@ -1015,12 +1016,30 @@ def server_resize(
 # ------------------------------------------------------------- #
 
 
+def get_ssh_keys_by_server_id(client, server_id) -> list:
+    """Return list of SSH-keys added to the server server_id."""
+    ssh_keys = _ssh_key_list(client).json()["ssh_keys"]
+    ssh_keys_list = []
+    for pubkey in ssh_keys:
+        for server in pubkey["used_by"]:
+            if server["id"] == server_id:
+                ssh_keys_list.append(pubkey["id"])
+    return ssh_keys_list
+
+
 @server.command("reinstall", help="Reinstall OS or software.")
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
 @click.option("--image", default=None, help="OS image to install.")
 @click.option(
     "--software-id", type=int, default=None, help="Software ID to install."
+)
+@click.option(
+    "--add-ssh-keys",
+    type=bool,
+    default=True,
+    show_default=True,
+    help="Readd SSH-keys to reinstalled server.",
 )
 @click.confirmation_option(
     prompt="All data on Cloud Server will be lost.\n"
@@ -1034,6 +1053,7 @@ def server_reinstall(
     output_format,
     image,
     software_id,
+    add_ssh_keys,
     server_id,
 ):
     client = create_client(config, profile)
@@ -1051,7 +1071,20 @@ def server_reinstall(
     if software_id:
         payload.update({"software_id": software_id})
 
+    if add_ssh_keys:
+        log(f"Get SSH-keys by server_id '{server_id}'")
+        ssh_keys = get_ssh_keys_by_server_id(client, server_id)
+        log(f"SSH-keys to add: {ssh_keys}")
+
+    log(f"Reinstalling with params: {payload}")
     response = _server_update(client, server_id, payload)
+
+    if add_ssh_keys and ssh_keys:
+        log(f"Readding SSH-keys {ssh_keys} to server '{server_id}'")
+        ssh_add_resp = _ssh_key_add(client, server_id, ssh_key_ids=ssh_keys)
+        if not ssh_add_resp.status_code == 204:
+            fmt.printer(ssh_add_resp)
+
     fmt.printer(
         response,
         output_format=output_format,
