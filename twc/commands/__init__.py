@@ -28,7 +28,8 @@ USER_AGENT = f"TWC-CLI/{__version__} Python {__pyversion__}"
 DEFAULT_CONFIG = {"default": {"token": ""}}
 DEFAULT_CONFIGURATOR_ID = 11
 REGIONS_WITH_CONFIGURATOR = ["ru-1"]
-REGIONS_WITH_IPV6 = ["ru-1"]
+REGIONS_WITH_IPV6 = ["ru-1", "pl-1"]
+REGIONS_WITH_IMAGES = ["ru-1"]
 
 
 def get_default_config_file() -> str:
