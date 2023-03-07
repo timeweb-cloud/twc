@@ -603,3 +603,59 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
         """Delete SSH-key from Cloud Server."""
         url = f"{self.api_url}/servers/{server_id}/ssh-keys/{ssh_key_id}"
         return requests.delete(url, headers=self.headers, timeout=self.timeout)
+
+    # -----------------------------------------------------------------------
+    # Images
+
+    def get_images(
+        self, limit: int = 100, offset: int = 0, with_deleted: bool = False
+    ):
+        """Get list of images."""
+        url = f"{self.api_url}/images?limit={limit}&offset={offset}&with_deleted={with_deleted}"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def get_image(self, image_id: str):
+        """Get image."""
+        url = f"{self.api_url}/images/{image_id}"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def create_image(
+        self, disk_id: int, name: str = None, description: str = None
+    ):
+        """Create disk image."""
+        url = f"{self.api_url}/images"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {"disk_id": disk_id}
+        if name:
+            payload.update({"name": name})
+        if description:
+            payload.update({"description": description})
+        return requests.post(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def update_image(
+        self, image_id: str, name: str = None, description: str = None
+    ):
+        """Update image properties."""
+        url = f"{self.api_url}/images/{image_id}"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {}
+        if name:
+            payload.update({"name": name})
+        if description:
+            payload.update({"description": description})
+        return requests.patch(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def delete_image(self, image_id: str):
+        """Remove image."""
+        url = f"{self.api_url}/images/{image_id}"
+        return requests.delete(url, headers=self.headers, timeout=self.timeout)
