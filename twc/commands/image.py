@@ -56,32 +56,32 @@ def image():
 # ------------------------------------------------------------- #
 
 
-def print_images(response: object):
+def print_images(response: object, filters: str):
+    if filters:
+        images = fmt.filter_list(response.json()["images"], filters)
+    else:
+        images = response.json()["images"]
+
     table = fmt.Table()
     table.header(
         [
             "UUID",
             "NAME",
             "REGION",
+            "STATUS",
             "DISK",
             "SIZE",
-            "STATUS",
-            "PROG",
-            "CREATED",
         ]
     )
-    images = response.json()["images"]
     for img in images:
         table.row(
             [
                 img["id"],
                 img["name"],
                 img["location"],
+                img["status"],
                 img["disk_id"],
                 str(round(img["size"] / 1024)) + "G",
-                img["status"],
-                str(img["progress"]) + "%",
-                img["created_at"],
             ]
         )
     table.print()
@@ -91,31 +91,39 @@ def print_images(response: object):
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
 @click.option(
-    "--all",
-    "with_deleted",
-    is_flag=True,
-    help="Show all images including deleted images.",
-)
-@click.option(
     "--limit",
     type=int,
     default=500,
     show_default=True,
     help="Items to display.",
 )
+@click.option("--filter", "-f", "filters", default="", help="Filter output.")
+@click.option("--region", help="Use region (location).")
+@click.option("--with-deleted", is_flag=True, help="Show all images including deleted images.")
 def image_list(
     config,
     profile,
     verbose,
     output_format,
-    with_deleted,
     limit,
+    filters,
+    region,
+    with_deleted,
 ):
+    if filters:
+        filters = filters.replace("region", "location")
+    if region:
+        if filters:
+            filters = filters + f",location:{region}"
+        else:
+            filters = f"location:{region}"
+
     client = create_client(config, profile)
     response = _image_list(client, limit=limit, with_deleted=with_deleted)
     fmt.printer(
         response,
         output_format=output_format,
+        filters=filters,
         func=print_images,
     )
 
@@ -132,11 +140,9 @@ def print_image(response: object):
             "UUID",
             "NAME",
             "REGION",
+            "STATUS",
             "DISK",
             "SIZE",
-            "STATUS",
-            "PROG",
-            "CREATED",
         ]
     )
     img = response.json()["image"]
@@ -145,11 +151,9 @@ def print_image(response: object):
             img["id"],
             img["name"],
             img["location"],
+            img["status"],
             img["disk_id"],
             str(round(img["size"] / 1024)) + "G",
-            img["status"],
-            str(img["progress"]) + "%",
-            img["created_at"],
         ]
     )
     table.print()
