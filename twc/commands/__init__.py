@@ -81,7 +81,7 @@ def set_logger(ctx, param, value):
         )
 
 
-def log(message: str, *args, **kwargs):
+def debug(message: str, *args, **kwargs):
     """Print DEBUG log message"""
     logging.debug(message, *args, **kwargs)
 
@@ -96,13 +96,13 @@ def log_request(response: object):
     )
 
     for key in list(request_headers.keys()):
-        log(f"Request header: {key}: {request_headers[key]}")
+        debug(f"Request header: {key}: {request_headers[key]}")
 
     if response.request.method in ["POST", "PUT", "PATCH"]:
-        log(f"Request body (raw): {response.request.body}")
+        debug(f"Request body (raw): {response.request.body}")
 
     for key in list(response.headers.keys()):
-        log(f"Response header: {key}: {response.headers[key]}")
+        debug(f"Response header: {key}: {response.headers[key]}")
 
 
 # -----------------------------------------------------------------------
@@ -237,7 +237,7 @@ def handle_request(func):
 
             log_request(response)
             if not response.text:
-                log("No response body")
+                debug("No response body")
 
             if response.status_code not in [200, 201, 204]:
                 raise BadResponseError
@@ -270,17 +270,17 @@ def handle_request(func):
 def create_client(config, profile):
     """Create API client instance with access token."""
 
-    log(f"TWC CLI {__version__} Python {__pyversion__}")
-    log(f"Args: {sys.argv[1:]}")
+    debug(f"TWC CLI {__version__} Python {__pyversion__}")
+    debug(f"Args: {sys.argv[1:]}")
 
     env_token = os.getenv("TWC_TOKEN")
 
     if env_token:
-        log("Get Timeweb Cloud token from environment variable")
+        debug("Get Timeweb Cloud token from environment variable")
         return TimewebCloud(env_token, user_agent=USER_AGENT)
 
     try:
-        log(f"Configuration: config file={config}; profile={profile}")
+        debug(f"Configuration: config file={config}; profile={profile}")
         token = load_config(config)[profile]["token"]
         return TimewebCloud(token, user_agent=USER_AGENT)
     except KeyError:

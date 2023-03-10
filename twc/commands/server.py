@@ -13,7 +13,7 @@ from . import (
     create_client,
     handle_request,
     options,
-    log,
+    debug,
     confirm_action,
     MutuallyExclusiveOption,
     GLOBAL_OPTIONS,
@@ -507,7 +507,7 @@ def validate_bandwidth(ctx, param, value):
 
 def validate_image(client, image: str) -> int:
     """Return valid os_id or exit."""
-    log("Get list of OS images...")
+    debug("Get list of OS images...")
     os_images = _server_os_images(client).json()["servers_os"]
 
     if re.match(r"^[a-z]+-[0-9.]+$", image, re.I):
@@ -594,13 +594,13 @@ def add_ssh_key_from_file(
     # I don't want to add the same key over and over
     for exist_key in existing_ssh_keys:
         if ssh_key_body == exist_key["body"]:
-            log(
+            debug(
                 f"SSH-Key '{ssh_key_name}' already exists,"
                 f" ID {exist_key['id']} is used."
             )
             return exist_key["id"]
 
-    log(f"Add new SSH-key '{ssh_key_name}'...")
+    debug(f"Add new SSH-key '{ssh_key_name}'...")
     added_key = _ssh_key_new(
         client,
         name=ssh_key_name,
@@ -608,7 +608,7 @@ def add_ssh_key_from_file(
         is_default=False,
     )
     ssh_key_id = added_key.json()["ssh_key"]["id"]
-    log(f"New SSH-key '{ssh_key_name}' ID is '{ssh_key_id}'")
+    debug(f"New SSH-key '{ssh_key_name}' ID is '{ssh_key_id}'")
     return ssh_key_id
 
 
@@ -616,20 +616,20 @@ def add_ssh_key(client, existing_ssh_keys: list, pubkey: str) -> int:
     """Retrun SSH-key ID. from file, by SSH-key ID or by SSH-key name."""
     # From filesystem
     if os.path.exists(pubkey):
-        log(f"SSH-key to add: file: {pubkey}")
+        debug(f"SSH-key to add: file: {pubkey}")
         return add_ssh_key_from_file(client, pubkey, existing_ssh_keys)
 
     # Add by ID
     if pubkey.isdigit():
         if int(pubkey) in [key["id"] for key in existing_ssh_keys]:
-            log(f"SSH-key to add: ID: {pubkey}")
+            debug(f"SSH-key to add: ID: {pubkey}")
             return int(pubkey)
         sys.exit(f"Error: SSH-key with ID {pubkey} not found.")
 
     # Add by name
     for ssh_key in existing_ssh_keys:
         if pubkey == ssh_key["name"]:
-            log(f"SSH-key to add: name: {pubkey} ID: {ssh_key['id']}")
+            debug(f"SSH-key to add: name: {pubkey} ID: {ssh_key['id']}")
             return ssh_key["id"]
 
     sys.exit(f"Error: SSH-key '{pubkey}' not found.")
@@ -707,9 +707,9 @@ def server_create(
     client = create_client(config, profile)
 
     # Get os_id or exit
-    log("Looking for os_id...")
+    debug("Looking for os_id...")
     os_id = validate_image(client, image)
-    log(f"os_id is {os_id}")
+    debug(f"os_id is {os_id}")
     if not os_id:
         raise click.BadParameter("Wrong image name or ID.")
 
@@ -720,7 +720,7 @@ def server_create(
     # SSH-keys
     ssh_keys_ids = []
     if ssh_key:
-        log("Get SSH-keys...")
+        debug("Get SSH-keys...")
         existing_ssh_keys = _ssh_key_list(client).json()["ssh_keys"]
 
         for pubkey in ssh_key:
@@ -728,7 +728,7 @@ def server_create(
 
     # Create Cloud Server from configurator or preset
     if cpu or ram or disk:
-        log("Get configurator...")
+        debug("Get configurator...")
         configuration = get_configuration(
             client,
             DEFAULT_CONFIGURATOR_ID,
@@ -738,7 +738,7 @@ def server_create(
         )
 
         # Do request
-        log("Create Cloud Server with configurator...")
+        debug("Create Cloud Server with configurator...")
         response = _server_create(
             client,
             configuration=configuration,
@@ -755,15 +755,15 @@ def server_create(
     elif preset_id:
         # Set bandwidth value from preset if option is not set
         if not bandwidth:
-            log("Check preset_id...")
+            debug("Check preset_id...")
             presets = _server_presets(client).json()["server_presets"]
             for preset in presets:
                 if preset["id"] == preset_id:
-                    log(f"Set bandwidth from preset: {preset['bandwidth']}")
+                    debug(f"Set bandwidth from preset: {preset['bandwidth']}")
                     bandwidth = preset["bandwidth"]
 
         # Do request
-        log(f"Create Cloud Server with preset_id {preset_id}...")
+        debug(f"Create Cloud Server with preset_id {preset_id}...")
         response = _server_create(
             client,
             preset_id=preset_id,
@@ -889,18 +889,18 @@ def server_resize(
     payload = {}
 
     # Save original server state
-    log("Get server original state...")
+    debug("Get server original state...")
     old_state = _server_get(client, server_id).json()["server"]
 
     # Get original server preset tags
     old_preset_tags = []
     if old_state["preset_id"]:
-        log(f"Get preset tags by preset_id {old_state['preset_id']}...")
+        debug(f"Get preset tags by preset_id {old_state['preset_id']}...")
         presets = _server_presets(client).json()["server_presets"]
         for preset in presets:
             if preset["id"] == old_state["preset_id"]:
                 old_preset_tags = preset["tags"]
-        log(f"Preset tags is {old_preset_tags}")
+        debug(f"Preset tags is {old_preset_tags}")
 
     # Return error if user tries to change dedicated server
     if "vds_dedic" in old_preset_tags:
@@ -927,7 +927,7 @@ def server_resize(
 
         # Get configurator_id if user tries to switch from preset to
         # configurator. Don't ask what is this.
-        log("Get configurator_id...")
+        debug("Get configurator_id...")
         if not configurator_id:
             if (
                 "ssd_2022" in old_preset_tags
@@ -938,14 +938,14 @@ def server_resize(
                 configurator_id = 9  # old full price configurator
 
         # Get configurator by configurator_id
-        log(f"configurator_id is {configurator_id}, get confugurator...")
+        debug(f"configurator_id is {configurator_id}, get confugurator...")
         configurators = _get_server_configurators(client).json()
         for item in configurators["server_configurators"]:
             if item["id"] == configurator_id:
                 configurator = item  # <-- this!
 
         # Check configurator and return error if configurator is unavailable
-        log(f"Configurator: '{configurator}'")
+        debug(f"Configurator: '{configurator}'")
         if configurator_id and not configurator:
             sys.exit(
                 "Error: Configurator is not available for your server. "
@@ -1083,15 +1083,15 @@ def server_reinstall(
         payload.update({"software_id": software_id})
 
     if add_ssh_keys:
-        log(f"Get SSH-keys by server_id '{server_id}'")
+        debug(f"Get SSH-keys by server_id '{server_id}'")
         ssh_keys = get_ssh_keys_by_server_id(client, server_id)
-        log(f"SSH-keys to add: {ssh_keys}")
+        debug(f"SSH-keys to add: {ssh_keys}")
 
-    log(f"Reinstalling with params: {payload}")
+    debug(f"Reinstalling with params: {payload}")
     response = _server_update(client, server_id, payload)
 
     if add_ssh_keys and ssh_keys:
-        log(f"Readding SSH-keys {ssh_keys} to server '{server_id}'")
+        debug(f"Readding SSH-keys {ssh_keys} to server '{server_id}'")
         ssh_add_resp = _ssh_key_add(client, server_id, ssh_key_ids=ssh_keys)
         if not ssh_add_resp.status_code == 204:
             fmt.printer(ssh_add_resp)
@@ -1559,7 +1559,7 @@ def server_ip_add(
 ):
     client = create_client(config, profile)
     if not ipv4:
-        log("Get Cloud Server location...")
+        debug("Get Cloud Server location...")
         location = _server_get(client, server_id).json()["server"]["location"]
         if location not in REGIONS_WITH_IPV6:
             sys.exit(f"Error: IPv6 is not available in location '{location}'.")
@@ -1600,12 +1600,12 @@ def get_server_id_by_ip(client, ip_address):
 def server_ip_remove(config, profile, verbose, ip_address):
     client = create_client(config, profile)
 
-    log("Looking for IP address...")
+    debug("Looking for IP address...")
     server_id = get_server_id_by_ip(client, ip_address)
     if not server_id:
         sys.exit(f"IP address '{ip_address}' not found.")
 
-    log("Check IP...")
+    debug("Check IP...")
     ips = _server_ip_list(client, server_id).json()["server_ips"]
     for ip_addr in ips:
         if ip_addr["ip"] == ip_address and ip_addr["is_main"]:
@@ -1634,7 +1634,7 @@ def server_ip_set_ptr(
 ):
     client = create_client(config, profile)
 
-    log("Looking for IP address...")
+    debug("Looking for IP address...")
     server_id = get_server_id_by_ip(client, ip_address)
     if not server_id:
         sys.exit(f"IP address '{ip_address}' not found.")
@@ -1742,7 +1742,7 @@ def print_disk(response: object):
 
 
 def get_server_id_by_disk_id(client, disk_id: int) -> int:
-    log("Looking for server_id by disk_id...")
+    debug("Looking for server_id by disk_id...")
     server_id = None
     servers = _server_list(client, limit=10000).json()["servers"]
     for server in servers:
