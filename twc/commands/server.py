@@ -27,6 +27,7 @@ from .ssh_key import (
     _ssh_key_new,
     _ssh_key_add,
 )
+from .image import _image_list
 
 
 @handle_request
@@ -641,7 +642,7 @@ def add_ssh_key(client, existing_ssh_keys: list, pubkey: str) -> int:
 @click.option("--name", required=True, help="Cloud Server display name.")
 @click.option("--comment", help="Comment.")
 @click.option("--avatar-id", default=None, help="Avatar ID.")
-@click.option("--image", required=True, help="OS image to install.")
+@click.option("--image", required=True, help="OS ID, name or image UUID to install.")
 @click.option(
     "--preset-id",
     type=int,
@@ -703,19 +704,39 @@ def server_create(
 ):
     """Create Cloud Server."""
     # pylint: disable=too-many-locals
+    # pylint: disable=too-many-branches
 
     client = create_client(config, profile)
+
+    # Set server parameters
+    payload = {
+        "name": name,
+        "comment": comment,
+        "software_id": software_id,
+        "avatar_id": avatar_id,
+        "is_ddos_guard": ddos_protection,
+        "is_local_network": local_network,
+    }
 
     # Get os_id or exit
     debug("Looking for os_id...")
     os_id = validate_image(client, image)
-    debug(f"os_id is {os_id}")
-    if not os_id:
-        raise click.BadParameter("Wrong image name or ID.")
+    if os_id:
+        debug(f"os_id is '{os_id}'")
+        payload["os_id"] = os_id
+    else:
+        debug("os_id not found, looking for image_id...")
+        if image in [
+            img["id"] for img in _image_list(client).json()["images"]
+        ]:
+            debug(f"image_id is '{image}'")
+            payload["image_id"] = image
+        else:
+            raise click.BadParameter("Wrong image name or ID.")
 
     # Fallback bandwidth to minimum
     if not bandwidth and not preset_id:
-        bandwidth = 100
+        payload["bandwidth"] = 100
 
     # SSH-keys
     ssh_keys_ids = []
@@ -726,31 +747,17 @@ def server_create(
         for pubkey in ssh_key:
             ssh_keys_ids.append(add_ssh_key(client, existing_ssh_keys, pubkey))
 
+    payload["ssh_keys_ids"] = ssh_keys_ids
+
     # Create Cloud Server from configurator or preset
     if cpu or ram or disk:
         debug("Get configurator...")
-        configuration = get_configuration(
+        payload["configuration"] = get_configuration(
             client,
             DEFAULT_CONFIGURATOR_ID,
             cpu,
             ram,
             disk,
-        )
-
-        # Do request
-        debug("Create Cloud Server with configurator...")
-        response = _server_create(
-            client,
-            configuration=configuration,
-            os_id=os_id,
-            bandwidth=bandwidth,
-            name=name,
-            is_ddos_guard=ddos_protection,
-            is_local_network=local_network,
-            comment=comment,
-            software_id=software_id,
-            avatar_id=avatar_id,
-            ssh_keys_ids=ssh_keys_ids,
         )
     elif preset_id:
         # Set bandwidth value from preset if option is not set
@@ -760,28 +767,17 @@ def server_create(
             for preset in presets:
                 if preset["id"] == preset_id:
                     debug(f"Set bandwidth from preset: {preset['bandwidth']}")
-                    bandwidth = preset["bandwidth"]
+                    payload["bandwidth"] = preset["bandwidth"]
 
-        # Do request
-        debug(f"Create Cloud Server with preset_id {preset_id}...")
-        response = _server_create(
-            client,
-            preset_id=preset_id,
-            os_id=os_id,
-            bandwidth=bandwidth,
-            name=name,
-            is_ddos_guard=ddos_protection,
-            is_local_network=local_network,
-            comment=comment,
-            software_id=software_id,
-            avatar_id=avatar_id,
-            ssh_keys_ids=ssh_keys_ids,
-        )
+        payload["preset_id"] = preset_id
     else:
         raise click.UsageError(
             "Configuration or preset is required. "
             "Set '--cpu', '--ram' and '--disk' or '--preset-id'"
         )
+
+    # Do request
+    response = _server_create(client, **payload)
 
     fmt.printer(
         response,
@@ -816,11 +812,11 @@ def server_set_property(
     payload = {}
 
     if name:
-        payload.update({"name": name})
+        payload["name"] = name
     if comment:
-        payload.update({"comment": comment})
+        payload["comment"] = comment
     if avatar_id:
-        payload.update({"avatar_id": avatar_id})
+        payload["avatar_id"] = avatar_id
 
     if not payload:
         raise click.UsageError(
@@ -953,7 +949,7 @@ def server_resize(
             )
 
         # Add configurator key to payload
-        payload.update({"configurator": {}})
+        payload["configurator"] = {}
 
         # Get original size of primary disk
         for old_disk in old_state["disks"]:
@@ -987,7 +983,7 @@ def server_resize(
             )
 
     if bandwidth:
-        payload.update({"bandwidth": bandwidth})
+        payload["bandwidth"] = bandwidth
 
     # Handle case: user tries to change preset to another preset.
     # Check passed preset_id and exit on fail
@@ -1002,7 +998,7 @@ def server_resize(
         presets = _server_presets(client).json()["server_presets"]
         for preset in presets:
             if preset["id"] == preset_id:
-                payload.update({"preset_id": preset_id})
+                payload["preset_id"] = preset_id
         try:
             payload["preset_id"]
         except KeyError:
@@ -1041,7 +1037,7 @@ def get_ssh_keys_by_server_id(client, server_id) -> list:
 @server.command("reinstall", help="Reinstall OS or software.")
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
-@click.option("--image", default=None, help="OS image to install.")
+@click.option("--image", default=None, help="OS ID, name or image UUID to install.")
 @click.option(
     "--software-id", type=int, default=None, help="Software ID to install."
 )
@@ -1072,15 +1068,24 @@ def server_reinstall(
 
     if image:
         os_id = validate_image(client, image)
-        if not os_id:
-            raise click.BadParameter("Wrong image name or ID.")
-        payload.update({"os_id": os_id})
+        if os_id:
+            payload["os_id"] = os_id
+        else:
+            if image in [
+                img["id"] for img in _image_list(client).json()["images"]
+            ]:
+                payload["image_id"] = image
+            else:
+                raise click.BadParameter("Wrong image name or ID.")
     else:
         old_state = _server_get(client, server_id).json()["server"]
-        payload.update({"os_id": old_state["os"]["id"]})
+        if old_state["image"]:
+            payload["image_id"] = old_state["image"]["id"]
+        else:
+            payload["os_id"] = old_state["os"]["id"]
 
     if software_id:
-        payload.update({"software_id": software_id})
+        payload["software_id"] = software_id
 
     if add_ssh_keys:
         debug(f"Get SSH-keys by server_id '{server_id}'")

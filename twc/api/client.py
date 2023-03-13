@@ -122,6 +122,7 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
         configuration: dict = None,
         preset_id: int = None,
         os_id: int = None,
+        image_id: str = None,
         software_id: int = None,
         bandwidth: int = None,
         name: str = None,
@@ -156,30 +157,32 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
 
         url = f"{self.api_url}/servers"
         self.headers.update({"Content-Type": "application/json"})
+
         if not configuration and not preset_id:
             raise ValueError(
                 "One of parameters is required: configuration, preset_id"
             )
 
+        if not os_id and not image_id:
+            raise ValueError("One of parameters is required: os_id, image_id")
+
         # Add required keys
+        payload = {
+            "bandwidth": bandwidth,
+            "name": name,
+            "is_ddos_guard": is_ddos_guard,
+            "is_local_network": is_local_network,
+        }
+
         if configuration:
-            payload = {
-                "configuration": configuration,
-                "os_id": os_id,
-                "bandwidth": bandwidth,
-                "name": name,
-                "is_ddos_guard": is_ddos_guard,
-                "is_local_network": is_local_network,
-            }
-        else:
-            payload = {
-                "preset_id": preset_id,
-                "os_id": os_id,
-                "bandwidth": bandwidth,
-                "name": name,
-                "is_ddos_guard": is_ddos_guard,
-                "is_local_network": is_local_network,
-            }
+            payload["configuration"] = configuration
+        if preset_id:
+            payload["preset_id"] = preset_id
+
+        if os_id:
+            payload["os_id"] = os_id
+        if image_id:
+            payload["image_id"] = image_id
 
         # Add optional keys
         if comment:

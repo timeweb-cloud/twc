@@ -99,7 +99,11 @@ def print_images(response: object, filters: str):
 )
 @click.option("--filter", "-f", "filters", default="", help="Filter output.")
 @click.option("--region", help="Use region (location).")
-@click.option("--with-deleted", is_flag=True, help="Show all images including deleted images.")
+@click.option(
+    "--with-deleted",
+    is_flag=True,
+    help="Show all images including deleted images.",
+)
 def image_list(
     config,
     profile,
