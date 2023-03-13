@@ -42,7 +42,6 @@ disable = [
     "missing-function-docstring",
     "too-many-arguments",
     "too-many-lines",
-    "import-outside-toplevel",
     "duplicate-code",
     "unused-argument",  # 'verbose' arg is OK
     "redefined-outer-name",
