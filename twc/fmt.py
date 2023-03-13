@@ -144,7 +144,7 @@ def query_dict(data: dict, keys: list):
     """
     exp = ""
     for key in keys:
-        if re.match(r"^[a-zA-Z0-9]+$", key):
+        if re.match(r"^[a-zA-Z0-9_]+$", key):
             exp = exp + f"['{key}']"
     try:
         # pylint: disable=eval-used
