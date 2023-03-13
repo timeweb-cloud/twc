@@ -1,4 +1,6 @@
 """Format console output."""
+# pylint: disable=no-name-in-module
+# See https://github.com/PyCQA/pylint/issues/491
 
 import re
 import sys
@@ -6,6 +8,10 @@ import json
 
 import click
 import yaml
+
+from pygments import highlight
+from pygments.lexers import JsonLexer, YamlLexer
+from pygments.formatters import TerminalFormatter
 
 
 class Table:
@@ -63,21 +69,9 @@ class Printer:
         """Print raw API response text (mostly raw JSON)."""
         click.echo(self._data.text)
 
-    def colorize(self, data: str, lang: str = "json"):
+    def colorize(self, data: str, lexer: object = JsonLexer()):
         """Print colorized output. Fallback to non-color."""
-        try:
-            from pygments import highlight
-            from pygments.lexers import JsonLexer, YamlLexer
-            from pygments.formatters import TerminalFormatter
-
-            if lang == "json":
-                lexer = JsonLexer()
-            elif lang == "yaml":
-                lexer = YamlLexer()
-
-            click.echo(highlight(data, lexer, TerminalFormatter()).strip())
-        except ImportError:
-            click.echo(data)
+        click.echo(highlight(data, lexer, TerminalFormatter()).strip())
 
     def pretty_json(self):
         """Print colorized JSON output. Fallback to non-color output if
@@ -87,7 +81,7 @@ class Printer:
             json_data = json.dumps(
                 self._data.json(), indent=4, sort_keys=True, ensure_ascii=False
             )
-            self.colorize(json_data, lang="json")
+            self.colorize(json_data, lexer=JsonLexer())
         except json.JSONDecodeError:
             self.raw()
 
@@ -99,7 +93,7 @@ class Printer:
             yaml_data = yaml.dump(
                 self._data.json(), sort_keys=True, allow_unicode=True
             )
-            self.colorize(yaml_data, lang="yaml")
+            self.colorize(yaml_data, lexer=YamlLexer())
         except yaml.YAMLError:
             self.raw()
 
