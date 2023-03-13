@@ -169,6 +169,14 @@ def filter_list(objects: list, filters: str) -> list:
     for key_val in filters.split(","):
         try:
             key, val = key_val.split(":")
+
+            # Allow search in megabytes or gigabytes, e.g. 1024m, 1g.
+            if key in ["ram", "disk", "size"]:
+                if val.lower().endswith("m"):
+                    val = val[:-1]
+                if val.lower().endswith("g"):
+                    val = str(int(val[:-1]) * 1024)
+
             objects = list(
                 filter(
                     # pylint: disable=cell-var-from-loop
