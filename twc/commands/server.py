@@ -642,7 +642,9 @@ def add_ssh_key(client, existing_ssh_keys: list, pubkey: str) -> int:
 @click.option("--name", required=True, help="Cloud Server display name.")
 @click.option("--comment", help="Comment.")
 @click.option("--avatar-id", default=None, help="Avatar ID.")
-@click.option("--image", required=True, help="OS ID, name or image UUID to install.")
+@click.option(
+    "--image", required=True, help="OS ID, name or image UUID to install."
+)
 @click.option(
     "--preset-id",
     type=int,
@@ -1037,7 +1039,9 @@ def get_ssh_keys_by_server_id(client, server_id) -> list:
 @server.command("reinstall", help="Reinstall OS or software.")
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
-@click.option("--image", default=None, help="OS ID, name or image UUID to install.")
+@click.option(
+    "--image", default=None, help="OS ID, name or image UUID to install."
+)
 @click.option(
     "--software-id", type=int, default=None, help="Software ID to install."
 )
@@ -1260,7 +1264,7 @@ def print_presets(response: object, filters: str):
             "REGION",
             "PRICE",
             "CPU",
-            "CPU FREQ",
+            "FREQ",
             "RAM",
             "DISK",
             "DISK TYPE",
@@ -1277,8 +1281,8 @@ def print_presets(response: object, filters: str):
                 preset["price"],
                 preset["cpu"],
                 preset["cpu_frequency"],
-                preset["ram"],
-                preset["disk"],
+                str(round(preset["ram"] / 1024)) + "G",
+                str(round(preset["disk"] / 1024)) + "G",
                 preset["disk_type"],
                 preset["bandwidth"],
                 preset["description_short"],
@@ -1328,8 +1332,8 @@ def print_os_images(response: object, filters: str):
     )
     for os in os_list:
         try:
-            value = os["requirements"]["disk_min"]
-            requirements = f"disk_min: {value}G"
+            value = round(os["requirements"]["disk_min"] / 1024)
+            requirements = f"Disk >= {value}G"
         except KeyError:
             requirements = ""
         table.row(
@@ -1712,6 +1716,62 @@ def server_disk_list(config, profile, verbose, output_format, server_id):
 
 
 # ------------------------------------------------------------- #
+# $ twc server disk list-all                                    #
+# ------------------------------------------------------------- #
+
+
+def print_all_disks(response: object):
+    servers = response.json()["servers"]
+    table = fmt.Table()
+    table.header(
+        [
+            "SERVER",
+            "DISK",
+            "NAME",
+            "MOUNTED",
+            "SYSTEM",
+            "TYPE",
+            "STATUS",
+            "SIZE",
+            "USED",
+        ]
+    )
+    for server in servers:
+        for disk in server["disks"]:
+            table.row(
+                [
+                    server["id"],
+                    disk["id"],
+                    disk["system_name"],
+                    disk["is_mounted"],
+                    disk["is_system"],
+                    disk["type"],
+                    disk["status"],
+                    str(round(disk["size"] / 1024)) + "G",
+                    str(round(disk["used"] / 1024, 1)) + "G",
+                ]
+            )
+    table.print()
+
+
+@disk.command("list-all", aliases=["la"], help="List disks from all servers.")
+@options(GLOBAL_OPTIONS)
+@options(OUTPUT_FORMAT_OPTION)
+@click.option(
+    "--limit",
+    type=int,
+    default=500,
+    show_default=True,
+    help="Items to display."
+        " NOTE: This option affects on servers count, not disks.",
+)
+def server_disk_list_all(config, profile, verbose, output_format, limit):
+    client = create_client(config, profile)
+    response = _server_list(client, limit=limit)
+    fmt.printer(response, output_format=output_format, func=print_all_disks)
+
+
+# ------------------------------------------------------------- #
 # $ twc server disk get                                         #
 # ------------------------------------------------------------- #
 
@@ -1888,7 +1948,7 @@ def print_autobackup_settings(response: object):
     type=int,
     default=1,
     show_default=True,
-    help="Number of copies to keep.",
+    help="Number of backups to keep.",
 )
 @click.option(
     "--start-date",
@@ -1907,7 +1967,7 @@ def print_autobackup_settings(response: object):
     "--day-of-week",
     type=click.IntRange(min=1, max=7),
     help="The day of the week on which backups will be created."
-    " Works only with '--interval week'.",
+        " NOTE: This option works only with interval 'week'.",
 )
 @click.argument("disk_id", type=int, required=True)
 def server_disk_autobackup(
