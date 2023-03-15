@@ -35,7 +35,9 @@ def raise_exceptions(func):
         if status_code in [200, 201, 400, 403, 404, 409, 429, 500]:
             if is_json:
                 return response  # Success
-            raise NonJSONResponseError
+            raise NonJSONResponseError(
+                f"Code: {status_code}, Response body: {response.text}"
+            )
 
         if status_code == 204:
             return response  # Success
@@ -109,8 +111,13 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
 
     def get_servers(self, limit: int = 100, offset: int = 0):
         """Get list of Cloud Server objects."""
-        url = f"{self.api_url}/servers?limit={limit}&offset={offset}"
-        return requests.get(url, headers=self.headers, timeout=self.timeout)
+        url = f"{self.api_url}/servers"
+        return requests.get(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            params={"limit": limit, "offset": offset},
+        )
 
     def get_server(self, server_id: int):
         """Get Cloud Server object."""
@@ -311,12 +318,14 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
     ):
         """View server action logs. Logs can be ordered by datetime."""
         if order not in ["asc", "desc"]:
-            raise ValueError(f"Invelid order type '{order}'")
-        url = (
-            f"{self.api_url}/servers/{server_id}"
-            + f"/logs?limit={limit}&offset={offset}&order={order}"
+            raise ValueError(f"Invalid order type '{order}'")
+        url = f"{self.api_url}/servers/{server_id}/logs"
+        return requests.get(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            params={"limit": limit, "offset": offset, "order": order},
         )
-        return requests.get(url, headers=self.headers, timeout=self.timeout)
 
     def set_server_boot_mode(self, server_id: int, boot_mode: str = None):
         """Change Cloud Server boot mode."""
@@ -487,7 +496,10 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
 
     def get_disk_backup(self, server_id: int, disk_id: int, backup_id: int):
         """Get disk backup."""
-        url = f"{self.api_url}/servers/{server_id}/disks/{disk_id}/backups/{backup_id}"
+        url = (
+            f"{self.api_url}/servers/{server_id}"
+            + f"/disks/{disk_id}/backups/{backup_id}"
+        )
         return requests.get(url, headers=self.headers, timeout=self.timeout)
 
     def create_disk_backup(
@@ -508,7 +520,10 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
         self, server_id: int, disk_id: int, backup_id: int, comment: str = None
     ):
         """Update backup properties."""
-        url = f"{self.api_url}/servers/{server_id}/disks/{disk_id}/backups/{backup_id}"
+        url = (
+            f"{self.api_url}/servers/{server_id}"
+            + f"/disks/{disk_id}/backups/{backup_id}"
+        )
         self.headers.update({"Content-Type": "application/json"})
         payload = {"comment": comment}
         return requests.patch(
@@ -520,14 +535,20 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
 
     def delete_disk_backup(self, server_id: int, disk_id: int, backup_id: int):
         """Delete backup."""
-        url = f"{self.api_url}/servers/{server_id}/disks/{disk_id}/backups/{backup_id}"
+        url = (
+            f"{self.api_url}/servers/{server_id}"
+            + f"/disks/{disk_id}/backups/{backup_id}"
+        )
         return requests.delete(url, headers=self.headers, timeout=self.timeout)
 
     def do_action_with_disk_backup(
         self, server_id: int, disk_id: int, backup_id: int, action: str = None
     ):
         """Perform action with backup."""
-        url = f"{self.api_url}/servers/{server_id}/disks/{disk_id}/backups/{backup_id}/action"
+        url = (
+            f"{self.api_url}/servers/{server_id}"
+            + f"/disks/{disk_id}/backups/{backup_id}/action"
+        )
         self.headers.update({"Content-Type": "application/json"})
         if action in ["restore", "mount", "unmount"]:
             payload = {"action": action}
@@ -614,8 +635,17 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
         self, limit: int = 100, offset: int = 0, with_deleted: bool = False
     ):
         """Get list of images."""
-        url = f"{self.api_url}/images?limit={limit}&offset={offset}&with_deleted={with_deleted}"
-        return requests.get(url, headers=self.headers, timeout=self.timeout)
+        url = f"{self.api_url}/images"
+        return requests.get(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            params={
+                "limit": limit,
+                "offset": offset,
+                "with_deleted": with_deleted,
+            },
+        )
 
     def get_image(self, image_id: str):
         """Get image."""
@@ -662,3 +692,99 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
         """Remove image."""
         url = f"{self.api_url}/images/{image_id}"
         return requests.delete(url, headers=self.headers, timeout=self.timeout)
+
+    # -----------------------------------------------------------------------
+    # Projects
+
+    def get_projects(self):
+        """Get account projects list."""
+        url = f"{self.api_url}/projects"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def get_project(self, project_id: int):
+        """Get account project by ID."""
+        url = f"{self.api_url}/projects/{project_id}"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def create_project(
+        self, name: str = None, description: str = None, avatar_id: int = None
+    ):
+        """Create project."""
+        url = f"{self.api_url}/projects"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {
+            "name": name,
+            "description": description,
+            "avatar_id": avatar_id,
+        }
+        return requests.post(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def update_project(
+        self,
+        project_id: int = None,
+        name: str = None,
+        description: str = None,
+        avatar_id: int = None,
+    ):
+        """Update project properties."""
+        url = f"{self.api_url}/projects/{project_id}"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {}
+        if name:
+            payload["name"] = name
+        if description:
+            payload["description"] = description
+        if avatar_id:
+            payload["avatar_id"] = avatar_id
+        return requests.put(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def delete_project(self, project_id: int):
+        """Delete project by ID."""
+        url = f"{self.api_url}/projects/{project_id}"
+        return requests.delete(url, headers=self.headers, timeout=self.timeout)
+
+    def move_resource_to_project(
+        self,
+        from_project: int = None,
+        to_project: int = None,
+        resource_id: int = None,
+        resource_type: str = None,
+    ):
+        """Move resource to project."""
+        url = f"{self.api_url}/projects/{from_project}/resources/transfer"
+        self.headers.update({"Content-Type": "application/json"})
+        if resource_type not in [
+            "server",
+            "balancer",
+            "database",
+            "kubernetes",
+            "storage",
+            "dedicated",
+        ]:
+            raise ValueError(f"Invalid resource type '{resource_type}'")
+        payload = {
+            "to_project": to_project,
+            "resource_id": resource_id,
+            "resource_type": resource_type,
+        }
+        return requests.put(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def get_project_resources(self, project_id: int):
+        """Get all project resources."""
+        url = f"{self.api_url}/projects/{project_id}/resources"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
