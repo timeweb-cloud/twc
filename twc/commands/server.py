@@ -15,6 +15,7 @@ from . import (
     options,
     debug,
     confirm_action,
+    set_value_from_config,
     MutuallyExclusiveOption,
     GLOBAL_OPTIONS,
     OUTPUT_FORMAT_OPTION,
@@ -28,6 +29,11 @@ from .ssh_key import (
     _ssh_key_add,
 )
 from .image import _image_list
+from .project import (
+    _project_list,
+    _project_resource_move,
+    get_project_id_by_resource
+)
 
 
 @handle_request
@@ -685,6 +691,14 @@ def add_ssh_key(client, existing_ssh_keys: list, pubkey: str) -> int:
     show_default=True,
     help="Enable local network.",
 )
+@click.option(
+    "--project-id",
+    type=int,
+    default=None,
+    envvar="TWC_PROJECT",
+    callback=set_value_from_config,
+    help="Add server to specific project."
+)
 def server_create(
     config,
     profile,
@@ -703,6 +717,7 @@ def server_create(
     ssh_key,
     ddos_protection,
     local_network,
+    project_id,
 ):
     """Create Cloud Server."""
     # pylint: disable=too-many-locals
@@ -778,8 +793,33 @@ def server_create(
             "Set '--cpu', '--ram' and '--disk' or '--preset-id'"
         )
 
+    if project_id:
+        debug(f"Check project_id")
+        projects = _project_list(client).json()["projects"]
+        if not project_id in [prj["id"] for prj in projects]:
+            raise click.BadParameter("Wrong project ID.")
+
     # Do request
+    debug("Create cloud server...")
     response = _server_create(client, **payload)
+
+    # Add created server to project if set
+    if project_id:
+        new_server_id = response.json()["server"]["id"]
+        debug(f"Add server '{new_server_id}' to project '{project_id}'")
+        old_project_id = get_project_id_by_resource(
+            client,
+            new_server_id,
+            "servers"
+        )
+        project_resp = _project_resource_move(
+            client,
+            from_project=old_project_id,
+            to_project=project_id,
+            resource_id=new_server_id,
+            resource_type="server",
+        )
+        debug(project_resp.text)
 
     fmt.printer(
         response,
@@ -1763,7 +1803,7 @@ def print_all_disks(response: object):
     default=500,
     show_default=True,
     help="Items to display."
-        " NOTE: This option affects on servers count, not disks.",
+    " NOTE: This option affects on servers count, not disks.",
 )
 def server_disk_list_all(config, profile, verbose, output_format, limit):
     client = create_client(config, profile)
@@ -1967,7 +2007,7 @@ def print_autobackup_settings(response: object):
     "--day-of-week",
     type=click.IntRange(min=1, max=7),
     help="The day of the week on which backups will be created."
-        " NOTE: This option works only with interval 'week'.",
+    " NOTE: This option works only with interval 'week'.",
 )
 @click.argument("disk_id", type=int, required=True)
 def server_disk_autobackup(
