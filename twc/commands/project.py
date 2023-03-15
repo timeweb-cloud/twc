@@ -1,5 +1,7 @@
 """Project management commands."""
 
+import sys
+
 import click
 from click_aliases import ClickAliasedGroup
 
@@ -294,13 +296,16 @@ def get_project_id_by_resource(client, resource_id, resource_type: str) -> int:
 )
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
-@click.option("--resource-id", type=int, help="Resource ID to move.")
+@click.option(
+    "--resource-id", type=int, required=True, help="Resource ID to move."
+)
 @click.option(
     "--type",
     "resource_type",
     type=click.Choice(RESOURCE_TYPES),
     default="all",
     show_default=True,
+    required=True,
     help="Resource type.",
 )
 @click.option(

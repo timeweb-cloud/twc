@@ -32,7 +32,7 @@ from .image import _image_list
 from .project import (
     _project_list,
     _project_resource_move,
-    get_project_id_by_resource
+    get_project_id_by_resource,
 )
 
 
@@ -697,7 +697,7 @@ def add_ssh_key(client, existing_ssh_keys: list, pubkey: str) -> int:
     default=None,
     envvar="TWC_PROJECT",
     callback=set_value_from_config,
-    help="Add server to specific project."
+    help="Add server to specific project.",
 )
 def server_create(
     config,
@@ -794,7 +794,7 @@ def server_create(
         )
 
     if project_id:
-        debug(f"Check project_id")
+        debug("Check project_id")
         projects = _project_list(client).json()["projects"]
         if not project_id in [prj["id"] for prj in projects]:
             raise click.BadParameter("Wrong project ID.")
@@ -808,9 +808,7 @@ def server_create(
         new_server_id = response.json()["server"]["id"]
         debug(f"Add server '{new_server_id}' to project '{project_id}'")
         old_project_id = get_project_id_by_resource(
-            client,
-            new_server_id,
-            "servers"
+            client, new_server_id, "servers"
         )
         project_resp = _project_resource_move(
             client,
