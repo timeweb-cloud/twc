@@ -57,8 +57,33 @@ def _project_resource_list(client, *args, **kwargs):
 
 
 @handle_request
+def _project_resource_list_balancers(client, *args, **kwargs):
+    return client.get_project_balancers(*args, **kwargs)
+
+
+@handle_request
+def _project_resource_list_buckets(client, *args, **kwargs):
+    return client.get_project_buckets(*args, **kwargs)
+
+
+@handle_request
+def _project_resource_list_clusters(client, *args, **kwargs):
+    return client.get_project_clusters(*args, **kwargs)
+
+
+@handle_request
+def _project_resource_list_databases(client, *args, **kwargs):
+    return client.get_project_databases(*args, **kwargs)
+
+
+@handle_request
 def _project_resource_list_servers(client, *args, **kwargs):
     return client.get_project_servers(*args, **kwargs)
+
+
+@handle_request
+def _project_resource_list_dedicated_servers(client, *args, **kwargs):
+    return client.get_project_dedicated_servers(*args, **kwargs)
 
 
 @handle_request
@@ -283,9 +308,25 @@ def project_resource_list(
 def get_project_id_by_resource(client, resource_id, resource_type: str) -> int:
     """Return project_id by resource_id and resource_type."""
     projects = _project_list(client).json()["projects"]
+
     for prj in projects:
-        resources = _project_resource_list(client, prj["id"]).json()
-        for resource in resources[resource_type]:
+
+        if resource_type == "server":
+            resources = _project_resource_list_servers(client, prj["id"])
+        if resource_type == "balancer":
+            resources = _project_resource_list_balancers(client, prj["id"])
+        if resource_type == "bucket":
+            resources = _project_resource_list_buckets(client, prj["id"])
+        if resource_type == "cluster":
+            resources = _project_resource_list_clusters(client, prj["id"])
+        if resource_type == "database":
+            resources = _project_resource_list_databases(client, prj["id"])
+        if resource_type == "dedicated_server":
+            resources = _project_resource_list_dedicated_servers(
+                client, prj["id"]
+            )
+
+        for resource in resources.json()[resource_type + "s"]:
             if resource["id"] == resource_id:
                 return prj["id"]
     return None
@@ -302,9 +343,7 @@ def get_project_id_by_resource(client, resource_id, resource_type: str) -> int:
 @click.option(
     "--type",
     "resource_type",
-    type=click.Choice(RESOURCE_TYPES),
-    default="all",
-    show_default=True,
+    type=click.Choice(RESOURCE_TYPES[1:]),
     required=True,
     help="Resource type.",
 )
@@ -328,7 +367,7 @@ def project_resource_move(
 
     # Change resource_type 'server' to 'servers', etc.
     old_project_id = get_project_id_by_resource(
-        client, resource_id, resource_type + "s"
+        client, resource_id, resource_type
     )
     if not old_project_id:
         sys.exit(

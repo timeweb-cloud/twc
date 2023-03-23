@@ -788,3 +788,33 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
         """Get all project resources."""
         url = f"{self.api_url}/projects/{project_id}/resources"
         return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def get_project_balancers(self, project_id: int):
+        """List balancers in project by project_id."""
+        url = f"{self.api_url}/projects/{project_id}/resources/balancers"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def get_project_buckets(self, project_id: int):
+        """List buckets in project by project_id."""
+        url = f"{self.api_url}/projects/{project_id}/resources/buckets"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def get_project_clusters(self, project_id: int):
+        """List Kubernetes clusters in project by project_id."""
+        url = f"{self.api_url}/projects/{project_id}/resources/clusters"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def get_project_databases(self, project_id: int):
+        """List managed databases in project by project_id."""
+        url = f"{self.api_url}/projects/{project_id}/resources/databases"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def get_project_servers(self, project_id: int):
+        """List servers in project by project_id."""
+        url = f"{self.api_url}/projects/{project_id}/resources/servers"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def get_project_dedicated_servers(self, project_id: int):
+        """List dedicated servers in project by project_id."""
+        url = f"{self.api_url}/projects/{project_id}/resources/databases"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)

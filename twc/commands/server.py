@@ -31,8 +31,8 @@ from .ssh_key import (
 from .image import _image_list
 from .project import (
     _project_list,
+    _project_resource_list_servers,
     _project_resource_move,
-    get_project_id_by_resource,
 )
 
 
@@ -459,6 +459,17 @@ def get_os_id_by_name(os_images: list, os_name: str) -> int:
     return os_id
 
 
+def get_project_id_by_server_id(client, projects: list, server_id: int) -> int:
+    """Return project_id by server_id."""
+    for project in projects:
+        for server in _project_resource_list_servers(
+            client, project["id"]
+        ).json()["servers"]:
+            if server["id"] == server_id:
+                return project["id"]
+    return None
+
+
 def size_to_mb(size: str) -> int:
     """Transform string like '5G' into integer in megabytes.
     Case insensitive. For example::
@@ -800,15 +811,15 @@ def server_create(
             raise click.BadParameter("Wrong project ID.")
 
     # Do request
-    debug("Create cloud server...")
+    debug("Create Cloud Server...")
     response = _server_create(client, **payload)
 
     # Add created server to project if set
     if project_id:
         new_server_id = response.json()["server"]["id"]
         debug(f"Add server '{new_server_id}' to project '{project_id}'")
-        old_project_id = get_project_id_by_resource(
-            client, new_server_id, "servers"
+        old_project_id = get_project_id_by_server_id(
+            client, projects, new_server_id
         )
         project_resp = _project_resource_move(
             client,
