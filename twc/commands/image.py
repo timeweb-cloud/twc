@@ -1,5 +1,7 @@
 """Image management commands."""
 
+import re
+import os
 import sys
 
 import click
@@ -10,6 +12,7 @@ from . import (
     create_client,
     handle_request,
     options,
+    debug,
     GLOBAL_OPTIONS,
     OUTPUT_FORMAT_OPTION,
 )
@@ -38,6 +41,11 @@ def _image_remove(client, *args, **kwargs):
 @handle_request
 def _image_set_property(client, *args, **kwargs):
     return client.update_image(*args, **kwargs)
+
+
+@handle_request
+def _image_upload(client, *args, **kwargs):
+    return client.upload_image(*args, **kwargs)
 
 
 # ------------------------------------------------------------- #
@@ -189,12 +197,16 @@ def image_get(config, profile, verbose, output_format, status, image_id):
 @image.command("create", help="Create image.")
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
-@click.option("--name", type=str, help="Image human readable name.")
-@click.option("--desc", type=str, help="Image description.")
+@click.option(
+    "--name", type=str, default=None, help="Image human readable name."
+)
+@click.option("--desc", type=str, default=None, help="Image description.")
 @click.argument("disk_id", type=int, required=True)
 def image_create(config, profile, verbose, output_format, name, desc, disk_id):
     client = create_client(config, profile)
-    response = _image_create(client, disk_id, name=name, description=desc)
+    response = _image_create(
+        client, disk_id=disk_id, name=name, description=desc
+    )
     fmt.printer(
         response,
         output_format=output_format,
@@ -232,8 +244,10 @@ def image_remove(config, profile, verbose, image_id):
 @image.command("set-property", help="Change image name and description.")
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
-@click.option("--name", type=str, help="Image human readable name.")
-@click.option("--desc", type=str, help="Image description.")
+@click.option(
+    "--name", type=str, default=None, help="Image human readable name."
+)
+@click.option("--desc", type=str, default=None, help="Image description.")
 @click.argument("image_id", required=True)
 def image_set_property(
     config, profile, verbose, output_format, name, desc, image_id
@@ -242,6 +256,95 @@ def image_set_property(
     response = _image_set_property(
         client, image_id, name=name, description=desc
     )
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=lambda response: click.echo(response.json()["image"]["id"]),
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc image upload                                            #
+# ------------------------------------------------------------- #
+
+
+def draw_progressbar(monitor):
+    print("Bytes:", monitor.bytes_read)
+
+
+@image.command("upload", help="Upload image from disk of URL.")
+@options(GLOBAL_OPTIONS)
+@options(OUTPUT_FORMAT_OPTION)
+@click.option(
+    "--name", type=str, default=None, help="Image human readable name."
+)
+@click.option("--desc", type=str, default=None, help="Image description.")
+@click.option(
+    "--os",
+    "os_type",
+    type=click.Choice(
+        [
+            "centos",
+            "almalinux",
+            "debian",
+            "bitrix",
+            "ubuntu",
+            "brainycp",
+            "archlinux",
+            "astralinux",
+            "windows",
+            "custom_os",
+            "other",
+        ]
+    ),
+    default="other",
+    show_default=True,
+    help="OS type.",
+)
+@click.option(
+    "--location",
+    type=click.Choice(["ru-1", "ru-2", "pl-1", "kz-1"]),
+    default="ru-1",
+    show_default=True,
+    help="Region to upload image.",
+)
+@click.argument("file", required=True)
+def image_upload(
+    config,
+    profile,
+    verbose,
+    output_format,
+    name,
+    desc,
+    os_type,
+    location,
+    file,
+):
+    client = create_client(config, profile)
+    payload = {
+        "name": name,
+        "description": desc,
+        "location": location,
+        "os": os_type,
+    }
+
+    if re.match(r"https?://", file):
+        debug(f"Upload URL: {file}")
+        payload["upload_url"] = file
+        response = _image_create(client, **payload)
+#    else:
+#        filepath = os.path.realpath(file)
+#        if os.path.exists(filepath):
+#            filesize = os.path.getsize(file)
+#            debug(f"Upload file: {filepath}")
+#            debug(f"File size (bytes): {filesize}")
+#            if filesize > 107374182400:
+#                sys.exit(f"Error: File is too large (>100G): {file}")
+#            image_id = _image_create(client, **payload).json()["image"]["id"]
+#            response = _image_upload(client, image_id, filepath)
+#        else:
+#            sys.exit(f"Error: No such file: {file}")
+
     fmt.printer(
         response,
         output_format=output_format,

@@ -653,16 +653,36 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
         return requests.get(url, headers=self.headers, timeout=self.timeout)
 
     def create_image(
-        self, disk_id: int, name: str = None, description: str = None
+        self,
+        disk_id: int = None,
+        upload_url: str = None,
+        name: str = None,
+        description: str = None,
+        os: str = None,
+        location: str = None,
     ):
         """Create disk image."""
         url = f"{self.api_url}/images"
         self.headers.update({"Content-Type": "application/json"})
-        payload = {"disk_id": disk_id}
+
+        payload = {}
+
+        if disk_id and upload_url:
+            raise ValueError("Mutually exclusive arguments.")
+
+        if disk_id:
+            payload["disk_id"] = disk_id
+        if upload_url:
+            payload["upload_url"] = upload_url
         if name:
-            payload.update({"name": name})
+            payload["name"] = name
         if description:
-            payload.update({"description": description})
+            payload["description"] = description
+        if os:
+            payload["os"] = os
+        if location:
+            payload["location"] = location
+
         return requests.post(
             url,
             headers=self.headers,
@@ -686,6 +706,18 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
             headers=self.headers,
             timeout=self.timeout,
             data=json.dumps(payload),
+        )
+
+    def upload_image(self, image_id: str, filename: str = None):
+        """Upload image to storage."""
+        url = f"{self.api_url}/images/{image_id}"
+        self.headers.update({"Content-Type": "multipart/form-data"})
+        self.headers.update({"Content-Disposition": filename})
+        return requests.post(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            files={"file": open(filename, "rb")},
         )
 
     def delete_image(self, image_id: str):
