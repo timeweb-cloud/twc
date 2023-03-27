@@ -1,7 +1,6 @@
 """Image management commands."""
 
 import re
-import os
 import sys
 
 import click
@@ -272,7 +271,7 @@ def draw_progressbar(monitor):
     print("Bytes:", monitor.bytes_read)
 
 
-@image.command("upload", help="Upload image from disk of URL.")
+@image.command("upload", help="Upload image from URL.")
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
 @click.option(
@@ -303,7 +302,7 @@ def draw_progressbar(monitor):
 )
 @click.option(
     "--location",
-    type=click.Choice(["ru-1", "ru-2", "pl-1", "kz-1"]),
+    type=click.Choice(["ru-1", "ru-2", "pl-1", "kz-1", "nl-1"]),
     default="ru-1",
     show_default=True,
     help="Region to upload image.",
@@ -332,18 +331,18 @@ def image_upload(
         debug(f"Upload URL: {file}")
         payload["upload_url"] = file
         response = _image_create(client, **payload)
-#    else:
-#        filepath = os.path.realpath(file)
-#        if os.path.exists(filepath):
-#            filesize = os.path.getsize(file)
-#            debug(f"Upload file: {filepath}")
-#            debug(f"File size (bytes): {filesize}")
-#            if filesize > 107374182400:
-#                sys.exit(f"Error: File is too large (>100G): {file}")
-#            image_id = _image_create(client, **payload).json()["image"]["id"]
-#            response = _image_upload(client, image_id, filepath)
-#        else:
-#            sys.exit(f"Error: No such file: {file}")
+    #    else:
+    #        filepath = os.path.realpath(file)
+    #        if os.path.exists(filepath):
+    #            filesize = os.path.getsize(file)
+    #            debug(f"Upload file: {filepath}")
+    #            debug(f"File size (bytes): {filesize}")
+    #            if filesize > 107374182400:
+    #                sys.exit(f"Error: File is too large (>100G): {file}")
+    #            image_id = _image_create(client, **payload).json()["image"]["id"]
+    #            response = _image_upload(client, image_id, filepath)
+    #        else:
+    #            sys.exit(f"Error: No such file: {file}")
 
     fmt.printer(
         response,
