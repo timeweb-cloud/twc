@@ -7,7 +7,8 @@ import ctypes
 import toml
 import click
 
-from . import options, get_default_config_file, GLOBAL_OPTIONS, DEFAULT_CONFIG
+from twc.vars import DEFAULT_CONFIG
+from . import options, get_default_config_file, GLOBAL_OPTIONS
 
 
 def make_config(filepath: str = get_default_config_file()):

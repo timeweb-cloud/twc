@@ -24,14 +24,6 @@ from twc.api import (
 # Configuration
 
 
-USER_AGENT = f"TWC-CLI/{__version__} Python {__pyversion__}"
-DEFAULT_CONFIG = {"default": {"token": ""}}
-DEFAULT_CONFIGURATOR_ID = 11
-REGIONS_WITH_CONFIGURATOR = ["ru-1"]
-REGIONS_WITH_IPV6 = ["ru-1", "pl-1"]
-REGIONS_WITH_IMAGES = ["ru-1"]
-
-
 def get_default_config_file() -> str:
     if os.name == "nt":
         env_home = "USERPROFILE"
@@ -196,36 +188,6 @@ class MutuallyExclusiveOption(click.Option):
         return super().handle_parse_result(ctx, opts, args)
 
 
-def confirm_action(question: str, default: str = "no"):
-    """Ask a yes/no question via input() and return their answer.
-
-    The "answer" return value is True for "yes" or False for "no".
-    """
-    valid = {
-        "yes": True,
-        "y": True,
-        "ye": True,
-        "no": False,
-        "n": False,
-    }
-    if default is None:
-        prompt = "[y/n]"
-    elif default == "yes":
-        prompt = "[Y/n]"
-    elif default == "no":
-        prompt = "[y/N]"
-    else:
-        raise ValueError(f"Invalid default answer: '{default}'")
-
-    while True:
-        choice = input(f"{question} {prompt}: ").lower()
-        if default is not None and choice == "":
-            return valid[default]
-        if choice in valid:
-            return valid[choice]
-        sys.exit("Please respond with 'yes' or 'no' (or 'y' or 'n').")
-
-
 # -----------------------------------------------------------------------
 # API interaction
 
@@ -274,14 +236,15 @@ def create_client(config, profile):
     debug(f"Args: {sys.argv[1:]}")
 
     env_token = os.getenv("TWC_TOKEN")
+    user_agent = f"TWC-CLI/{__version__} Python {__pyversion__}"
 
     if env_token:
         debug("Get Timeweb Cloud token from environment variable")
-        return TimewebCloud(env_token, user_agent=USER_AGENT)
+        return TimewebCloud(env_token, user_agent=user_agent)
 
     try:
         debug(f"Configuration: config file={config}; profile={profile}")
         token = load_config(config)[profile]["token"]
-        return TimewebCloud(token, user_agent=USER_AGENT)
+        return TimewebCloud(token, user_agent=user_agent)
     except KeyError:
         sys.exit(f"Profile '{profile}' not found in {config}")

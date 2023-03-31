@@ -9,19 +9,20 @@ import click
 from click_aliases import ClickAliasedGroup
 
 from twc import fmt
+from twc.click_ext import MutuallyExclusiveOption
+from twc.vars import (
+    DEFAULT_CONFIGURATOR_ID,
+    REGIONS_WITH_CONFIGURATOR,
+    REGIONS_WITH_IPV6,
+)
 from . import (
     create_client,
     handle_request,
     options,
     debug,
-    confirm_action,
     set_value_from_config,
-    MutuallyExclusiveOption,
     GLOBAL_OPTIONS,
     OUTPUT_FORMAT_OPTION,
-    DEFAULT_CONFIGURATOR_ID,
-    REGIONS_WITH_CONFIGURATOR,
-    REGIONS_WITH_IPV6,
 )
 from .ssh_key import (
     _ssh_key_list,
@@ -833,7 +834,9 @@ def server_create(
 # ------------------------------------------------------------- #
 
 
-@server.command("set-property", help="Update Cloud Server properties.")
+@server.command(
+    "set-property", aliases=["set"], help="Update Cloud Server properties."
+)
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
 @click.option("--name", help="Cloud server display name.")
@@ -1048,7 +1051,7 @@ def server_resize(
 
     # Prompt if no option --yes passed
     if not confirmed:
-        if not confirm_action("Server will restart, continue?"):
+        if not click.confirm("Server will restart. Continue?", default=False):
             sys.exit("Aborted!")
 
     # Make request
@@ -1340,7 +1343,9 @@ def print_presets(response: object, filters: str):
     table.print()
 
 
-@server.command("list-presets", help="List configuration presets.")
+@server.command(
+    "list-presets", aliases=["lp"], help="List configuration presets."
+)
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
 @click.option("--region", "-r", help="Use region (location).")
@@ -1398,7 +1403,9 @@ def print_os_images(response: object, filters: str):
 
 
 @server.command(
-    "list-os-images", help="List prebuilt operating system images."
+    "list-os-images",
+    aliases=["li"],
+    help="List prebuilt operating system images.",
 )
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
@@ -2186,7 +2193,9 @@ def server_backup_create(
 # ------------------------------------------------------------- #
 
 
-@backup.command("set-property", help="Change backup properties.")
+@backup.command(
+    "set-property", aliases=["set"], help="Change backup properties."
+)
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
 @click.option("--comment", type=str, default=None, help="Comment.")
