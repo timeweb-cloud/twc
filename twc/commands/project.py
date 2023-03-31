@@ -10,6 +10,7 @@ from . import (
     create_client,
     handle_request,
     options,
+    debug,
     GLOBAL_OPTIONS,
     OUTPUT_FORMAT_OPTION,
 )
@@ -89,6 +90,14 @@ def _project_resource_list_dedicated_servers(client, *args, **kwargs):
 @handle_request
 def _project_resource_move(client, *args, **kwargs):
     return client.move_resource_to_project(*args, **kwargs)
+
+
+def get_default_project_id(client):
+    for prj in _project_list(client).json()["projects"]:
+        if prj["is_default"]:
+            debug(f"Default project ID is {prj['id']}")
+            return prj["id"]
+    return None
 
 
 # ------------------------------------------------------------- #

@@ -30,6 +30,7 @@ from .ssh_key import (
 )
 from .image import _image_list
 from .project import (
+    get_default_project_id,
     _project_list,
     _project_resource_list_servers,
     _project_resource_move,
@@ -459,17 +460,6 @@ def get_os_id_by_name(os_images: list, os_name: str) -> int:
     return os_id
 
 
-def get_project_id_by_server_id(client, projects: list, server_id: int) -> int:
-    """Return project_id by server_id."""
-    for project in projects:
-        for server in _project_resource_list_servers(
-            client, project["id"]
-        ).json()["servers"]:
-            if server["id"] == server_id:
-                return project["id"]
-    return None
-
-
 def size_to_mb(size: str) -> int:
     """Transform string like '5G' into integer in megabytes.
     Case insensitive. For example::
@@ -733,6 +723,7 @@ def server_create(
     """Create Cloud Server."""
     # pylint: disable=too-many-locals
     # pylint: disable=too-many-branches
+    # pylint: disable=too-many-statements
 
     client = create_client(config, profile)
 
@@ -816,14 +807,14 @@ def server_create(
 
     # Add created server to project if set
     if project_id:
+        src_project = get_default_project_id(client)
+        # Make useless request to avoid API bug (409 resource_not_found)
+        _r = _project_resource_list_servers(client, src_project)
         new_server_id = response.json()["server"]["id"]
         debug(f"Add server '{new_server_id}' to project '{project_id}'")
-        old_project_id = get_project_id_by_server_id(
-            client, projects, new_server_id
-        )
         project_resp = _project_resource_move(
             client,
-            from_project=old_project_id,
+            from_project=src_project,
             to_project=project_id,
             resource_id=new_server_id,
             resource_type="server",
@@ -1196,6 +1187,14 @@ def server_remove(config, profile, verbose, server_ids):
 
     for server_id in server_ids:
         response = _server_remove(client, server_id)
+
+        if response.status_code == 200:
+            del_hash = response.json()["server_delete"]["hash"]
+            del_code = click.prompt("Please enter confirmation code", type=int)
+            response = _server_remove(
+                client, server_id, delete_hash=del_hash, code=del_code
+            )
+
         if response.status_code == 204:
             click.echo(server_id)
         else:
@@ -2089,11 +2088,8 @@ def print_backups(response: object):
         [
             "ID",
             "DISK",
-            "STATUS",
             "CREATED",
-            "SIZE",
-            "TYPE",
-            "COMMENT",
+            "STATUS",
         ]
     )
     for backup in backups:
@@ -2101,11 +2097,8 @@ def print_backups(response: object):
             [
                 backup["id"],
                 backup["name"],
-                backup["status"],
                 backup["created_at"],
-                str(round(backup["size"] / 1024)) + "G",
-                backup["type"],
-                backup["comment"],
+                backup["status"],
             ]
         )
     table.print()
@@ -2134,22 +2127,16 @@ def print_backup(response: object):
         [
             "ID",
             "DISK",
-            "STATUS",
             "CREATED",
-            "SIZE",
-            "TYPE",
-            "COMMENT",
+            "STATUS",
         ]
     )
     table.row(
         [
             backup["id"],
             backup["name"],
-            backup["status"],
             backup["created_at"],
-            str(round(backup["size"] / 1024)) + "G",
-            backup["type"],
-            backup["comment"],
+            backup["status"],
         ]
     )
     table.print()
