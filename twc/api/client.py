@@ -850,3 +850,138 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
         """List dedicated servers in project by project_id."""
         url = f"{self.api_url}/projects/{project_id}/resources/databases"
         return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    # -----------------------------------------------------------------------
+    # Databases
+
+    def get_databases(self, limit: int = 100, offset: int = 0):
+        """Get databases list."""
+        url = f"{self.api_url}/dbs"
+        return requests.get(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            params={"limit": limit, "offset": offset},
+        )
+
+    def get_database(self, db_id: int):
+        """Get database."""
+        url = f"{self.api_url}/dbs/{db_id}"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def get_database_presets(self):
+        """Get database presets list."""
+        url = f"{self.api_url}/presets/dbs"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def create_database(
+        self,
+        name: str = None,
+        dbms: str = None,
+        login: str = None,
+        password: str = None,
+        hash_type: str = None,
+        preset_id: int = None,
+        config_parameters: dict = None,
+    ):
+        """Create database."""
+        url = f"{self.api_url}/dbs"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {
+            "name": name,
+            "type": dbms,
+            "login": login,
+            "password": password,
+            "hash_type": hash_type,
+            "preset_id": preset_id,
+            "config_parameters": config_parameters,
+        }
+        return requests.post(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def update_database(
+        self,
+        db_id: int,
+        name: str = None,
+        password: str = None,
+        preset_id: int = None,
+        config_parameters: dict = None,
+        external_ip: bool = None,
+    ):
+        """Update database."""
+        url = f"{self.api_url}/dbs/{db_id}"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {}
+        if name:
+            payload["name"] = name
+        if password:
+            payload["password"] = password
+        if preset_id:
+            payload["preset_id"] = preset_id
+        if config_parameters:
+            payload["config_parameters"] = config_parameters
+        if external_ip:
+            payload["is_external_ip"] = external_ip
+        return requests.patch(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def delete_database(
+        self, db_id: int, delete_hash: str = None, code: int = None
+    ):
+        """Delete database."""
+        url = f"{self.api_url}/dbs/{db_id}"
+        params = {}
+        if delete_hash:
+            params["hash"] = delete_hash
+        if code:
+            params["code"] = code
+        return requests.delete(
+            url, headers=self.headers, timeout=self.timeout, params=params
+        )
+
+    def get_database_backups(
+        self, db_id: int, limit: int = 100, offset: int = 0
+    ):
+        """List database backups."""
+        url = f"{self.api_url}/dbs/{db_id}/backups"
+        return requests.get(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            params={"limit": limit, "offset": offset},
+        )
+
+    def get_database_backup(self, db_id: int, backup_id: int):
+        """Get database backup."""
+        url = f"{self.api_url}/dbs/{db_id}/backups/{backup_id}"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def create_database_backup(self, db_id: int):
+        """Create database backup."""
+        url = f"{self.api_url}/dbs/{db_id}/backups"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {}
+        return requests.post(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def delete_database_backup(self, db_id: int, backup_id: int):
+        """Delete database backup."""
+        url = f"{self.api_url}/dbs/{db_id}/backups/{backup_id}"
+        return requests.delete(url, headers=self.headers, timeout=self.timeout)
+
+    def restore_database_backup(self, db_id: int, backup_id: int):
+        """Restore database backup."""
+        url = f"{self.api_url}/dbs/{db_id}/backups/{backup_id}"
+        return requests.put(url, headers=self.headers, timeout=self.timeout)

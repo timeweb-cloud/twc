@@ -9,6 +9,7 @@ from .commands.server import server
 from .commands.ssh_key import ssh_key
 from .commands.image import image
 from .commands.project import project
+from .commands.database import database
 
 
 @click.group()
@@ -23,3 +24,4 @@ cli.add_command(server)
 cli.add_command(ssh_key)
 cli.add_command(image)
 cli.add_command(project)
+cli.add_command(database)
