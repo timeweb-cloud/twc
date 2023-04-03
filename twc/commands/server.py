@@ -4,6 +4,7 @@ import re
 import os
 import sys
 import datetime
+import webbrowser
 
 import click
 from click_aliases import ClickAliasedGroup
@@ -14,6 +15,7 @@ from twc.vars import (
     DEFAULT_CONFIGURATOR_ID,
     REGIONS_WITH_CONFIGURATOR,
     REGIONS_WITH_IPV6,
+    TWC_CP_URL,
 )
 from . import (
     create_client,
@@ -1318,10 +1320,9 @@ def print_presets(response: object, filters: str):
             "FREQ",
             "RAM",
             "DISK",
-            "DISK TYPE",
-            "BANDWIDTH",
-            "DESCRIPTION",
-            "LOCAL NETWORK",
+            "TYPE",
+            "BANDW",
+            "LAN"
         ]
     )
     for preset in presets:
@@ -1336,7 +1337,6 @@ def print_presets(response: object, filters: str):
                 str(round(preset["disk"] / 1024)) + "G",
                 preset["disk_type"],
                 preset["bandwidth"],
-                preset["description_short"],
                 preset["is_allowed_local_network"],
             ]
         )
@@ -1462,7 +1462,7 @@ def print_logs(response: object):
         )
 
 
-@server.command("logs", help="View Cloud Server events log.")
+@server.command("history", aliases=["logs"], help="View Cloud Server events log.")
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
 @click.option(
@@ -2301,3 +2301,37 @@ def server_backup_unmount(config, profile, verbose, disk_id, backup_id):
         click.echo(server_id)
     else:
         fmt.printer(response)
+
+
+# ------------------------------------------------------------- #
+# $ twc server dash                                             #
+# ------------------------------------------------------------- #
+
+
+@server.command("dash", help="Open Cloud Server dashboard in web browser.")
+@options(GLOBAL_OPTIONS[:2])
+@click.option("--tab/--win", default=True, show_default=True, help="Open in new tab or new window.")
+@click.argument("server_id", type=int, required=True)
+def server_dash(tab, server_id):
+    url = F"{TWC_CP_URL}/servers/{server_id}"
+    if tab:
+        webbrowser.open_new_tab(url)
+    else:
+        webbrowser.open_new(url)
+
+
+# ------------------------------------------------------------- #
+# $ twc server vnc                                              #
+# ------------------------------------------------------------- #
+
+
+@server.command("vnc", help="Open Cloud Server web VNC console in browser.")
+@options(GLOBAL_OPTIONS[:2])
+@click.option("--tab/--win", default=True, show_default=True, help="Open in new tab or new window.")
+@click.argument("server_id", type=int, required=True)
+def server_vnc(tab, server_id):
+    url = F"{TWC_CP_URL}/servers/{server_id}/console"
+    if tab:
+        webbrowser.open_new_tab(url)
+    else:
+        webbrowser.open_new(url)

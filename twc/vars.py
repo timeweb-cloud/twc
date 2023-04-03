@@ -3,6 +3,10 @@ They are subject to change at any time as cloud computing capabilities
 expand or other infrastructure or product changes occur.
 """
 
+# Service URLs
+TWC_CP_URL = "https://timeweb.cloud/my"
+TWC_S3_URL = "https://s3.timeweb.com"
+
 # CLI configuration file sceleton.
 DEFAULT_CONFIG = {"default": {"token": ""}}
 
