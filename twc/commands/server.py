@@ -1322,7 +1322,7 @@ def print_presets(response: object, filters: str):
             "DISK",
             "TYPE",
             "BANDW",
-            "LAN"
+            "LAN",
         ]
     )
     for preset in presets:
@@ -1462,7 +1462,9 @@ def print_logs(response: object):
         )
 
 
-@server.command("history", aliases=["logs"], help="View Cloud Server events log.")
+@server.command(
+    "history", aliases=["logs"], help="View Cloud Server events log."
+)
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
 @click.option(
@@ -2310,10 +2312,15 @@ def server_backup_unmount(config, profile, verbose, disk_id, backup_id):
 
 @server.command("dash", help="Open Cloud Server dashboard in web browser.")
 @options(GLOBAL_OPTIONS[:2])
-@click.option("--tab/--win", default=True, show_default=True, help="Open in new tab or new window.")
+@click.option(
+    "--tab/--win",
+    default=True,
+    show_default=True,
+    help="Open in new tab or new window.",
+)
 @click.argument("server_id", type=int, required=True)
 def server_dash(tab, server_id):
-    url = F"{TWC_CP_URL}/servers/{server_id}"
+    url = f"{TWC_CP_URL}/servers/{server_id}"
     if tab:
         webbrowser.open_new_tab(url)
     else:
@@ -2327,10 +2334,15 @@ def server_dash(tab, server_id):
 
 @server.command("vnc", help="Open Cloud Server web VNC console in browser.")
 @options(GLOBAL_OPTIONS[:2])
-@click.option("--tab/--win", default=True, show_default=True, help="Open in new tab or new window.")
+@click.option(
+    "--tab/--win",
+    default=True,
+    show_default=True,
+    help="Open in new tab or new window.",
+)
 @click.argument("server_id", type=int, required=True)
 def server_vnc(tab, server_id):
-    url = F"{TWC_CP_URL}/servers/{server_id}/console"
+    url = f"{TWC_CP_URL}/servers/{server_id}/console"
     if tab:
         webbrowser.open_new_tab(url)
     else:
