@@ -1,12 +1,9 @@
 """Object Storage management commands."""
-# pylint: disable=no-name-in-module
-# See https://github.com/PyCQA/pylint/issues/491
 
 import sys
 
 import click
 from click_aliases import ClickAliasedGroup
-from pygments.lexers import IniLexer
 
 from twc import fmt
 from twc.vars import TWC_S3_ENDPOINT
@@ -818,5 +815,4 @@ def storage_genconfig(config, profile, verbose, user_id, s3_client, save_to):
         with open(save_to, "w", encoding="utf-8") as s3_config:
             s3_config.write(file_content)
     else:
-        output = fmt.Printer("")
-        output.colorize(file_content, IniLexer())
+        fmt.print_colored(file_content, lang="ini")

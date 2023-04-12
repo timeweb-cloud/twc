@@ -10,7 +10,7 @@ import click
 import yaml
 
 from pygments import highlight
-from pygments.lexers import JsonLexer, YamlLexer
+from pygments.lexers import JsonLexer, YamlLexer, IniLexer, TOMLLexer
 from pygments.formatters import TerminalFormatter
 
 
@@ -188,3 +188,16 @@ def filter_list(objects: list, filters: str) -> list:
         except (KeyError, ValueError):
             return []
     return objects
+
+
+def print_colored(data: str, lang: str = None):
+    """Print colorized text to terminal."""
+    lexers = {
+        "json": JsonLexer(),
+        "yaml": YamlLexer(),
+        "toml": TOMLLexer(),
+        "ini": IniLexer(),
+    }
+    if lang not in lexers.keys():
+        raise ValueError(f"Unsupported lexer: '{lang}'")
+    click.echo(highlight(data, lexers[lang], TerminalFormatter()).strip())
