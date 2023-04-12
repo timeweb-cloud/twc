@@ -12,6 +12,7 @@ from .commands.ssh_key import ssh_key
 from .commands.image import image
 from .commands.project import project
 from .commands.database import database
+from .commands.storage import storage
 
 
 class AliasedCmdGroup(click.Group):
@@ -44,7 +45,7 @@ class AliasedCmdGroup(click.Group):
                 continue
             commands.append((subcommand, cmd))
 
-        if len(commands):
+        if commands:
             limit = formatter.width - 6 - max(len(cmd[0]) for cmd in commands)
             rows = []
             for subcommand, cmd in commands:
@@ -53,8 +54,8 @@ class AliasedCmdGroup(click.Group):
                 for a in list(ALIASES.keys()):
                     if ALIASES[a].name == cmd.name:
                         alias = f" ({a})"
-                help = cmd.get_short_help_str(limit)
-                rows.append((subcommand + alias, help))
+                help_text = cmd.get_short_help_str(limit)
+                rows.append((subcommand + alias, help_text))
             if rows:
                 with formatter.section(_("Commands")):
                     formatter.write_dl(rows)
@@ -73,6 +74,7 @@ cli.add_command(ssh_key)
 cli.add_command(image)
 cli.add_command(project)
 cli.add_command(database)
+cli.add_command(storage)
 
 
 # -- Aliases list for root level commands. --
@@ -89,4 +91,6 @@ ALIASES = {
     "p": project,
     "dbs": database,
     "db": database,
+    "storages": storage,
+    "s3": storage,
 }

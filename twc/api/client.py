@@ -32,14 +32,15 @@ def raise_exceptions(func):
         except AttributeError:
             is_json = False
 
-        if status_code in [200, 201, 400, 403, 404, 409, 429, 500]:
+        # Remove 201 to avoid API bug (201 with no body)
+        if status_code in [200, 400, 403, 404, 409, 429, 500]:
             if is_json:
                 return response  # Success
             raise NonJSONResponseError(
                 f"Code: {status_code}, Response body: {response.text}"
             )
 
-        if status_code == 204:
+        if status_code in [201, 204]:
             return response  # Success
 
         if status_code == 401:
@@ -985,3 +986,184 @@ class TimewebCloud(metaclass=TimewebCloudMeta):
         """Restore database backup."""
         url = f"{self.api_url}/dbs/{db_id}/backups/{backup_id}"
         return requests.put(url, headers=self.headers, timeout=self.timeout)
+
+    # -----------------------------------------------------------------------
+    # Object Storage
+
+    def get_storage_presets(self):
+        """Get storage presets list."""
+        url = f"{self.api_url}/presets/storages"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def get_buckets(self):
+        """Get buckets list."""
+        url = f"{self.api_url}/storages/buckets"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def create_bucket(
+        self, name: str = None, preset_id: int = None, is_public: bool = False
+    ):
+        """Create storage bucket."""
+        url = f"{self.api_url}/storages/buckets"
+        self.headers.update({"Content-Type": "application/json"})
+        if is_public:
+            bucket_type = "public"
+        else:
+            bucket_type = "private"
+        payload = {
+            "name": name,
+            "type": bucket_type,
+            "preset_id": preset_id,
+        }
+        return requests.post(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def delete_bucket(
+        self, bucket_id: int, delete_hash: str = None, code: int = None
+    ):
+        """Delete storage bucket."""
+        url = f"{self.api_url}/storages/buckets/{bucket_id}"
+        params = {}
+        if delete_hash:
+            params["hash"] = delete_hash
+        if code:
+            params["code"] = code
+        return requests.delete(
+            url, headers=self.headers, timeout=self.timeout, params=params
+        )
+
+    def update_bucket(
+        self, bucket_id: int, preset_id: int = None, is_public: bool = None
+    ):
+        """Update storage bucket."""
+        url = f"{self.api_url}/storages/buckets/{bucket_id}"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {}
+        if is_public is None:
+            pass
+        elif is_public is False:
+            payload["bucket_type"] = "private"
+        elif is_public is True:
+            payload["bucket_type"] = "public"
+        if preset_id:
+            payload["preset_id"] = preset_id
+        return requests.patch(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def get_storage_users(self):
+        """Get storage users list."""
+        url = f"{self.api_url}/storages/users"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def update_storage_user_secret(
+        self, user_id: int = None, secret_key: str = None
+    ):
+        """Update storage user secret key."""
+        url = f"{self.api_url}/storages/users/{user_id}"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {"secret_key": secret_key}
+        return requests.patch(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def get_storage_transfer_status(self, bucket_id: int = None):
+        """Get storage transfer status."""
+        url = f"{self.api_url}/storages/buckets/{bucket_id}/transfer-status"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def start_storage_transfer(
+        self,
+        src_bucket: str = None,
+        dst_bucket: str = None,
+        access_key: str = None,
+        secret_key: str = None,
+        location: str = None,
+        endpoint: str = None,
+        force_path_style: bool = False,
+    ):
+        """Start file transfer from any S3-compatible storage to Timeweb Cloud
+        Object Storage.
+        """
+        url = f"{self.api_url}/storages/transfer"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {
+            "access_key": access_key,
+            "secret_key": secret_key,
+            "location": location,
+            "is_force_path_style": force_path_style,
+            "endpoint": endpoint,
+            "bucket_name": src_bucket,
+            "new_bucket_name": dst_bucket,
+        }
+        return requests.post(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def get_bucket_subdomains(self, bucket_id: int = None):
+        """Get bucket subdomains list."""
+        url = f"{self.api_url}/storages/buckets/{bucket_id}/subdomains"
+        return requests.get(url, headers=self.headers, timeout=self.timeout)
+
+    def add_bucket_subdomains(
+        self,
+        bucket_id: int = None,
+        subdomains: list = None,
+    ):
+        """Add subdomains to bucket."""
+        url = f"{self.api_url}/storages/buckets/{bucket_id}/subdomains"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {
+            "subdomains": subdomains,
+        }
+        return requests.post(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def delete_bucket_subdomains(
+        self,
+        bucket_id: int = None,
+        subdomains: list = None,
+    ):
+        """Delete bucket subdomains."""
+        url = f"{self.api_url}/storages/buckets/{bucket_id}/subdomains"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {
+            "subdomains": subdomains,
+        }
+        return requests.delete(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
+
+    def gen_cert_for_bucket_subdomain(self, subdomain: str = None):
+        """Generate TLS certificate for subdomain attached to bucket."""
+        url = f"{self.api_url}/storages/certificates/generate"
+        self.headers.update({"Content-Type": "application/json"})
+        payload = {
+            "subdomain": subdomain,
+        }
+        return requests.post(
+            url,
+            headers=self.headers,
+            timeout=self.timeout,
+            data=json.dumps(payload),
+        )
