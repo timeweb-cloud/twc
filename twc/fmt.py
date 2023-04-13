@@ -198,6 +198,6 @@ def print_colored(data: str, lang: str = None):
         "toml": TOMLLexer(),
         "ini": IniLexer(),
     }
-    if lang not in lexers.keys():
+    if lang not in lexers:
         raise ValueError(f"Unsupported lexer: '{lang}'")
     click.echo(highlight(data, lexers[lang], TerminalFormatter()).strip())
