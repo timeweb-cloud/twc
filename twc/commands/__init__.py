@@ -37,10 +37,14 @@ def load_config(filepath: str = get_default_config_file()):
     try:
         with open(filepath, "r", encoding="utf-8") as file:
             return toml.load(file)
-    except (OSError, FileNotFoundError) as error:
-        sys.exit(f"Error: {filepath}: {error}: Try run 'twc config'")
+    except FileNotFoundError:
+        sys.exit(
+            f"Configuration file {filepath} not found. Try run 'twc config'"
+        )
+    except OSError as error:
+        sys.exit(f"Error: Cannot read configuration file {filepath}: {error}")
     except toml.TomlDecodeError as error:
-        sys.exit(f"Error: {filepath}: {error}")
+        sys.exit(f"Error: Check your TOML syntax in file {filepath}: {error}")
 
 
 def set_value_from_config(ctx, param, value):
