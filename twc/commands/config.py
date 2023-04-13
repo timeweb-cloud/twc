@@ -46,10 +46,19 @@ def make_config(filepath: str = get_default_config_file()):
             current_config = load_config()
             profile = click.prompt("Enter profile name", default="default")
             token = click.prompt(f"Enter API token for '{profile}'")
-            current_config[profile] = utils.merge_dicts(
-                current_config[profile],
-                {"token": token},
-            )
+            try:
+                # Edit existing profile
+                current_config[profile] = utils.merge_dicts(
+                    current_config[profile],
+                    {"token": token},
+                )
+            except KeyError:
+                # Add new profile
+                current_config[profile] = {}  # init new config section
+                current_config[profile] = utils.merge_dicts(
+                    current_config[profile],
+                    {"token": token},
+                )
             write_to_file(current_config, filepath)
         else:
             sys.exit("Aborted!")
