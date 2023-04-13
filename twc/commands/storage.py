@@ -226,7 +226,7 @@ def storage_list_presets(
 @storage.command("mb", help="Make bucket.")
 @options(GLOBAL_OPTIONS)
 @options(OUTPUT_FORMAT_OPTION)
-@click.option("--preset-id", type=int, required=True, help="Bucket preset ID.")
+@click.option("--preset-id", type=int, help="Bucket preset ID.")
 @click.option(
     "--project-id",
     type=int,
@@ -257,6 +257,11 @@ def storage_mb(
     # pylint: disable=too-many-locals
 
     client = create_client(config, profile)
+
+    if not preset_id:
+        # Select minimal preset
+        preset_id = 389  # 10G disk
+
     is_public = False
     if bucket_type == "public":
         is_public = True
