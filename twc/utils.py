@@ -5,6 +5,7 @@ def merge_dicts(a: dict, b: dict, path=None) -> dict:
     """Merge b into a. Return modified a.
     Ref: https://stackoverflow.com/a/7205107
     """
+    # pylint: disable=invalid-name
     if path is None:
         path = []
     for key in b:

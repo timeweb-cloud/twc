@@ -4,17 +4,16 @@ expand or other infrastructure or product changes occur.
 """
 
 # Service URLs
-TWC_CP_URL = "https://timeweb.cloud/my"
-TWC_S3_ENDPOINT = "s3.timeweb.com"
-
-# CLI configuration file sceleton.
-DEFAULT_CONFIG = {"default": {"token": ""}}
+CONTROL_PANEL_URL = "https://timeweb.cloud/my"
+S3_ENDPOINT = "s3.timeweb.com"
 
 # Default Configurator ID for Cloud Servers.
 DEFAULT_CONFIGURATOR_ID = 11
 
 # Location specific parameters. May change later.
+REGIONS = ["ru-1", "ru-2", "pl-1", "kz-1", "nl-1"]
 REGIONS_WITH_CONFIGURATOR = ["ru-1"]
 REGIONS_WITH_IPV6 = ["ru-1", "pl-1"]
 REGIONS_WITH_IMAGES = ["ru-1"]
 REGIONS_WITH_LAN = ["ru-1"]
+REGIONS_WITH_DBAAS = ["ru-1", "pl-1"]
