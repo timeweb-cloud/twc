@@ -1,89 +1,32 @@
-"""Database management commands."""
+"""Manage databases."""
 
 import re
 import sys
+from typing import Optional, List
+from pathlib import Path
 
-import click
-from click_aliases import ClickAliasedGroup
+import typer
+from requests import Response
 
 from twc import fmt
+from twc.typerx import TyperAlias
+from twc.api import ServiceRegion, DBMS, MySQLAuthPlugin
+from twc.apiwrap import create_client
 from twc.utils import merge_dicts
-from . import (
-    create_client,
-    handle_request,
-    set_value_from_config,
-    options,
-    debug,
-    GLOBAL_OPTIONS,
-    OUTPUT_FORMAT_OPTION,
-)
-from .project import (
-    get_default_project_id,
-    _project_list,
-    _project_resource_move,
-    _project_resource_list_databases,
+from .common import (
+    verbose_option,
+    config_option,
+    profile_option,
+    filter_option,
+    yes_option,
+    output_format_option,
+    load_from_config_callback,
 )
 
 
-@handle_request
-def _database_list(client, *args, **kwargs):
-    return client.get_databases(*args, **kwargs)
-
-
-@handle_request
-def _database_get(client, *args, **kwargs):
-    return client.get_database(*args, **kwargs)
-
-
-@handle_request
-def _database_create(client, *args, **kwargs):
-    return client.create_database(*args, **kwargs)
-
-
-@handle_request
-def _database_remove(client, *args, **kwargs):
-    return client.delete_database(*args, **kwargs)
-
-
-@handle_request
-def _database_set(client, *args, **kwargs):
-    return client.update_database(*args, **kwargs)
-
-
-@handle_request
-def _database_backup_list(client, *args, **kwargs):
-    return client.get_database_backups(*args, **kwargs)
-
-
-@handle_request
-def _database_backup_create(client, *args, **kwargs):
-    return client.create_database_backup(*args, **kwargs)
-
-
-@handle_request
-def _database_backup_remove(client, *args, **kwargs):
-    return client.delete_database_backup(*args, **kwargs)
-
-
-@handle_request
-def _database_backup_restore(client, *args, **kwargs):
-    return client.restore_database_backup(*args, **kwargs)
-
-
-@handle_request
-def _database_list_presets(client, *args, **kwargs):
-    return client.get_database_presets(*args, **kwargs)
-
-
-# ------------------------------------------------------------- #
-# $ twc database                                                #
-# ------------------------------------------------------------- #
-
-
-@click.group("database", cls=ClickAliasedGroup)
-@options(GLOBAL_OPTIONS[:2])
-def database():
-    """Manage databases."""
+database = TyperAlias(help=__doc__)
+database_backup = TyperAlias(help="Manage database backups.")
+database.add_typer(database_backup, name="backup")
 
 
 # ------------------------------------------------------------- #
@@ -91,12 +34,12 @@ def database():
 # ------------------------------------------------------------- #
 
 
-def print_databases(response: object, filters: str):
+def print_databases(response: Response, filters: Optional[str]):
+    """Print table with databases list."""
+    # pylint: disable=invalid-name
+    dbs = response.json()["dbs"]
     if filters:
-        dbs = fmt.filter_list(response.json()["dbs"], filters)
-    else:
-        dbs = response.json()["dbs"]
-
+        dbs = fmt.filter_list(dbs, filters)
     table = fmt.Table()
     table.header(
         [
@@ -122,20 +65,18 @@ def print_databases(response: object, filters: str):
     table.print()
 
 
-@database.command("list", aliases=["ls"], help="List databases.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option(
-    "--limit",
-    type=int,
-    default=500,
-    show_default=True,
-    help="Items to display.",
-)
-@click.option("--filter", "-f", "filters", default="", help="Filter output.")
-def database_list(config, profile, verbose, output_format, limit, filters):
+@database.command("list", "ls")
+def database_list(
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    limit: int = typer.Option(500, help="Items to display."),
+    filters: Optional[str] = filter_option,
+):
+    """List databases."""
     client = create_client(config, profile)
-    response = _database_list(client, limit=limit)
+    response = client.get_databases(limit=limit)
     fmt.printer(
         response,
         output_format=output_format,
@@ -149,7 +90,9 @@ def database_list(config, profile, verbose, output_format, limit, filters):
 # ------------------------------------------------------------- #
 
 
-def print_database(response: object):
+def print_database(response: Response):
+    """Print table with database info."""
+    # pylint: disable=invalid-name
     db = response.json()["db"]
     table = fmt.Table()
     table.header(
@@ -175,30 +118,29 @@ def print_database(response: object):
     table.print()
 
 
-@database.command("get", help="Get database.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option(
-    "--status",
-    is_flag=True,
-    help="Display status and exit with 0 if status is 'started'.",
-)
-@click.argument("db_id", type=int, required=True)
-def database_get(config, profile, verbose, output_format, status, db_id):
+@database.command("get")
+def database_get(
+    db_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    status: Optional[bool] = typer.Option(
+        False,
+        "--status",
+        help="Print image status only.",
+    ),
+):
+    """Get database info."""
     client = create_client(config, profile)
-    response = _database_get(client, db_id)
+    response = client.get_database(db_id)
     if status:
-        _status = response.json()["db"]["status"]
-        click.echo(_status)
-        if _status == "started":
-            sys.exit(0)
-        else:
-            sys.exit(1)
-    fmt.printer(
-        response,
-        output_format=output_format,
-        func=print_database,
-    )
+        state = response.json()["db"]["status"]
+        if state == "started":
+            print(state)
+            raise typer.Exit()
+        sys.exit(state)
+    fmt.printer(response, output_format=output_format, func=print_database)
 
 
 # ------------------------------------------------------------- #
@@ -206,14 +148,11 @@ def database_get(config, profile, verbose, output_format, status, db_id):
 # ------------------------------------------------------------- #
 
 
-def print_dbs_presets(response: object, filters: str):
+def print_dbs_presets(response: Response, filters: Optional[str]):
+    """Print table with database presets list."""
+    presets = response.json()["databases_presets"]
     if filters:
-        presets = fmt.filter_list(
-            response.json()["databases_presets"], filters
-        )
-    else:
-        presets = response.json()["databases_presets"]
-
+        presets = fmt.filter_list(presets, filters)
     table = fmt.Table()
     table.header(
         [
@@ -241,26 +180,24 @@ def print_dbs_presets(response: object, filters: str):
     table.print()
 
 
-@database.command(
-    "list-presets", aliases=["lp"], help="List database presets."
-)
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option("--filter", "-f", "filters", default="", help="Filter output.")
-@click.option("--region", help="Use region (location).")
+@database.command("list-presets", "lp")
 def database_list_presets(
-    config, profile, verbose, output_format, filters, region
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    filters: Optional[str] = filter_option,
+    region: Optional[ServiceRegion] = typer.Option(
+        None,
+        case_sensitive=False,
+        help="Use region (location).",
+    ),
 ):
-    if filters:
-        filters = filters.replace("region", "location")
+    """List database configuration presets."""
     if region:
-        if filters:
-            filters = filters + f",location:{region}"
-        else:
-            filters = f"location:{region}"
-
+        filters = f"{filters},location:{region}"
     client = create_client(config, profile)
-    response = _database_list_presets(client)
+    response = client.get_database_presets()
     fmt.printer(
         response,
         output_format=output_format,
@@ -274,7 +211,8 @@ def database_list_presets(
 # ------------------------------------------------------------- #
 
 
-def set_params(params: tuple) -> dict:
+def set_params(params: list) -> dict:
+    """Return dict with database config_parameters."""
     parameters = {}
     for param in params:
         if re.match(r"^([a-z_]+)=([0-9a-zA-Z]+)$", param):
@@ -283,79 +221,58 @@ def set_params(params: tuple) -> dict:
                 value = int(value)
             parameters[parameter] = value
         else:
-            raise click.BadParameter(
+            raise typer.BadParameter(
                 f"'{param}': Parameter can contain only digits,"
                 " latin letters and underscore."
             )
     return parameters
 
 
-@database.command("create", help="Create new database.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option(
-    "--preset-id", type=int, required=True, help="Database preset ID."
-)
-@click.option("--name", required=True, help="Database display name.")
-@click.option(
-    "--type",
-    "dbms",
-    type=click.Choice(["mysql8", "mysql5", "postgres", "redis", "mongodb"]),
-    required=True,
-    help="DBMS.",
-)
-@click.option(
-    "--hash-type",
-    type=click.Choice(["caching_sha2", "mysql_native"]),
-    default="caching_sha2",
-    show_default=True,
-    help="Authentication plugin for MySQL.",
-)
-@click.option(
-    "--param",
-    "params",
-    multiple=True,
-    help="Database parameters, can be multiple.",
-)
-@click.option(
-    "--project-id",
-    type=int,
-    default=None,
-    envvar="TWC_PROJECT",
-    callback=set_value_from_config,
-    help="Add database to specific project.",
-)
-@click.option("--login", default=None, help="Database user login.")
-@click.option(
-    "--password",
-    prompt="Set database user password",
-    hide_input=True,
-    confirmation_prompt=True,
-    help="Database user password.",
-)
+@database.command("create")
 def database_create(
-    config,
-    profile,
-    verbose,
-    output_format,
-    preset_id,
-    name,
-    dbms,
-    hash_type,
-    params,
-    login,
-    password,
-    project_id,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    preset_id: int = typer.Option(..., help="Database configuration preset."),
+    dbms: DBMS = typer.Option(
+        ...,
+        "--type",
+        case_sensitive=False,
+        help="Database management system.",
+    ),
+    hash_type: Optional[MySQLAuthPlugin] = typer.Option(
+        MySQLAuthPlugin.CACHING_SHA2.value,
+        case_sensitive=False,
+        help="Authentication plugin for MySQL.",
+    ),
+    name: str = typer.Option(..., help="Database instance display name."),
+    params: Optional[List[str]] = typer.Option(
+        None,
+        "--param",
+        metavar="PARAM=VALUE",
+        help="Database parameters, can be multiple.",
+    ),
+    login: Optional[str] = typer.Option(None, help="Database user login."),
+    password: str = typer.Option(
+        ...,
+        prompt="Database user password",
+        confirmation_prompt=True,
+        hide_input=True,
+    ),
+    project_id: Optional[int] = typer.Option(
+        None,
+        envvar="TWC_PROJECT",
+        show_envvar=False,
+        callback=load_from_config_callback,
+        help="Add database to specific project.",
+    ),
 ):
-    # pylint: disable=too-many-locals
-
+    """Create managed database instance."""
     client = create_client(config, profile)
 
-    if dbms == "mysql8":  # alias mysql8 for mysql
-        dbms = "mysql"
-
     # Check preset_id
-    for preset in _database_list_presets(client).json()["databases_presets"]:
+    for preset in client.get_database_presets().json()["databases_presets"]:
         if preset["id"] == preset_id:
             _dbms = re.sub(
                 r"[0-9]+", "", dbms
@@ -379,33 +296,24 @@ def database_create(
         payload["config_parameters"] = set_params(params)
 
     if project_id:
-        debug("Check project_id")
-        projects = _project_list(client).json()["projects"]
-        if not project_id in [prj["id"] for prj in projects]:
-            raise click.BadParameter("Wrong project ID.")
+        if not project_id in [
+            prj["id"] for prj in client.get_projects().json()["projects"]
+        ]:
+            sys.exit(f"Wrong project ID: Project '{project_id}' not found.")
 
-    response = _database_create(client, **payload)
+    response = client.create_database(**payload)
 
     # Add created DB to project if set
     if project_id:
-        src_project = get_default_project_id(client)
-        # Make useless request to avoid API bug (409 resource_not_found)
-        _r = _project_resource_list_databases(client, src_project)
-        new_db_id = response.json()["db"]["id"]
-        debug(f"Add DB '{new_db_id}' to project '{project_id}'")
-        project_resp = _project_resource_move(
-            client,
-            from_project=src_project,
-            to_project=project_id,
-            resource_id=new_db_id,
-            resource_type="database",
+        client.add_database_to_project(
+            response.json()["db"]["id"],
+            project_id,
         )
-        debug(project_resp.text)
 
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: click.echo(response.json()["db"]["id"]),
+        func=lambda response: print(response.json()["db"]["id"]),
     )
 
 
@@ -414,64 +322,45 @@ def database_create(
 # ------------------------------------------------------------- #
 
 
-@database.command("set", help="Set database properties or parameters.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option(
-    "--preset-id", type=int, default=None, help="Database preset ID."
-)
-@click.option("--name", default=None, help="Database display name.")
-@click.option(
-    "--param",
-    "params",
-    metavar="PARAMETER=VALUE",
-    multiple=True,
-    default=None,
-    help="Database parameters, can be multiple.",
-)
-@click.option(
-    "--password",
-    default=None,
-    help="Database user password.",
-)
-@click.option(
-    "--prompt-password",
-    is_flag=True,
-    help="Set database user password interactively.",
-)
-@click.option(
-    "--external-ip",
-    type=bool,
-    default=None,
-    help="Enable external IPv4 address.",
-)
-@click.argument("db_id", type=int, required=True)
+@database.command("set")
 def database_set(
-    config,
-    profile,
-    verbose,
-    output_format,
-    preset_id,
-    name,
-    params,
-    password,
-    prompt_password,
-    external_ip,
-    db_id,
+    db_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    preset_id: Optional[int] = typer.Option(
+        None, help="Database configuration preset."
+    ),
+    external_ip: bool = typer.Option(
+        True, help="Enable external IPv4 address."
+    ),
+    name: Optional[str] = typer.Option(
+        None, help="Database instance display name."
+    ),
+    params: Optional[List[str]] = typer.Option(
+        None,
+        "--param",
+        metavar="PARAM=VALUE",
+        help="Database parameters, can be multiple.",
+    ),
+    password: Optional[str] = typer.Option(
+        None, help="Database user password"
+    ),
+    prompt_password: Optional[bool] = typer.Option(
+        False, help="Set database user password interactively."
+    ),
 ):
-    # pylint: disable=too-many-locals
-
+    """Set database properties and parameters."""
     client = create_client(config, profile)
-    old_state = _database_get(client, db_id).json()["db"]
+    old_state = client.get_database(db_id).json()["db"]
     new_params = {}
-
     if prompt_password:
-        password = click.prompt(
-            "Set database user password",
+        password = typer.prompt(
+            "Database user password",
             hide_input=True,
             confirmation_prompt=True,
         )
-
     payload = {
         "preset_id": preset_id,
         "name": name,
@@ -479,20 +368,17 @@ def database_set(
         "config_parameters": {},
         "external_ip": external_ip,
     }
-
     if params:
         new_params = set_params(params)
-
     if new_params:
         payload["config_parameters"] = merge_dicts(
             old_state["config_parameters"], new_params
         )
-
-    response = _database_set(client, db_id, **payload)
+    response = client.update_database(db_id, **payload)
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: click.echo(response.json()["db"]["id"]),
+        func=lambda response: print(response.json()["db"]["id"]),
     )
 
 
@@ -501,37 +387,30 @@ def database_set(
 # ------------------------------------------------------------- #
 
 
-@database.command("remove", aliases=["rm"], help="Remove database.")
-@options(GLOBAL_OPTIONS)
-@click.confirmation_option(prompt="This action cannot be undone. Continue?")
-@click.argument("db_ids", nargs=-1, type=int, required=True)
-def database_remove(config, profile, verbose, db_ids):
+@database.command("remove", "rm")
+def database_remove(
+    db_ids: List[int] = typer.Argument(..., metavar="DB_ID..."),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    yes: Optional[bool] = yes_option,
+):
+    """Remove database."""
+    if not yes:
+        typer.confirm("This action cannot be undone. Continue?", abort=True)
     client = create_client(config, profile)
     for db_id in db_ids:
-        response = _database_remove(client, db_id)
-
+        response = client.delete_database(db_id)
         if response.status_code == 200:
             del_hash = response.json()["database_delete"]["hash"]
-            del_code = click.prompt("Please enter confirmation code", type=int)
-            response = _database_remove(
-                client, db_id, delete_hash=del_hash, code=del_code
+            del_code = typer.prompt("Please enter confirmation code", type=int)
+            response = client.delete_database(
+                db_id, delete_hash=del_hash, code=del_code
             )
-
         if response.status_code == 204:
-            click.echo(db_id)
+            print(db_id)
         else:
-            fmt.printer(response)
-
-
-# ------------------------------------------------------------- #
-# $ twc database backup                                         #
-# ------------------------------------------------------------- #
-
-
-@database.group("backup", cls=ClickAliasedGroup)
-@options(GLOBAL_OPTIONS[:2])
-def db_backup():
-    """Manage database backups."""
+            sys.exit(fmt.printer(response))
 
 
 # ------------------------------------------------------------- #
@@ -539,7 +418,8 @@ def db_backup():
 # ------------------------------------------------------------- #
 
 
-def print_db_backups(response: object):
+def print_db_backups(response: Response):
+    """Print table with DB backup list."""
     backups = response.json()["backups"]
     table = fmt.Table()
     table.header(
@@ -562,13 +442,17 @@ def print_db_backups(response: object):
     table.print()
 
 
-@db_backup.command("list", aliases=["ls"], help="List backups.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.argument("db_id", type=int, required=True)
-def database_backup_list(config, profile, verbose, output_format, db_id):
+@database_backup.command("list", "ls")
+def database_backup_list(
+    db_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """List backups."""
     client = create_client(config, profile)
-    response = _database_backup_list(client, db_id)
+    response = client.get_database_backups(db_id)
     fmt.printer(
         response,
         output_format=output_format,
@@ -581,17 +465,21 @@ def database_backup_list(config, profile, verbose, output_format, db_id):
 # ------------------------------------------------------------- #
 
 
-@db_backup.command("create", help="Backup database.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.argument("db_id", type=int, required=True)
-def database_backup_create(config, profile, verbose, output_format, db_id):
+@database_backup.command("create")
+def database_backup_create(
+    db_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """Backup database."""
     client = create_client(config, profile)
-    response = _database_backup_create(client, db_id)
+    response = client.create_database_backup(db_id)
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: click.echo(response.json()["backup"]["id"]),
+        func=lambda response: print(response.json()["backup"]["id"]),
     )
 
 
@@ -600,18 +488,24 @@ def database_backup_create(config, profile, verbose, output_format, db_id):
 # ------------------------------------------------------------- #
 
 
-@db_backup.command("remove", aliases=["rm"], help="Remove backup.")
-@options(GLOBAL_OPTIONS)
-@click.argument("db_id", type=int, required=True)
-@click.argument("backup_id", type=int, required=True)
-@click.confirmation_option(prompt="This action cannot be undone. Continue?")
-def database_backup_remove(config, profile, verbose, db_id, backup_id):
+@database_backup.command("remove", "rm")
+def database_backup_remove(
+    db_id: int,
+    backup_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    yes: Optional[bool] = yes_option,
+):
+    """Remove backup."""
+    if not yes:
+        typer.confirm("This action cannot be undone. Continue?", abort=True)
     client = create_client(config, profile)
-    response = _database_backup_remove(client, db_id, backup_id)
+    response = client.delete_database_backup(db_id, backup_id)
     if response.status_code == 204:
-        click.echo(backup_id)
+        print(backup_id)
     else:
-        fmt.printer(response)
+        sys.exit(fmt.printer(response))
 
 
 # ------------------------------------------------------------- #
@@ -619,15 +513,28 @@ def database_backup_remove(config, profile, verbose, db_id, backup_id):
 # ------------------------------------------------------------- #
 
 
-@db_backup.command("restore", help="Remove backup.")
-@options(GLOBAL_OPTIONS)
-@click.argument("db_id", type=int, required=True)
-@click.argument("backup_id", type=int, required=True)
-@click.confirmation_option(prompt="Data on target disk will lost. Continue?")
-def database_backup_restore(config, profile, verbose, db_id, backup_id):
+@database_backup.command("restore")
+def database_backup_restore(
+    db_id: int,
+    backup_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    yes: Optional[bool] = yes_option,
+):
+    """Restore backup."""
+    if not yes:
+        typer.confirm("Data on target disk will lost. Continue?", abort=True)
     client = create_client(config, profile)
-    response = _database_backup_restore(client, db_id, backup_id)
+    response = client.restore_database_backup(db_id, backup_id)
     if response.status_code == 204:
-        click.echo(backup_id)
+        print(backup_id)
     else:
-        fmt.printer(response)
+        sys.exit(fmt.printer(response))
+
+
+# ------------------------------------------------------------- #
+# $ twc database backup schedule                                #
+# ------------------------------------------------------------- #
+
+# FUTURE: Waiting for API endpoint release.

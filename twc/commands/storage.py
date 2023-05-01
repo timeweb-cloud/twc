@@ -1,125 +1,53 @@
-"""Object Storage management commands."""
+"""Manage object storage buckets.
+
+NOTE: TWC CLI does not implement S3-compatible API client, it uses Timeweb
+Cloud specific API methods instead. Use third party S3 clients to manage
+objects e.g. s3cmd, rclone, etc.
+"""
+
 
 import sys
+from logging import debug
+from typing import Optional, List
+from pathlib import Path
+from enum import Enum
 
-import click
-from click_aliases import ClickAliasedGroup
+import typer
+from requests import Response
 
 from twc import fmt
-from twc.vars import TWC_S3_ENDPOINT
-from . import (
-    create_client,
-    handle_request,
-    set_value_from_config,
-    options,
-    debug,
-    GLOBAL_OPTIONS,
-    OUTPUT_FORMAT_OPTION,
-)
-from .project import (
-    get_default_project_id,
-    _project_list,
-    _project_resource_move,
-    _project_resource_list_buckets,
+from twc.typerx import TyperAlias
+from twc.apiwrap import create_client
+from twc.api import TimewebCloud, ServiceRegion, BucketType
+from twc.vars import S3_ENDPOINT
+from .common import (
+    verbose_option,
+    config_option,
+    profile_option,
+    filter_option,
+    yes_option,
+    output_format_option,
 )
 
 
-@handle_request
-def _storage_list(client, *args, **kwargs):
-    return client.get_buckets(*args, **kwargs)
+storage = TyperAlias(help=__doc__, short_help="Manage object storage buckets.")
+storage_user = TyperAlias(help="Manage Object Storage users.")
+storage_subdomain = TyperAlias(help="Manage subdomains.")
+storage.add_typer(storage_user, name="user")
+storage.add_typer(storage_subdomain, name="subdomain", aliases=["domain"])
 
-
-@handle_request
-def _storage_mb(client, *args, **kwargs):
-    return client.create_bucket(*args, **kwargs)
-
-
-@handle_request
-def _storage_rb(client, *args, **kwargs):
-    return client.delete_bucket(*args, **kwargs)
-
-
-@handle_request
-def _storage_set(client, *args, **kwargs):
-    return client.update_bucket(*args, **kwargs)
-
-
-@handle_request
-def _storage_user_list(client, *args, **kwargs):
-    return client.get_storage_users(*args, **kwargs)
-
-
-@handle_request
-def _storage_user_passwd(client, *args, **kwargs):
-    return client.update_storage_user_secret(*args, **kwargs)
-
-
-@handle_request
-def _storage_transfer_new(client, *args, **kwargs):
-    return client.start_storage_transfer(*args, **kwargs)
-
-
-@handle_request
-def _storage_transfer_status(client, *args, **kwargs):
-    return client.get_storage_transfer_status(*args, **kwargs)
-
-
-@handle_request
-def _storage_subdomain_list(client, *args, **kwargs):
-    return client.get_bucket_subdomains(*args, **kwargs)
-
-
-@handle_request
-def _storage_subdomain_add(client, *args, **kwargs):
-    return client.add_bucket_subdomains(*args, **kwargs)
-
-
-@handle_request
-def _storage_subdomain_remove(client, *args, **kwargs):
-    return client.delete_bucket_subdomains(*args, **kwargs)
-
-
-@handle_request
-def _storage_subdomain_gencert(client, *args, **kwargs):
-    return client.gen_cert_for_bucket_subdomain(*args, **kwargs)
-
-
-@handle_request
-def _storage_list_presets(client, *args, **kwargs):
-    return client.get_storage_presets(*args, **kwargs)
-
-
-# ------------------------------------------------------------- #
-# $ twc storage                                                 #
-# ------------------------------------------------------------- #
-
-
-@click.group(
-    "storage",
-    cls=ClickAliasedGroup,
-    short_help="Manage Object Storage buckets.",
-)
-@options(GLOBAL_OPTIONS[:2])
-def storage():
-    """Manage Object Storage buckets.
-
-    NOTE: TWC CLI does not implement S3-compatible API client, it uses
-    Timeweb Cloud specific API methods instead. Use third party S3 clients
-    to manage objects e.g. s3cmd, rclone, etc.
-    """
-
+# FUTURE: Implement storage_transfer group. Waiting for API bugfix.
 
 # ------------------------------------------------------------- #
 # $ twc storage list                                            #
 # ------------------------------------------------------------- #
 
 
-def print_buckets(response: object, filters: str):
+def print_buckets(response: Response, filters: Optional[str] = None):
+    """Print table with buckets list."""
+    buckets = response.json()["buckets"]
     if filters:
-        buckets = fmt.filter_list(response.json()["buckets"], filters)
-    else:
-        buckets = response.json()["buckets"]
-
+        buckets = fmt.filter_list(buckets, filters)
     table = fmt.Table()
     table.header(
         [
@@ -143,13 +71,17 @@ def print_buckets(response: object, filters: str):
     table.print()
 
 
-@storage.command("list", aliases=["ls"], help="List buckets.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option("--filter", "-f", "filters", default="", help="Filter output.")
-def storage_list(config, profile, verbose, output_format, filters):
+@storage.command("list", "ls")
+def storage_list(
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    filters: Optional[str] = filter_option,
+):
+    """List buckets."""
     client = create_client(config, profile)
-    response = _storage_list(client)
+    response = client.get_buckets()
     fmt.printer(
         response,
         output_format=output_format,
@@ -163,12 +95,11 @@ def storage_list(config, profile, verbose, output_format, filters):
 # ------------------------------------------------------------- #
 
 
-def print_storage_presets(response: object, filters: str):
+def print_storage_presets(response: Response, filters: Optional[str] = None):
+    """Print table with storage presets."""
+    presets = response.json()["storages_presets"]
     if filters:
-        presets = fmt.filter_list(response.json()["storages_presets"], filters)
-    else:
-        presets = response.json()["storages_presets"]
-
+        presets = fmt.filter_list(presets, filters)
     table = fmt.Table()
     table.header(
         [
@@ -190,26 +121,24 @@ def print_storage_presets(response: object, filters: str):
     table.print()
 
 
-@storage.command(
-    "list-presets", aliases=["lp"], help="List Object Storage presets."
-)
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option("--filter", "-f", "filters", default="", help="Filter output.")
-@click.option("--region", help="Use region (location).")
+@storage.command("list-presets", "lp")
 def storage_list_presets(
-    config, profile, verbose, output_format, filters, region
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    filters: Optional[str] = filter_option,
+    region: Optional[ServiceRegion] = typer.Option(
+        None,
+        case_sensitive=False,
+        help="Use region (location).",
+    ),
 ):
-    if filters:
-        filters = filters.replace("region", "location")
+    """List Object Storage presets."""
     if region:
-        if filters:
-            filters = filters + f",location:{region}"
-        else:
-            filters = f"location:{region}"
-
+        filters = f"{filters},location:{region}"
     client = create_client(config, profile)
-    response = _storage_list_presets(client)
+    response = client.get_storage_presets()
     fmt.printer(
         response,
         output_format=output_format,
@@ -223,39 +152,33 @@ def storage_list_presets(
 # ------------------------------------------------------------- #
 
 
-@storage.command("mb", help="Make bucket.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option("--preset-id", type=int, help="Bucket preset ID.")
-@click.option(
-    "--project-id",
-    type=int,
-    default=None,
-    envvar="TWC_PROJECT",
-    callback=set_value_from_config,
-    help="Add bucket to specific project.",
-)
-@click.option(
-    "--type",
-    "bucket_type",
-    type=click.Choice(["public", "private"]),
-    default="private",
-    show_default=True,
-    help="Bucket access policy.",
-)
-@click.argument("bucket_name", type=str, required=True)
+@storage.command("mb", short_help="Make bucket.")
 def storage_mb(
-    config,
-    profile,
-    verbose,
-    output_format,
-    preset_id,
-    project_id,
-    bucket_type,
-    bucket_name,
+    bucket: str = typer.Argument(..., help="Bucket name."),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    preset_id: Optional[int] = typer.Option(None, help="Storage preset."),
+    bucket_type: BucketType = typer.Option(
+        BucketType.PRIVATE.value,
+        "--type",
+        case_sensitive=False,
+        help="Bucket access policy.",
+    ),
+    project_id: Optional[int] = typer.Option(
+        None,
+        envvar="TWC_PROJECT",
+        show_envvar=False,
+        help="Add bucket to specific project.",
+    ),
 ):
-    # pylint: disable=too-many-locals
+    """Make bucket.
 
+    NOTE: A unique prefix for the account will be added to the bucket name
+    e.g. 'my-bucket' will created as 'c7a04e58-my-bucket'. Prefix will not
+    be added when creating a bucket via S3 clients.
+    """
     client = create_client(config, profile)
 
     if not preset_id:
@@ -263,40 +186,31 @@ def storage_mb(
         preset_id = 389  # 10G disk
 
     is_public = False
-    if bucket_type == "public":
+    if bucket_type == BucketType.PUBLIC:
         is_public = True
 
     if project_id:
-        debug("Check project_id")
-        projects = _project_list(client).json()["projects"]
-        if not project_id in [prj["id"] for prj in projects]:
-            raise click.BadParameter("Wrong project ID.")
+        if not project_id in [
+            prj["id"] for prj in client.get_projects().json()["projects"]
+        ]:
+            sys.exit(f"Wrong project ID: Project '{project_id}' not found.")
 
-    debug(f"Create bucket 'NAME-PREFIX-{bucket_name}'")
-    response = _storage_mb(
-        client, name=bucket_name, preset_id=preset_id, is_public=is_public
+    debug(f"Create bucket 'NAME_PREFIX-{bucket}'")
+    response = client.create_bucket(
+        name=bucket, preset_id=preset_id, is_public=is_public
     )
 
     # Add created bucket to project if set
     if project_id:
-        src_project = get_default_project_id(client)
-        # Make useless request to avoid API bug (409 resource_not_found)
-        _r = _project_resource_list_buckets(client, src_project)
-        new_bucket_id = response.json()["bucket"]["id"]
-        debug(f"Add bucket '{new_bucket_id}' to project '{project_id}'")
-        project_resp = _project_resource_move(
-            client,
-            from_project=src_project,
-            to_project=project_id,
-            resource_id=new_bucket_id,
-            resource_type="storage",
+        client.add_bucket_to_project(
+            response.json()["bucket"]["id"],
+            project_id,
         )
-        debug(project_resp.text)
 
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: click.echo(response.json()["bucket"]["name"]),
+        func=lambda response: print(response.json()["bucket"]["name"]),
     )
 
 
@@ -305,40 +219,42 @@ def storage_mb(
 # ------------------------------------------------------------- #
 
 
-def get_bucket_id_by_name(client, bucket_name: str):
+def resolve_bucket_id(client: TimewebCloud, bucket_name: str):
+    """Return bucket ID by name."""
     debug(f"Get bucket_id by name '{bucket_name}'")
-    buckets = _storage_list(client).json()["buckets"]
-    for bucket in buckets:
+    for bucket in client.get_buckets().json()["buckets"]:
         if bucket["name"] == bucket_name:
             return bucket["id"]
         if str(bucket["id"]) == bucket_name:
             return bucket["id"]
-    return None
+    sys.exit(f"Error: Bucket '{bucket_name}' not found.")
 
 
-@storage.command("rb", help="Remove bucket.")
-@options(GLOBAL_OPTIONS)
-@click.confirmation_option(prompt="This action cannot be undone. Continue?")
-@click.argument("buckets", nargs=-1, required=True)
-def storage_rb(config, profile, verbose, buckets):
+@storage.command("rb")
+def storage_rb(
+    buckets: List[str] = typer.Argument(..., metavar="BUCKET"),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    yes: Optional[bool] = yes_option,
+):
+    """Remove bucket."""
+    if not yes:
+        typer.confirm("This action cannot be undone. Continue?", abort=True)
     client = create_client(config, profile)
     for bucket in buckets:
-        bucket_id = get_bucket_id_by_name(client, bucket)
-        if not bucket_id:
-            sys.exit(f"Error: Bucket '{bucket}' not found.")
-
-        response = _storage_rb(client, bucket_id)
-
+        bucket_id = resolve_bucket_id(client, bucket)
+        response = client.delete_bucket(bucket_id)
         if response.status_code == 200:
             del_hash = response.json()["bucket_delete"]["hash"]
-            del_code = click.prompt("Please enter confirmation code", type=int)
-            response = _storage_rb(
-                client, bucket_id, delete_hash=del_hash, code=del_code
+            del_code = typer.prompt("Please enter confirmation code", type=int)
+            response = client.delete_bucket(
+                bucket_id, delete_hash=del_hash, code=del_code
             )
         if response.status_code == 204:
-            click.echo(bucket)
+            print(bucket)
         else:
-            fmt.printer(response)
+            sys.exit(fmt.printer(response))
 
 
 # ------------------------------------------------------------- #
@@ -346,62 +262,38 @@ def storage_rb(config, profile, verbose, buckets):
 # ------------------------------------------------------------- #
 
 
-@storage.command("set", help="Set bucket parameters and properties.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option("--preset-id", type=int, help="Bucket preset ID.")
-@click.option(
-    "--type",
-    "bucket_type",
-    type=click.Choice(["public", "private"]),
-    default=None,
-    help="Bucket access policy.",
-)
-@click.argument("bucket", required=True)
+@storage.command("set")
 def storage_set(
-    config,
-    profile,
-    verbose,
-    output_format,
-    preset_id,
-    bucket_type,
-    bucket,
+    bucket: str = typer.Argument(..., help="Bucket name."),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    preset_id: Optional[int] = typer.Option(None, help="Storage preset."),
+    bucket_type: Optional[BucketType] = typer.Option(
+        None,
+        "--type",
+        case_sensitive=False,
+        help="Bucket access policy.",
+    ),
 ):
+    """Set bucket parameters and properties."""
     client = create_client(config, profile)
-
-    bucket_id = get_bucket_id_by_name(client, bucket)
-    if not bucket_id:
-        sys.exit(f"Error: Bucket '{bucket}' not found.")
-
+    bucket_id = resolve_bucket_id(client, bucket)
     payload = {}
-
     if preset_id:
         payload["preset_id"] = preset_id
-
     if bucket_type:
         if bucket_type == "public":
             payload["is_public"] = True
         else:
             payload["is_public"] = False
-
-    response = _storage_set(client, bucket_id, **payload)
-
+    response = client.update_bucket(bucket_id, **payload)
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: click.echo(response.json()["bucket"]["name"]),
+        func=lambda response: print(response.json()["bucket"]["name"]),
     )
-
-
-# ------------------------------------------------------------- #
-# $ twc storage user                                            #
-# ------------------------------------------------------------- #
-
-
-@storage.group("user", cls=ClickAliasedGroup)
-@options(GLOBAL_OPTIONS[:2])
-def storage_user():
-    """Manage Object Storage users."""
 
 
 # ------------------------------------------------------------- #
@@ -409,9 +301,9 @@ def storage_user():
 # ------------------------------------------------------------- #
 
 
-def print_storage_users(response: object):
+def print_storage_users(response: Response):
+    """Print table with sotrage users list."""
     users = response.json()["users"]
-
     table = fmt.Table()
     table.header(
         [
@@ -429,12 +321,16 @@ def print_storage_users(response: object):
     table.print()
 
 
-@storage_user.command("list", aliases=["ls"], help="List storage users.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-def storage_user_list(config, profile, verbose, output_format):
+@storage_user.command("list", "ls")
+def storage_user_list(
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """List storage users."""
     client = create_client(config, profile)
-    response = _storage_user_list(client)
+    response = client.get_storage_users()
     fmt.printer(
         response,
         output_format=output_format,
@@ -447,13 +343,13 @@ def storage_user_list(config, profile, verbose, output_format):
 # ------------------------------------------------------------- #
 
 
-def get_storage_user(client, access_key: str = None):
+def get_storage_user(client: TimewebCloud, access_key: Optional[str] = None):
     """Return user_id and access_key. If customer have only one storage
     user on account `access_key` is optional, user_id and access_key will
     taken from user info. If customer have multile storage users `access_key`
     is required.
     """
-    users = _storage_user_list(client).json()
+    users = client.get_storage_users().json()
     user_id = None
 
     # If access_key argument is set, set effective access key
@@ -468,153 +364,36 @@ def get_storage_user(client, access_key: str = None):
     return user_id, access_key
 
 
-@storage_user.command("passwd", help="Set new secret_key for storage user.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option(
-    "--secret-key", prompt=True, hide_input=True, confirmation_prompt=True
-)
-@click.argument("access_key", metavar="[ACCESS_KEY]", nargs=-1, type=str)
+@storage_user.command("passwd")
 def storage_user_passwd(
-    config, profile, verbose, output_format, secret_key, access_key
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    access_key: Optional[str] = typer.Argument(None),
+    secret_key: str = typer.Option(
+        ...,
+        prompt="Storage user password",
+        confirmation_prompt=True,
+        hide_input=True,
+        help="",
+    ),
 ):
+    """Set new secret_key for storage user."""
     client = create_client(config, profile)
-    if access_key:
-        access_key = list(access_key)[0]  # get element from tuple
     user_id, access_key = get_storage_user(client, access_key)
     if not user_id:
         sys.exit(f"User with access key '{access_key}' not found.")
     debug(f"User ID is '{user_id}'")
     debug(f"Change secret_key for '{user_id}'")
-    response = _storage_user_passwd(
-        client, user_id=user_id, secret_key=secret_key
+    response = client.update_storage_user_secret(
+        user_id=user_id, secret_key=secret_key
     )
-
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: click.echo(
-            response.json()["user"]["access_key"]
-        ),
+        func=lambda response: print(response.json()["user"]["access_key"]),
     )
-
-
-# ------------------------------------------------------------- #
-# $ twc storage transfer                                        #
-# ------------------------------------------------------------- #
-
-
-@storage.group(
-    "transfer",
-    short_help="File transfer between object storage buckets.",
-    hidden=True,
-)
-@options(GLOBAL_OPTIONS[:2])
-def storage_transfer():
-    """File transfer between object storage buckets.
-
-    You can start file transfer from any S3-compatible object storage
-    (including Timeweb Cloud Object Storage) to specified destination
-    bucket.
-
-    WARNING: This feature have unstable API, may occur errors.
-    """
-
-
-# ------------------------------------------------------------- #
-# $ twc storage transfer new                                    #
-# ------------------------------------------------------------- #
-
-
-@storage_transfer.command("new", help="Start new file tranfer.")
-@options(GLOBAL_OPTIONS)
-@click.option(
-    "--bucket", "src_bucket", required=True, help="Source bucket name."
-)
-@click.option("--access-key", required=True, help="Source bucket access key.")
-@click.option("--secret-key", required=True, help="Source bucket secret key.")
-@click.option("--region", default="", help="Source region.")
-@click.option("--endpoint", default=None, help="Source storage endpoint.")
-@click.option(
-    "--force-path-style", is_flag=True, help="Force path-style bucket address."
-)
-@click.argument("dst_bucket", required=True)
-def storage_transfer_new(
-    config,
-    profile,
-    verbose,
-    access_key,
-    secret_key,
-    region,
-    endpoint,
-    force_path_style,
-    src_bucket,
-    dst_bucket,
-):
-    client = create_client(config, profile)
-    response = _storage_transfer_new(
-        client,
-        src_bucket=src_bucket,
-        dst_bucket=dst_bucket,
-        access_key=access_key,
-        secret_key=secret_key,
-        endpoint=endpoint,
-        location=region,
-        force_path_style=force_path_style,
-    )
-    if response.status_code == 204:
-        click.echo(dst_bucket)
-    else:
-        fmt.printer(response)
-
-
-# ------------------------------------------------------------- #
-# $ twc storage transfer status                                 #
-# ------------------------------------------------------------- #
-
-
-def print_transfer_status(response):
-    transfer = response.json()["transfer_status"]
-
-    table = fmt.Table()
-    translated_keys = {
-        "status": "Status",
-        "tries": "Tries",
-        "total_count": "Total objects",
-        "total_size": "Total size",
-        "uploaded_count": "Uploaded objects",
-        "uploaded_size": "Uploaded (size)",
-        "errors": "Errors",
-    }
-    for key in transfer.keys():
-        table.row([translated_keys[key], ":", transfer[key]])
-    table.print()
-
-
-@storage_transfer.command("status", help="Display file tranfer status.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.argument("bucket", required=True)
-def storage_transfer_status(config, profile, verbose, output_format, bucket):
-    client = create_client(config, profile)
-    bucket_id = get_bucket_id_by_name(client, bucket)
-    response = _storage_transfer_status(client, bucket_id)
-    fmt.printer(
-        response,
-        output_format=output_format,
-        func=print_transfer_status,
-    )
-
-
-# ------------------------------------------------------------- #
-# $ twc storage subdomain                                       #
-# ------------------------------------------------------------- #
-
-
-@storage.group("subdomain", cls=ClickAliasedGroup)
-@options(GLOBAL_OPTIONS[:2])
-def storage_subdomain():
-    """Manage subdomains."""
 
 
 # ------------------------------------------------------------- #
@@ -622,14 +401,15 @@ def storage_subdomain():
 # ------------------------------------------------------------- #
 
 
-def print_subdomains(response):
+def print_subdomains(response: Response):
+    """Print table with subdomains list."""
     subdomains = response.json()["subdomains"]
     table = fmt.Table()
     table.header(
         [
             "ID",
             "SUBDOMAIN",
-            "CERT RELEASED",
+            "CERT_RELEASED",
             "STATUS",
         ]
     )
@@ -645,17 +425,19 @@ def print_subdomains(response):
     table.print()
 
 
-@storage_subdomain.command(
-    "list", aliases=["ls"], help="List subdomains attached to bucket."
-)
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.argument("bucket", required=True)
-def storage_subdomain_list(config, profile, verbose, output_format, bucket):
+@storage_subdomain.command("list", "ls")
+def storage_subdomain_list(
+    bucket: str,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """List subdomains attached to bucket."""
     client = create_client(config, profile)
-    bucket_id = get_bucket_id_by_name(client, bucket)
+    bucket_id = resolve_bucket_id(client, bucket)
     debug(f"bucket_id {bucket_id}")
-    response = _storage_subdomain_list(client, bucket_id)
+    response = client.get_bucket_subdomains(bucket_id)
     fmt.printer(
         response,
         output_format=output_format,
@@ -668,7 +450,8 @@ def storage_subdomain_list(config, profile, verbose, output_format, bucket):
 # ------------------------------------------------------------- #
 
 
-def print_subdomains_state(response):
+def print_subdomains_state(response: Response):
+    """Print table with subdomains status."""
     subdomains = response.json()["subdomains"]
     table = fmt.Table()
     table.header(
@@ -687,17 +470,19 @@ def print_subdomains_state(response):
     table.print()
 
 
-@storage_subdomain.command("add", help="Attach subdomains to bucket.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.argument("subdomains", nargs=-1, required=True)
-@click.argument("bucket", required=True)
+@storage_subdomain.command("add")
 def storage_subdomain_add(
-    config, profile, verbose, output_format, bucket, subdomains
+    subdomains: List[str] = typer.Argument(..., metavar="SUBDOMAIN..."),
+    bucket: str = typer.Argument(...),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
 ):
+    """Attach subdomains to bucket."""
     client = create_client(config, profile)
-    bucket_id = get_bucket_id_by_name(client, bucket)
-    response = _storage_subdomain_add(client, bucket_id, list(subdomains))
+    bucket_id = resolve_bucket_id(client, bucket)
+    response = client.add_bucket_subdomains(bucket_id, subdomains)
     fmt.printer(
         response,
         output_format=output_format,
@@ -710,18 +495,22 @@ def storage_subdomain_add(
 # ------------------------------------------------------------- #
 
 
-@storage_subdomain.command("remove", aliases=["rm"], help="Remove subdomains.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.confirmation_option(prompt="Subdomains will be deleted. Continue?")
-@click.argument("bucket", required=True)
-@click.argument("subdomains", nargs=-1, required=True)
+@storage_subdomain.command("remove", "rm")
 def storage_subdomain_remove(
-    config, profile, verbose, output_format, bucket, subdomains
+    bucket: str = typer.Argument(...),
+    subdomains: List[str] = typer.Argument(..., metavar="SUBDOMAIN..."),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    yes: Optional[bool] = yes_option,
 ):
+    """Remove subdomains."""
+    if not yes:
+        typer.confirm("Subdomains will be deleted. Continue?", abort=True)
     client = create_client(config, profile)
-    bucket_id = get_bucket_id_by_name(client, bucket)
-    response = _storage_subdomain_remove(client, bucket_id, list(subdomains))
+    bucket_id = resolve_bucket_id(client, bucket)
+    response = client.delete_bucket_subdomains(bucket_id, subdomains)
     fmt.printer(
         response,
         output_format=output_format,
@@ -734,24 +523,33 @@ def storage_subdomain_remove(
 # ------------------------------------------------------------- #
 
 
-@storage_subdomain.command(
-    "gencert", help="Request TLS certificate for subdomains."
-)
-@options(GLOBAL_OPTIONS)
-@click.argument("subdomains", nargs=-1, required=True)
-def storage_subdomain_gencert(config, profile, verbose, subdomains):
+@storage_subdomain.command("gencert", "cert")
+def storage_subdomain_gencert(
+    subdomains: List[str] = typer.Argument(..., metavar="SUBDOMAIN..."),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+):
+    """Request TLS certificate for subdomains."""
     client = create_client(config, profile)
     for subdomain in subdomains:
-        response = _storage_subdomain_gencert(client, subdomain)
+        response = client.gen_cert_for_bucket_subdomain(subdomain)
         if response.status_code == 201:
-            click.echo(subdomain)
+            print(subdomain)
         else:
-            fmt.printer(response)
+            sys.exit(fmt.printer(response))
 
 
 # ------------------------------------------------------------- #
 # $ twc storage genconfig                                       #
 # ------------------------------------------------------------- #
+
+
+class S3Client(str, Enum):
+    """S3 clients."""
+
+    RCLONE = "rclone"
+    S3CMD = "s3cmd"
 
 
 S3CMD_CONFIG_TEMPLATE = """
@@ -776,24 +574,30 @@ endpoint = https://{endpoint}
 """
 
 
-@storage.command("genconfig", help="Generate config file for S3 clients.")
-@options(GLOBAL_OPTIONS)
-@click.option("--user-id", type=int, help="Object Storage user ID.")
-@click.option(
-    "--client",
-    "s3_client",
-    type=click.Choice(["s3cmd", "rclone"]),
-    required=True,
-    help="S3 client.",
-)
-@click.option(
-    "--save-to", help="Path to file. NOTE: Existing file will be overwitten."
-)
-def storage_genconfig(config, profile, verbose, user_id, s3_client, save_to):
+@storage.command("genconfig", "gencfg", "cfg")
+def storage_genconfig(
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    user_id: Optional[int] = typer.Option(
+        None, help="Object Storage user ID."
+    ),
+    s3_client: S3Client = typer.Option(..., "--client", help="S3 client."),
+    save: Optional[Path] = typer.Option(
+        None,
+        help="Path to file. NOTE: Existing file will be overwitten.",
+    ),
+    save_to: Optional[Path] = typer.Option(
+        None,
+        help="Path to file. NOTE: Existing file will be overwitten.",
+        hidden=True,
+    ),
+):
+    """Generate config file for S3 clients."""
     client = create_client(config, profile)
 
     # Get access_key and secret_key by user_id (or not)
-    storage_users = _storage_user_list(client).json()["users"]
+    storage_users = client.get_storage_users().json()["users"]
     if user_id:
         for user in storage_users:
             if user_id == user["id"]:
@@ -813,11 +617,13 @@ def storage_genconfig(config, profile, verbose, user_id, s3_client, save_to):
     file_content = templates[s3_client].format(
         access_key=access_key,
         secret_key=secret_key,
-        endpoint=TWC_S3_ENDPOINT,
+        endpoint=S3_ENDPOINT,
     )
 
     if save_to:
-        with open(save_to, "w", encoding="utf-8") as s3_config:
+        save = save_to
+    if save:
+        with open(save, "w", encoding="utf-8") as s3_config:
             s3_config.write(file_content)
     else:
         fmt.print_colored(file_content, lang="ini")

@@ -1,41 +1,25 @@
-"""Account management commands."""
+"""Manage Timeweb Cloud account."""
 
-import click
+from typing import Optional
+from pathlib import Path
+
+import typer
+from requests import Response
 
 from twc import fmt
-from . import (
-    create_client,
-    handle_request,
-    options,
-    GLOBAL_OPTIONS,
-    OUTPUT_FORMAT_OPTION,
+from twc.typerx import TyperAlias
+from twc.apiwrap import create_client
+from .common import (
+    verbose_option,
+    config_option,
+    profile_option,
+    output_format_option,
 )
 
 
-@handle_request
-def _account_finances(client):
-    return client.get_account_finances()
-
-
-@handle_request
-def _account_status(client):
-    return client.get_account_status()
-
-
-@handle_request
-def _restrictions_status(client):
-    return client.get_account_restrictions()
-
-
-# ------------------------------------------------------------- #
-# $ twc account                                                 #
-# ------------------------------------------------------------- #
-
-
-@click.group()
-@options(GLOBAL_OPTIONS[:2])
-def account():
-    """Manage Timeweb Cloud account."""
+account = TyperAlias(help=__doc__)
+account_access = TyperAlias(help="Manage account access restrictions.")
+account.add_typer(account_access, name="access")
 
 
 # ------------------------------------------------------------- #
@@ -43,7 +27,8 @@ def account():
 # ------------------------------------------------------------- #
 
 
-def print_account_status(response: object):
+def print_account_status(response: Response):
+    """Print table with account info."""
     table = fmt.Table()
     status = response.json()["status"]
     translated_keys = {
@@ -65,12 +50,16 @@ def print_account_status(response: object):
     table.print()
 
 
-@account.command("status", help="Get account status.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-def account_status(config, profile, verbose, output_format):
+@account.command("status")
+def account_status(
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """Display account status."""
     client = create_client(config, profile)
-    response = _account_status(client)
+    response = client.get_account_status()
     fmt.printer(
         response, output_format=output_format, func=print_account_status
     )
@@ -81,7 +70,8 @@ def account_status(config, profile, verbose, output_format):
 # ------------------------------------------------------------- #
 
 
-def print_account_finances(response: object):
+def print_account_finances(response: Response):
+    """Print table with finances info."""
     table = fmt.Table()
     finances = response.json()["finances"]
     translated_keys = {
@@ -105,26 +95,19 @@ def print_account_finances(response: object):
     table.print()
 
 
-@account.command("finances", help="Get finances.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-def account_finances(config, profile, verbose, output_format):
+@account.command("finances")
+def account_finances(
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """Get finances."""
     client = create_client(config, profile)
-    response = _account_finances(client)
+    response = client.get_account_finances()
     fmt.printer(
         response, output_format=output_format, func=print_account_finances
     )
-
-
-# ------------------------------------------------------------- #
-# $ twc account access                                          #
-# ------------------------------------------------------------- #
-
-
-@account.group()
-@options(GLOBAL_OPTIONS[:2])
-def access():
-    """Manage account access restrictions."""
 
 
 # ------------------------------------------------------------- #
@@ -132,7 +115,10 @@ def access():
 # ------------------------------------------------------------- #
 
 
-def print_restrictions_status(response: object, by_ip: bool, by_country: bool):
+def print_restrictions_status(
+    response: Response, by_ip: bool, by_country: bool
+):
+    """Print restrictions info."""
     restrictions = response.json()
 
     if not by_ip and not by_country:
@@ -140,35 +126,39 @@ def print_restrictions_status(response: object, by_ip: bool, by_country: bool):
 
     if by_ip:
         if restrictions["is_ip_restrictions_enabled"]:
-            click.echo("IP restrictions: enabled")
-            click.echo("Allowed IPs:")
+            print("IP restrictions: enabled")
+            print("Allowed IPs:")
             for ip_addr in restrictions["white_list"]["ips"]:
-                click.echo(f" - {ip_addr}")
+                print(f" - {ip_addr}")
         else:
-            click.echo("IP restrictions: disabled")
+            print("IP restrictions: disabled")
 
     if by_country:
         if restrictions["is_country_restrictions_enabled"]:
-            click.echo("Country restrictions: enabled")
-            click.echo("Allowed countries:")
+            print("Country restrictions: enabled")
+            print("Allowed countries:")
             for country in restrictions["white_list"]["countries"]:
-                click.echo(f" - {country}")
+                print(f" - {country}")
         else:
-            click.echo("Country restrictions: disabled")
+            print("Country restrictions: disabled")
 
 
-@access.command("restrictions", help="View access restrictions status.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option("--by-ip", is_flag=True, help="Display IP restrictions.")
-@click.option(
-    "--by-country", is_flag=True, help="Display country restrictions."
-)
+@account_access.command("restrictions")
 def restrictions_status(
-    config, profile, verbose, output_format, by_ip, by_country
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    by_ip: Optional[bool] = typer.Option(
+        False, "--by-ip", help="Display IP restrictions."
+    ),
+    by_country: Optional[bool] = typer.Option(
+        False, "--by-country", help="Display country restrictions."
+    ),
 ):
+    """View access restrictions status."""
     client = create_client(config, profile)
-    response = _restrictions_status(client)
+    response = client.get_account_restrictions()
     fmt.printer(
         response,
         output_format=output_format,

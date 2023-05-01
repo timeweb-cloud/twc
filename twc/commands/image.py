@@ -1,61 +1,31 @@
-"""Image management commands."""
+"""Manage disk images."""
 
 import re
 import sys
+from logging import debug
+from typing import Optional, List
+from pathlib import Path
+from uuid import UUID
 
-import click
-from click_aliases import ClickAliasedGroup
+import typer
+from click import UsageError
+from requests import Response
 
 from twc import fmt
-from . import (
-    create_client,
-    handle_request,
-    options,
-    debug,
-    GLOBAL_OPTIONS,
-    OUTPUT_FORMAT_OPTION,
+from twc.typerx import TyperAlias
+from twc.apiwrap import create_client
+from twc.api import ServiceRegion, ServerOSType
+from .common import (
+    verbose_option,
+    config_option,
+    profile_option,
+    filter_option,
+    yes_option,
+    output_format_option,
 )
 
 
-@handle_request
-def _image_list(client, *args, **kwargs):
-    return client.get_images(*args, **kwargs)
-
-
-@handle_request
-def _image_get(client, *args, **kwargs):
-    return client.get_image(*args, **kwargs)
-
-
-@handle_request
-def _image_create(client, *args, **kwargs):
-    return client.create_image(*args, **kwargs)
-
-
-@handle_request
-def _image_remove(client, *args, **kwargs):
-    return client.delete_image(*args, **kwargs)
-
-
-@handle_request
-def _image_set_property(client, *args, **kwargs):
-    return client.update_image(*args, **kwargs)
-
-
-@handle_request
-def _image_upload(client, *args, **kwargs):
-    return client.upload_image(*args, **kwargs)
-
-
-# ------------------------------------------------------------- #
-# $ twc image                                                   #
-# ------------------------------------------------------------- #
-
-
-@click.group("image", cls=ClickAliasedGroup)
-@options(GLOBAL_OPTIONS[:2])
-def image():
-    """Manage disk images."""
+image = TyperAlias(help=__doc__)
 
 
 # ------------------------------------------------------------- #
@@ -63,11 +33,11 @@ def image():
 # ------------------------------------------------------------- #
 
 
-def print_images(response: object, filters: str):
+def print_images(response: Response, filters: Optional[str] = None):
+    """Print table with images list."""
+    images = response.json()["images"]
     if filters:
-        images = fmt.filter_list(response.json()["images"], filters)
-    else:
-        images = response.json()["images"]
+        images = fmt.filter_list(images, filters)
 
     table = fmt.Table()
     table.header(
@@ -94,43 +64,30 @@ def print_images(response: object, filters: str):
     table.print()
 
 
-@image.command("list", aliases=["ls"], help="List images.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option(
-    "--limit",
-    type=int,
-    default=500,
-    show_default=True,
-    help="Items to display.",
-)
-@click.option("--filter", "-f", "filters", default="", help="Filter output.")
-@click.option("--region", help="Use region (location).")
-@click.option(
-    "--with-deleted",
-    is_flag=True,
-    help="Show all images including deleted images.",
-)
+@image.command("list", "ls")
 def image_list(
-    config,
-    profile,
-    verbose,
-    output_format,
-    limit,
-    filters,
-    region,
-    with_deleted,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    limit: int = typer.Option(500, help="Items to display."),
+    filters: Optional[str] = filter_option,
+    region: Optional[ServiceRegion] = typer.Option(
+        None,
+        case_sensitive=False,
+        help="Use region (location).",
+    ),
+    with_deleted: Optional[bool] = typer.Option(
+        False,
+        "--with-deleted",
+        help="Show all images including deleted images.",
+    ),
 ):
-    if filters:
-        filters = filters.replace("region", "location")
+    """List images."""
     if region:
-        if filters:
-            filters = filters + f",location:{region}"
-        else:
-            filters = f"location:{region}"
-
+        filters = f"{filters},location:{region}"
     client = create_client(config, profile)
-    response = _image_list(client, limit=limit, with_deleted=with_deleted)
+    response = client.get_images(limit=limit, with_deleted=with_deleted)
     fmt.printer(
         response,
         output_format=output_format,
@@ -144,7 +101,8 @@ def image_list(
 # ------------------------------------------------------------- #
 
 
-def print_image(response: object):
+def print_image(response: Response):
+    """Print table with image info."""
     table = fmt.Table()
     table.header(
         [
@@ -170,21 +128,28 @@ def print_image(response: object):
     table.print()
 
 
-@image.command("get", help="Get image.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option("--status", is_flag=True, help="Print image status only.")
-@click.argument("image_id", required=True)
-def image_get(config, profile, verbose, output_format, status, image_id):
+@image.command("get")
+def image_get(
+    image_id: UUID,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    status: Optional[bool] = typer.Option(
+        False,
+        "--status",
+        help="Print image status only.",
+    ),
+):
+    """Get image info."""
     client = create_client(config, profile)
-    response = _image_get(client, image_id)
+    response = client.get_image(image_id)
     if status:
-        _status = response.json()["image"]["status"]
-        if _status == "created":
-            click.echo(_status)
-            sys.exit(0)
-        else:
-            sys.exit(_status)
+        state = response.json()["image"]["status"]
+        if state == "created":
+            print(state)
+            raise typer.Exit()
+        sys.exit(state)
     fmt.printer(response, output_format=output_format, func=print_image)
 
 
@@ -193,23 +158,27 @@ def image_get(config, profile, verbose, output_format, status, image_id):
 # ------------------------------------------------------------- #
 
 
-@image.command("create", help="Create image.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option(
-    "--name", type=str, default=None, help="Image human readable name."
-)
-@click.option("--desc", type=str, default=None, help="Image description.")
-@click.argument("disk_id", type=int, required=True)
-def image_create(config, profile, verbose, output_format, name, desc, disk_id):
+@image.command("create")
+def image_create(
+    disk_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    name: Optional[str] = typer.Option(
+        None, help="Image human readable name."
+    ),
+    desc: Optional[str] = typer.Option(None, help="Image description."),
+):
+    """Create image from existing Cloud Server disk."""
     client = create_client(config, profile)
-    response = _image_create(
-        client, disk_id=disk_id, name=name, description=desc
+    response = client.create_image(
+        disk_id=disk_id, name=name, description=desc
     )
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: click.echo(response.json()["image"]["id"]),
+        func=lambda response: print(response.json()["image"]["id"]),
     )
 
 
@@ -218,47 +187,57 @@ def image_create(config, profile, verbose, output_format, name, desc, disk_id):
 # ------------------------------------------------------------- #
 
 
-@image.command("remove", aliases=["rm"], help="Remove image.")
-@options(GLOBAL_OPTIONS)
-@click.confirmation_option(
-    prompt="This action cannot be undone. Are you sure?"
-)
-@click.argument("image_id", nargs=-1, required=True)
-def image_remove(config, profile, verbose, image_id):
-    client = create_client(config, profile)
-
-    for img in image_id:
-        response = _image_remove(client, img)
-        if response.status_code == 204:
-            click.echo(img)
-        else:
-            fmt.printer(response)
-
-
-# ------------------------------------------------------------- #
-# $ twc image set-property                                      #
-# ------------------------------------------------------------- #
-
-
-@image.command("set-property", help="Change image name and description.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option(
-    "--name", type=str, default=None, help="Image human readable name."
-)
-@click.option("--desc", type=str, default=None, help="Image description.")
-@click.argument("image_id", required=True)
-def image_set_property(
-    config, profile, verbose, output_format, name, desc, image_id
+@image.command("remove", "rm")
+def image_remove(
+    image_ids: List[UUID] = typer.Argument(..., metavar="IMAGE_ID..."),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    yes: Optional[bool] = yes_option,
 ):
+    """Remove image."""
+    if not yes:
+        typer.confirm(
+            "This action cannot be undone. Continue?",
+            abort=True,
+        )
     client = create_client(config, profile)
-    response = _image_set_property(
-        client, image_id, name=name, description=desc
-    )
+    for image_id in image_ids:
+        response = client.delete_image(image_id)
+        if response.status_code == 204:
+            print(image_id)
+        else:
+            sys.exit(fmt.printer(response))
+
+
+# ------------------------------------------------------------- #
+# $ twc image set                                               #
+# ------------------------------------------------------------- #
+
+
+@image.command("set")
+def image_set_property(
+    image_id: UUID,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    name: Optional[str] = typer.Option(
+        None, help="Image human readable name."
+    ),
+    desc: Optional[str] = typer.Option(None, help="Image description."),
+):
+    """Change image name and description."""
+    if not name and not desc:
+        raise UsageError(
+            "Nothing to do. Set one of options: ['--name', '--desc']"
+        )
+    client = create_client(config, profile)
+    response = client.update_image(image_id, name=name, description=desc)
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: click.echo(response.json()["image"]["id"]),
+        func=lambda response: print(response.json()["image"]["id"]),
     )
 
 
@@ -267,85 +246,45 @@ def image_set_property(
 # ------------------------------------------------------------- #
 
 
-def draw_progressbar(monitor):
-    print("Bytes:", monitor.bytes_read)
-
-
-@image.command("upload", help="Upload image from URL.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option(
-    "--name", type=str, default=None, help="Image human readable name."
-)
-@click.option("--desc", type=str, default=None, help="Image description.")
-@click.option(
-    "--os",
-    "os_type",
-    type=click.Choice(
-        [
-            "centos",
-            "almalinux",
-            "debian",
-            "bitrix",
-            "ubuntu",
-            "brainycp",
-            "archlinux",
-            "astralinux",
-            "windows",
-            "custom_os",
-            "other",
-        ]
-    ),
-    default="other",
-    show_default=True,
-    help="OS type.",
-)
-@click.option(
-    "--location",
-    type=click.Choice(["ru-1", "ru-2", "pl-1", "kz-1", "nl-1"]),
-    default="ru-1",
-    show_default=True,
-    help="Region to upload image.",
-)
-@click.argument("file", required=True)
+@image.command("upload")
 def image_upload(
-    config,
-    profile,
-    verbose,
-    output_format,
-    name,
-    desc,
-    os_type,
-    location,
-    file,
+    file: str = typer.Argument(..., help="Direct HTTP(S) link to image."),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    name: Optional[str] = typer.Option(
+        None, help="Image human readable name."
+    ),
+    desc: Optional[str] = typer.Option(None, help="Image description."),
+    os_type: ServerOSType = typer.Option(
+        ServerOSType.OTHER.value,
+        metavar="OS_TYPE",
+        case_sensitive=False,
+        help="OS type. This value is formal and not affects on server/image.",
+    ),
+    region: Optional[ServiceRegion] = typer.Option(
+        ServiceRegion.RU_1.value,
+        case_sensitive=False,
+        help="Region (location) to upload image.",
+    ),
 ):
+    """Upload image from URL."""
     client = create_client(config, profile)
-    payload = {
-        "name": name,
-        "description": desc,
-        "location": location,
-        "os": os_type,
-    }
-
     if re.match(r"https?://", file):
         debug(f"Upload URL: {file}")
-        payload["upload_url"] = file
-        response = _image_create(client, **payload)
-    #    else:
-    #        filepath = os.path.realpath(file)
-    #        if os.path.exists(filepath):
-    #            filesize = os.path.getsize(file)
-    #            debug(f"Upload file: {filepath}")
-    #            debug(f"File size (bytes): {filesize}")
-    #            if filesize > 107374182400:
-    #                sys.exit(f"Error: File is too large (>100G): {file}")
-    #            image_id = _image_create(client, **payload).json()["image"]["id"]
-    #            response = _image_upload(client, image_id, filepath)
-    #        else:
-    #            sys.exit(f"Error: No such file: {file}")
+        response = client.create_image(
+            upload_url=file,
+            name=name,
+            description=desc,
+            os_type=os_type,
+            location=region,
+        )
+
+    # FUTURE: Implement file upload from local disk
 
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: click.echo(response.json()["image"]["id"]),
+        func=lambda response: print(response.json()["image"]["id"]),
     )

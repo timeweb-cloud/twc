@@ -1,114 +1,38 @@
-"""Project management commands."""
+"""Manage projects."""
 
 import sys
+from typing import Optional, List
+from pathlib import Path
 
-import click
-from click_aliases import ClickAliasedGroup
+import typer
+from click import UsageError
+from requests import Response
 
 from twc import fmt
-from . import (
-    create_client,
-    handle_request,
-    options,
-    debug,
-    GLOBAL_OPTIONS,
-    OUTPUT_FORMAT_OPTION,
+from twc.typerx import TyperAlias
+from twc.apiwrap import create_client
+from twc.api import TimewebCloud, ProjectResource
+from .common import (
+    verbose_option,
+    config_option,
+    profile_option,
+    yes_option,
+    output_format_option,
 )
 
 
+project = TyperAlias(help=__doc__)
+project_resource = TyperAlias(help="Manage Project resources.")
+project.add_typer(project_resource, name="resource", aliases="rsrc")
+
+# API issue: Inconsistent resource naming
+# Some entities have different names in cases.
 RESOURCE_TYPES = [
-    "all",
-    "server",
-    "balancer",
-    "bucket",
-    "cluster",
-    "database",
-    "dedicated_server",
+    *[r.value for r in ProjectResource],
+    "cluster",  # also named 'kubernetes'
+    "bucket",  # also named 'storage'
+    "dedicated_server",  # also named 'dedicated'
 ]
-
-
-@handle_request
-def _project_list(client, *args, **kwargs):
-    return client.get_projects(*args, **kwargs)
-
-
-@handle_request
-def _project_get(client, *args, **kwargs):
-    return client.get_project(*args, **kwargs)
-
-
-@handle_request
-def _project_create(client, *args, **kwargs):
-    return client.create_project(*args, **kwargs)
-
-
-@handle_request
-def _project_remove(client, *args, **kwargs):
-    return client.delete_project(*args, **kwargs)
-
-
-@handle_request
-def _project_set_property(client, *args, **kwargs):
-    return client.update_project(*args, **kwargs)
-
-
-@handle_request
-def _project_resource_list(client, *args, **kwargs):
-    return client.get_project_resources(*args, **kwargs)
-
-
-@handle_request
-def _project_resource_list_balancers(client, *args, **kwargs):
-    return client.get_project_balancers(*args, **kwargs)
-
-
-@handle_request
-def _project_resource_list_buckets(client, *args, **kwargs):
-    return client.get_project_buckets(*args, **kwargs)
-
-
-@handle_request
-def _project_resource_list_clusters(client, *args, **kwargs):
-    return client.get_project_clusters(*args, **kwargs)
-
-
-@handle_request
-def _project_resource_list_databases(client, *args, **kwargs):
-    return client.get_project_databases(*args, **kwargs)
-
-
-@handle_request
-def _project_resource_list_servers(client, *args, **kwargs):
-    return client.get_project_servers(*args, **kwargs)
-
-
-@handle_request
-def _project_resource_list_dedicated_servers(client, *args, **kwargs):
-    return client.get_project_dedicated_servers(*args, **kwargs)
-
-
-@handle_request
-def _project_resource_move(client, *args, **kwargs):
-    return client.move_resource_to_project(*args, **kwargs)
-
-
-def get_default_project_id(client):
-    for prj in _project_list(client).json()["projects"]:
-        if prj["is_default"]:
-            debug(f"Default project ID is {prj['id']}")
-            return prj["id"]
-    return None
-
-
-# ------------------------------------------------------------- #
-# $ twc project                                                 #
-# ------------------------------------------------------------- #
-
-
-@click.group("project", cls=ClickAliasedGroup)
-@options(GLOBAL_OPTIONS[:2])
-def project():
-    """Manage Projects."""
 
 
 # ------------------------------------------------------------- #
@@ -116,7 +40,8 @@ def project():
 # ------------------------------------------------------------- #
 
 
-def print_projects(response: object):
+def print_projects(response: Response):
+    """Print table with projects list."""
     projects = response.json()["projects"]
     table = fmt.Table()
     table.header(
@@ -139,17 +64,16 @@ def print_projects(response: object):
     table.print()
 
 
-@project.command("list", aliases=["ls"], help="List Projects.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
+@project.command("list", "ls")
 def project_list(
-    config,
-    profile,
-    verbose,
-    output_format,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
 ):
+    """List Projects."""
     client = create_client(config, profile)
-    response = _project_list(client)
+    response = client.get_projects()
     fmt.printer(response, output_format=output_format, func=print_projects)
 
 
@@ -158,23 +82,25 @@ def project_list(
 # ------------------------------------------------------------- #
 
 
-@project.command("create", help="Create image.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option("--name", required=True, help="Project name.")
-@click.option("--desc", default=None, help="Project description.")
-@click.option("--avatar-id", default=None, help="Project image.")
+@project.command("create")
 def image_create(
-    config, profile, verbose, output_format, name, desc, avatar_id
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    name: Optional[str] = typer.Option(None, help="Project display name."),
+    desc: Optional[str] = typer.Option(None, help="Project description."),
+    avatar_id: Optional[str] = typer.Option(None, help="Avatar ID."),
 ):
+    """Create project."""
     client = create_client(config, profile)
-    response = _project_create(
-        client, name=name, description=desc, avatar_id=avatar_id
+    response = client.create_project(
+        name=name, description=desc, avatar_id=avatar_id
     )
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: click.echo(response.json()["project"]["id"]),
+        func=lambda response: print(response.json()["project"]["id"]),
     )
 
 
@@ -183,64 +109,60 @@ def image_create(
 # ------------------------------------------------------------- #
 
 
-@project.command(
-    "remove",
-    aliases=["rm"],
-    help="Remove project. Not affects on project resources.",
-)
-@options(GLOBAL_OPTIONS)
-@click.confirmation_option(
-    prompt="Project resources will be moved to default project. Continue?"
-)
-@click.argument("project_id", nargs=-1, required=True)
-def project_remove(config, profile, verbose, project_id):
-    client = create_client(config, profile)
-
-    for prj in project_id:
-        response = _project_remove(client, prj)
-        if response.status_code == 204:
-            click.echo(prj)
-        else:
-            fmt.printer(response)
-
-
-# ------------------------------------------------------------- #
-# $ twc project set-property                                    #
-# ------------------------------------------------------------- #
-
-
-@project.command(
-    "set-property", help="Change proejct name, description and avatar."
-)
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option("--name", default=None, help="Project name.")
-@click.option("--desc", default=None, help="Project description.")
-@click.option("--avatar-id", default=None, help="Project image.")
-@click.argument("project_id", required=True)
-def project_set_property(
-    config, profile, verbose, output_format, name, desc, avatar_id, project_id
+@project.command("remove", "rm")
+def project_remove(
+    project_ids: List[int] = typer.Argument(..., metavar="PROJECT_ID..."),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    yes: Optional[bool] = yes_option,
 ):
+    """Remove project. Not affects on project resources."""
+    if not yes:
+        typer.confirm(
+            "Project resources will be moved to default project. Continue?",
+            abort=True,
+        )
     client = create_client(config, profile)
-    response = _project_set_property(
-        client, project_id, name=name, description=desc, avatar_id=avatar_id
+    for project_id in project_ids:
+        response = client.delete_project(project_id)
+        if response.status_code == 204:
+            print(project_id)
+        else:
+            sys.exit(fmt.printer(response))
+
+
+# ------------------------------------------------------------- #
+# $ twc project set                                             #
+# ------------------------------------------------------------- #
+
+
+@project.command("set")
+def project_set_property(
+    project_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    name: Optional[str] = typer.Option(None, help="Project display name."),
+    desc: Optional[str] = typer.Option(None, help="Project description."),
+    avatar_id: Optional[str] = typer.Option(None, help="Avatar ID."),
+):
+    """Change proejct name, description and avatar."""
+    if not name and not desc and not avatar_id:
+        raise UsageError(
+            "Nothing to do. Set one of options: "
+            "['--name', '--desc', '--avatar-id']"
+        )
+    client = create_client(config, profile)
+    response = client.update_project(
+        project_id, name=name, description=desc, avatar_id=avatar_id
     )
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: click.echo(response.json()["project"]["id"]),
+        func=lambda response: print(response.json()["project"]["id"]),
     )
-
-
-# ------------------------------------------------------------- #
-# $ twc project resource                                        #
-# ------------------------------------------------------------- #
-
-
-@project.group("resource", cls=ClickAliasedGroup)
-@options(GLOBAL_OPTIONS[:2])
-def resource():
-    """Manage Project resources."""
 
 
 # ------------------------------------------------------------- #
@@ -248,12 +170,12 @@ def resource():
 # ------------------------------------------------------------- #
 
 
-def print_resources(response, resource_type: str):
+def print_resources(response: Response):
+    """Print table with project resources list."""
     resources = response.json()
+    del resources["response_id"]
+    del resources["meta"]
     resource_keys = list(resources.keys())
-    resource_keys.remove("response_id")
-    resource_keys.remove("meta")
-
     table = fmt.Table()
     table.header(
         [
@@ -265,48 +187,56 @@ def print_resources(response, resource_type: str):
     )
     for key in resource_keys:
         if resources[key]:
-            if resource_type in {key[:-1], "all"}:
-                for item in resources[key]:
-                    try:
-                        location = item["location"]
-                    except KeyError:
-                        # Balancers, clusters, and databases has no 'location' field.
-                        # These services is available only in 'ru-1' location.
-                        location = "ru-1"
-                    table.row(
-                        [
-                            item["id"],
-                            item["name"],
-                            location,
-                            key[:-1],
-                        ]
-                    )
+            for resource in resources[key]:
+                try:
+                    location = resource["location"]
+                except KeyError:
+                    # Balancers, clusters, and databases has no 'location' field.
+                    # These services is available only in 'ru-1' location.
+                    location = "ru-1"
+                table.row(
+                    [
+                        resource["id"],
+                        resource["name"],
+                        location,
+                        key[:-1],  # this is resource name e.g. 'server'
+                    ]
+                )
     table.print()
 
 
-@resource.command("list", aliases=["ls"], help="List project resources.")
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option(
-    "--type",
-    "resource_type",
-    type=click.Choice(RESOURCE_TYPES),
-    default="all",
-    show_default=True,
-    help="Resource type.",
-)
-@click.argument("project_id", type=int, required=True)
+@project_resource.command("list", "ls")
 def project_resource_list(
-    config, profile, verbose, output_format, resource_type, project_id
+    project_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    resource_type: Optional[str] = typer.Option(
+        None, "--type", help="Resource type."
+    ),
 ):
+    """List project resources."""
     client = create_client(config, profile)
-    response = _project_resource_list(client, project_id)
-    fmt.printer(
-        response,
-        output_format=output_format,
-        resource_type=resource_type,
-        func=print_resources,
-    )
+    if not resource_type:
+        response = client.get_project_resources(project_id)
+    elif resource_type in ["bucket", "storage"]:
+        response = client.get_project_buckets(project_id)
+    elif resource_type in ["kubernetes", "cluster"]:
+        response = client.get_project_clusters(project_id)
+    elif resource_type == "balancer":
+        response = client.get_project_balancers(project_id)
+    elif resource_type == "database":
+        response = client.get_project_databases(project_id)
+    elif resource_type in ["dedicated", "dedicated_server"]:
+        response = client.get_project_dedicated_servers(project_id)
+    elif resource_type == "cluster":
+        response = client.get_project_servers(project_id)
+    else:
+        raise UsageError(
+            f"Resource type is not in [{', '.join(RESOURCE_TYPES)}]"
+        )
+    fmt.printer(response, output_format=output_format, func=print_resources)
 
 
 # ------------------------------------------------------------- #
@@ -314,98 +244,77 @@ def project_resource_list(
 # ------------------------------------------------------------- #
 
 
-def get_project_id_by_resource(client, resource_id, resource_type: str) -> int:
-    """Return project_id by resource_id and resource_type."""
-    projects = _project_list(client).json()["projects"]
-
-    for prj in projects:
-
-        if resource_type == "server":
-            resources = _project_resource_list_servers(client, prj["id"])
-        if resource_type == "balancer":
-            resources = _project_resource_list_balancers(client, prj["id"])
-        if resource_type == "bucket":
-            resources = _project_resource_list_buckets(client, prj["id"])
-        if resource_type == "cluster":
-            resources = _project_resource_list_clusters(client, prj["id"])
-        if resource_type == "database":
-            resources = _project_resource_list_databases(client, prj["id"])
-        if resource_type == "dedicated_server":
-            resources = _project_resource_list_dedicated_servers(
-                client, prj["id"]
-            )
-
-        for resource in resources.json()[resource_type + "s"]:
-            if resource["id"] == resource_id:
-                return prj["id"]
-    return None
+def resolve_bucket_id(client: TimewebCloud, name: str):
+    """Return bucket ID by bucket name."""
+    buckets = client.get_buckets().json()["buckets"]
+    for bucket in buckets:
+        if bucket["name"] == name:
+            return bucket["id"]
+    sys.exit(f"Error: Bucket '{name}' not found.")
 
 
-@resource.command(
-    "move", aliases=["mv"], help="Move resources between projects."
-)
-@options(GLOBAL_OPTIONS)
-@options(OUTPUT_FORMAT_OPTION)
-@click.option(
-    "--resource-id", type=int, required=True, help="Resource ID to move."
-)
-@click.option(
-    "--type",
-    "resource_type",
-    type=click.Choice(RESOURCE_TYPES[1:]),
-    required=True,
-    help="Resource type.",
-)
-@click.option(
-    "--to-project",
-    "project_id",
-    type=int,
-    required=True,
-    help="Destination Project ID.",
-)
+def print_result(response: Response):
+    """Print response for project_resource_move()"""
+    if response.status_code == 200:
+        print(response.json()["resource"]["resource_id"])
+    else:
+        sys.exit(fmt.printer(response))
+
+
+@project_resource.command("move", "mv")
 def project_resource_move(
-    config,
-    profile,
-    verbose,
-    output_format,
-    resource_id,
-    resource_type,
-    project_id,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    project_id: int = typer.Argument(..., help="Destination project ID."),
+    balancer: Optional[List[int]] = typer.Option(
+        None, help="Move load balancer."
+    ),
+    bucket: Optional[List[str]] = typer.Option(
+        None, help="Move object storage bucket."
+    ),
+    cluster: Optional[List[int]] = typer.Option(
+        None, help="Move Kubernetes cluster."
+    ),
+    database: Optional[List[int]] = typer.Option(None, help="Move database."),
+    dedicated: Optional[List[int]] = typer.Option(
+        None, help="Move dedicated server."
+    ),
+    server: Optional[List[int]] = typer.Option(
+        None, help="Move Cloud Server."
+    ),
 ):
+    """Move resources between projects."""
     client = create_client(config, profile)
-
-    # Change resource_type 'server' to 'servers', etc.
-    old_project_id = get_project_id_by_resource(
-        client, resource_id, resource_type
-    )
-    if not old_project_id:
-        sys.exit(
-            f"Error: Cannot find project_id "
-            f"for resource '{resource_type} with ID {resource_id}'."
-        )
-
-    # Prepare resource types for _project_resource_move()
-    resources_map = {
-        "server": "server",
-        "balancer": "balancer",
-        "database": "database",
-        "cluster": "kubernetes",
-        "bucket": "storage",
-        "dedicated_server": "dedicated",
-    }
-
-    response = _project_resource_move(
-        client,
-        from_project=old_project_id,
-        to_project=project_id,
-        resource_id=resource_id,
-        resource_type=resources_map[resource_type],
-    )
-
-    fmt.printer(
-        response,
-        output_format=output_format,
-        func=lambda response: click.echo(
-            response.json()["resource"]["resource_id"]
-        ),
-    )
+    if balancer:
+        for balancer_id in balancer:
+            print_result(
+                client.add_balancer_to_project(balancer_id, project_id)
+            )
+    if bucket:
+        for bucket_id in bucket:
+            if not bucket_id.isdigit():
+                bucket_name = bucket_id
+                bucket_id = resolve_bucket_id(client, bucket_id)
+            response = client.add_bucket_to_project(bucket_id, project_id)
+            if response.status_code == 200:
+                print(bucket_name)
+            else:
+                sys.exit(fmt.printer(response))
+    if cluster:
+        for cluster_id in cluster:
+            print_result(client.add_cluster_to_project(cluster_id, project_id))
+    if database:
+        for database_id in database:
+            print_result(
+                client.add_database_to_project(database_id, project_id)
+            )
+    if dedicated:
+        for dedic_id in dedicated:
+            print_result(
+                client.add_dedicated_server_to_project(dedic_id, project_id)
+            )
+    if server:
+        for server_id in server:
+            print_result(client.add_server_to_project(server_id, project_id))

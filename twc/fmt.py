@@ -1,12 +1,12 @@
 """Format console output."""
+
 # pylint: disable=no-name-in-module
 # See https://github.com/PyCQA/pylint/issues/491
 
 import re
-import sys
 import json
 
-import click
+import typer
 import yaml
 
 from pygments import highlight
@@ -52,7 +52,7 @@ class Table:
         """Print table content to terminal."""
         widths = [max(map(len, col)) for col in zip(*self.__rows)]
         for row in self.__rows:
-            click.echo(
+            typer.echo(
                 self.__whitespace.join(
                     (val.ljust(width) for val, width in zip(row, widths))
                 )
@@ -67,11 +67,11 @@ class Printer:
 
     def raw(self):
         """Print raw API response text (mostly raw JSON)."""
-        click.echo(self._data.text)
+        typer.echo(self._data.text)
 
     def colorize(self, data: str, lexer: object = JsonLexer()):
         """Print colorized output. Fallback to non-color."""
-        click.echo(highlight(data, lexer, TerminalFormatter()).strip())
+        typer.echo(highlight(data, lexer, TerminalFormatter()).strip())
 
     def pretty_json(self):
         """Print colorized JSON output. Fallback to non-color output if
@@ -115,7 +115,7 @@ class Printer:
                 if func:
                     func(self._data, **kwargs)
             except KeyError:  # fallback to 'json' or 'raw' on error
-                click.echo(
+                typer.echo(
                     "Error: Cannot represent output. Fallback to JSON.",
                     err=True,
                 )
@@ -158,14 +158,11 @@ def filter_list(objects: list, filters: str) -> list:
 
     `filters` is a string with following format::
 
-        ``<key>:<value>,<key>:<value>``
+        <key>:<value>,<key>:<value>,...
 
     Key-Value pairs count is unlimited. Available filter keys and
     values depends on passed object.
     """
-    if not re.match(r"^(([a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+),?)+$", filters):
-        sys.exit("Error: Invalid filter format")
-
     for key_val in filters.split(","):
         try:
             key, val = key_val.split(":")
@@ -200,4 +197,4 @@ def print_colored(data: str, lang: str = None):
     }
     if lang not in lexers:
         raise ValueError(f"Unsupported lexer: '{lang}'")
-    click.echo(highlight(data, lexers[lang], TerminalFormatter()).strip())
+    typer.echo(highlight(data, lexers[lang], TerminalFormatter()).strip())
