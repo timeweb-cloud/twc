@@ -1,0 +1,146 @@
+"""Custom data types for Timeweb Cloud API entities."""
+
+from typing import NamedTuple
+from enum import Enum
+
+
+class ServiceRegion(str, Enum):
+    """Locations which TimewebCloud services is presented."""
+
+    RU_1 = "ru-1"
+    RU_2 = "ru-2"
+    PL_1 = "pl-1"
+    KZ_1 = "kz-1"
+    NL_1 = "nl-1"
+
+
+class ServerAction(str, Enum):
+    """Available actions on Cloud Server."""
+
+    HARD_REBOOT = "hard_reboot"
+    HARD_SHUTDOWN = "hard_shutdown"
+    INSTALL = "install"
+    REBOOT = "reboot"
+    REMOVE = "remove"
+    RESET_PASSWORD = "reset_password"
+    SHUTDOWN = "shutdown"
+    START = "start"
+    CLONE = "clone"
+
+
+class ServerLogOrder(str, Enum):
+    """Cloud Server events log order options."""
+
+    ASC = "asc"
+    DESC = "desc"
+
+
+class ServerBootMode(str, Enum):
+    """Available boot Cloud Server modes. There are:
+    - default
+    - single user mode
+    - boot from livecd (SystemRescue distribution)
+    """
+
+    DEFAULT = "default"
+    SINGLE = "single"
+    RECOVERY_DISK = "recovery_disk"
+
+
+class ServerNATMode(str, Enum):
+    """Available NAT options for Cloud Server with enabled LAN."""
+
+    DNAT_AND_SNAT = "dnat_and_snat"
+    SNAT = "snat"
+    NO_NAT = "no_nat"
+
+
+class IPVersion(str, Enum):
+    """Just IP versions."""
+
+    IPV4 = "ipv4"
+    IPV6 = "ipv6"
+
+
+class ServerConfiguration(NamedTuple):
+    """
+    For `confugurator_id` see `get_server_configurators()`. `disk` and
+    `ram` must be in megabytes. Values must values must comply with the
+    configurator constraints.
+
+    TODO: Replace NamedTuple with TypedDict when drop Python 3.7
+    """
+
+    configurator_id: int
+    disk: int
+    cpu: int
+    ram: int
+
+
+class ServerOSType(str, Enum):
+    """Operating system types used for determine customers image OS."""
+
+    ALMALINUX = "almalinux"
+    ARCHLINUX = "archlinux"
+    ASTRALINUX = "astralinux"
+    BITRIX = "bitrix"
+    BRAINYCP = "brainycp"
+    CENTOS = "centos"
+    CUSTOM_OS = "custom_os"
+    DEBIAN = "debian"
+    OTHER = "other"
+    UBUNTU = "ubuntu"
+    WINDOWS = "windows"
+
+
+class BackupAction(str, Enum):
+    """Available actions for Cloud Server backups."""
+
+    RESTORE = "restore"
+    MOUNT = "mount"
+    UNMOUNT = "unmount"
+
+
+class BackupInterval(str, Enum):
+    """Available schedule options for Cloud Server backups."""
+
+    DAY = "day"
+    WEEK = "week"
+    MONTH = "month"
+
+
+class ProjectResource(str, Enum):
+    """Project resource types."""
+
+    SERVER = "server"
+    BALANCER = "balancer"
+    DATABASE = "database"
+    CLUSTER = "kubernetes"
+    BUCKET = "storage"
+    DEDICATED_SERVER = "dedicated"
+
+
+class DBMS(str, Enum):
+    """Available DBMS in Timeweb Cloud managed databases service."""
+
+    MYSQL_5 = "mysql5"
+    MYSQL_8 = "mysql8"
+    POSTGRES = "postgres"
+    REDIS = "redis"
+    MONGODB = "mongodb"
+
+
+class MySQLAuthPlugin(str, Enum):
+    """MySQL auth plugin options in Timeweb Cloud managed databases
+    service.
+    """
+
+    CACHING_SHA2 = "caching_sha2"
+    MYSQL_NATIVE = "mysql_native"
+
+
+class BucketType(str, Enum):
+    """Bucket access policies."""
+
+    PUBLIC = "public"
+    PRIVATE = "private"
