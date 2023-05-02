@@ -234,7 +234,7 @@ output_format_option = typer.Option(
     show_default=False,
     show_envvar=False,
     callback=load_from_config_callback,
-    help=f"Output format [{'|'.join([k.value for k in OutputFormat])}].",
+    help=f"Output format, one of: [{'|'.join([k.value for k in OutputFormat])}].",
 )
 
 

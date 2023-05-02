@@ -37,14 +37,16 @@ class ServerLogOrder(str, Enum):
 
 class ServerBootMode(str, Enum):
     """Available boot Cloud Server modes. There are:
-    - default
-    - single user mode
+    - normal boot from system disk
+    - boot in single user mode
     - boot from livecd (SystemRescue distribution)
     """
 
     DEFAULT = "default"
     SINGLE = "single"
-    RECOVERY_DISK = "recovery_disk"
+    # In API is named "recovery_disk" there is a shortcut for CLI.
+    # See TimewebCloud.set_server_boot_mode()
+    RECOVERY = "recovery"
 
 
 class ServerNATMode(str, Enum):

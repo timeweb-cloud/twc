@@ -138,7 +138,7 @@ def image_get(
     status: Optional[bool] = typer.Option(
         False,
         "--status",
-        help="Print image status only.",
+        help="Display status and exit with 0 if status is 'created'.",
     ),
 ):
     """Get image info."""

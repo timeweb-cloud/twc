@@ -200,6 +200,8 @@ class TimewebCloud(TimewebCloudBase):
 
     def set_server_boot_mode(self, server_id: int, boot_mode: ServerBootMode):
         """Change Cloud Server boot mode."""
+        if boot_mode == "recovery":
+            boot_mode = "recovery_disk"
         return self._request(
             "POST",
             f"{self.api_url}/servers/{server_id}/boot-mode",

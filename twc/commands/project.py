@@ -23,7 +23,7 @@ from .common import (
 
 project = TyperAlias(help=__doc__)
 project_resource = TyperAlias(help="Manage Project resources.")
-project.add_typer(project_resource, name="resource", aliases="rsrc")
+project.add_typer(project_resource, name="resource", aliases=["rsrc"])
 
 # API issue: Inconsistent resource naming
 # Some entities have different names in cases.

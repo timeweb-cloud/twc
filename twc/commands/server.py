@@ -1251,13 +1251,13 @@ def server_history(
 
 @server.command("set-boot-mode", help="Set Cloud Server boot mode.")
 def server_set_boot_mode(
+    server_ids: List[int] = typer.Argument(
+        ..., metavar="SERVER_ID...", help="Cloud Server ID, Can be multiple."
+    ),
     boot_mode: ServerBootMode = typer.Argument(
         ...,
         metavar="MODE",
         help=f"Boot mode: [{'|'.join(ServerBootMode)}]",
-    ),
-    server_ids: List[int] = typer.Argument(
-        ..., metavar="SERVER_ID...", help="Cloud Server ID, Can be multiple."
     ),
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
@@ -1284,13 +1284,13 @@ def server_set_boot_mode(
 
 @server.command("set-nat-mode")
 def server_set_nat_mode(
+    server_ids: List[int] = typer.Argument(
+        ..., metavar="SERVER_ID...", help="Cloud Server ID, can be multiple."
+    ),
     nat_mode: ServerNATMode = typer.Argument(
         ...,
         metavar="MODE",
         help=f"NAT mode: [{'|'.join(ServerNATMode)}]",
-    ),
-    server_ids: List[int] = typer.Argument(
-        ..., metavar="SERVER_ID...", help="Cloud Server ID, can be multiple."
     ),
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
@@ -1711,7 +1711,8 @@ def server_backup_schedule(
     start_date: datetime = typer.Option(
         date.today().strftime("%Y-%m-%d"),
         formats=["%Y-%m-%d"],
-        help="Start date of the first backup creation.",
+        show_default=False,
+        help="Start date of the first backup creation [default: today].",
     ),
     interval: BackupInterval = typer.Option(
         BackupInterval.DAY.value,
@@ -2021,9 +2022,17 @@ def server_dash(
     tab: bool = typer.Option(
         True, "--tab/--win", help="Open in new tab or new window."
     ),
+    do_print: bool = typer.Option(
+        False,
+        "--print",
+        help="Print URL instead of opening web browser.",
+    ),
 ):
     """Open Cloud Server dashboard in web browser."""
     url = f"{CONTROL_PANEL_URL}/servers/{server_id}"
+    if do_print:
+        print(url)
+        raise typer.Exit()
     if tab:
         webbrowser.open_new_tab(url)
     else:
@@ -2041,9 +2050,17 @@ def server_vnc(
     tab: bool = typer.Option(
         True, "--tab/--win", help="Open in new tab or new window."
     ),
+    do_print: bool = typer.Option(
+        False,
+        "--print",
+        help="Print URL instead of opening web browser.",
+    ),
 ):
     """Open Cloud Server web VNC console in browser."""
     url = f"{CONTROL_PANEL_URL}/servers/{server_id}/console"
+    if do_print:
+        print(url)
+        raise typer.Exit()
     if tab:
         webbrowser.open_new_tab(url)
     else:
