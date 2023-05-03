@@ -24,6 +24,6 @@ publish-pypi:
 	poetry publish
 
 clean:
-	find . -maxdepth 1 -type d -name .testenv -print -exec rm -rf {} \;
-	find . -maxdepth 1 -type d -name dist -print -exec rm -rf {} \;
-	find . -type d -name __pycache__ -print -exec rm -rf {} \;
+	find . -maxdepth 1 -type d -name .testenv -print -exec rm -rf {} \; > /dev/null 2>&1 || true
+	find . -maxdepth 1 -type d -name dist -print -exec rm -rf {} \; > /dev/null 2>&1 || true
+	find . -type d -name __pycache__ -print -exec rm -rf {} \; > /dev/null 2>&1 || true
