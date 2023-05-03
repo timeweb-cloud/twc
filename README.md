@@ -2,7 +2,8 @@
 
 Timeweb Cloud Command Line Interface and simple SDK 💫
 
-> [Документация на русском](https://github.com/timeweb-cloud/twc/blob/master/docs/ru/README.md) 🇷🇺
+> [Документация на русском](https://github.com/timeweb-cloud/twc/blob/master/docs/ru/README.md) 🇷🇺  
+> [Command Line Interface (CLI) Reference](https://github.com/timeweb-cloud/twc/blob/master/docs/ru/CLI_REFERENCE.md) 📜
 
 # Installation
 
@@ -29,26 +30,11 @@ twc --help
 
 # Shell completion
 
-## Bash
-
-Add this to **~/.bashrc**:
+To install completion script run:
 
 ```
-eval "$(_TWC_COMPLETE=bash_source twc)"
+twc --install-completion
 ```
 
-## Zsh
+**twc** automatically detect your shell. Supported: Bash, Zsh, Fish, PowerShell.
 
-Add this to **~/.zshrc**:
-
-```
-eval "$(_TWC_COMPLETE=zsh_source twc)"
-```
-
-## Fish
-
-Add this to **~/.config/fish/completions/tw.fish**:
-
-```
-eval (env _TWC_COMPLETE=fish_source twc)
-```
