@@ -230,7 +230,7 @@ def project_resource_list(
         response = client.get_project_databases(project_id)
     elif resource_type in ["dedicated", "dedicated_server"]:
         response = client.get_project_dedicated_servers(project_id)
-    elif resource_type == "cluster":
+    elif resource_type == "server":
         response = client.get_project_servers(project_id)
     else:
         raise UsageError(
