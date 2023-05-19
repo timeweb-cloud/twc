@@ -1,6 +1,6 @@
 """API client exceptions."""
 
-from typing import List
+from typing import List, Union
 from uuid import UUID
 
 from requests import HTTPError, PreparedRequest, Response
@@ -13,7 +13,7 @@ class ErrResponse:
         self,
         status_code: int = None,
         error_code: str = None,
-        message: str | List[str] = None,
+        message: Union[str, List[str]] = None,
         response_id: UUID = None,
     ):
         self.status_code = status_code
@@ -31,7 +31,7 @@ class TimewebCloudException(HTTPError):
         response: Response = None,
         error_code: str = None,
         status_code: str = None,
-        message: str | List[str] = None,
+        message: Union[str, List[str]] = None,
         response_id: UUID = None,
     ):
         if message is not None:
