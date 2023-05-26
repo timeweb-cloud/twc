@@ -1,6 +1,6 @@
 """Timeweb Cloud API client."""
 
-from typing import Optional, Union
+from typing import Optional, Union, List
 from uuid import UUID
 from pathlib import Path
 from ipaddress import IPv4Address, IPv6Address
@@ -20,6 +20,8 @@ from .types import (
     ProjectResource,
     DBMS,
     MySQLAuthPlugin,
+    LoadBalancerProto,
+    LoadBalancerAlgo,
 )
 
 
@@ -953,3 +955,181 @@ class TimewebCloud(TimewebCloudBase):
             f"{self.api_url}/storages/certificates/generate",
             json={"subdomain": subdomain},
         )
+
+    # -----------------------------------------------------------------------
+    # Load Balancers
+
+    def get_load_balancers(self):
+       """Get load balancers list."""
+       return self._request("GET", f"{self.api_url}/balancers")
+
+    def get_load_balancer(self, balancer_id: int):
+       """Get load balancer."""
+       return self._request("GET", f"{self.api_url}/balancers/{balancer_id}")
+
+    def create_load_balancer(
+        self,
+        name: str,
+        preset_id: int,
+        algo: str,
+        proto: str,
+        port: int = 80,
+        path: str = "/",
+        inter: int = 2,
+        timeout: int = 10,
+        fall: int = 3,
+        rise: int = 2,
+        stick_table: bool = False,
+        proxy_protocol: bool = False,
+        force_https: bool = False,
+        backend_keepalive: bool = False,
+    ):
+        """Create load balancer."""
+        payload = {
+            "name": name,
+            "preset_id": preset_id,
+            "algo": algo,
+            "proto": proto,
+            "port": port,
+            "path": path,
+            "inter": inter,
+            "timeout": timeout,
+            "fall": fall,
+            "rise": rise,
+            "is_sticky": stick_table,
+            "is_use_proxy": proxy_protocol,
+            "is_ssl": force_https,
+            "is_keepalive": backend_keepalive,
+        }
+        return self._request("POST", f"{self.api_url}/balancers", json=payload)
+
+    def update_load_balancer(
+        self,
+        name: Optional[str] = None,
+        preset_id: Optional[int] = None,
+        algo: Optional[str] = None,
+        proto: Optional[str] = None,
+        port: Optional[int] = None,
+        path: Optional[str] = None,
+        inter: Optional[int] = None,
+        timeout: Optional[int] = None,
+        fall: Optional[int] = None,
+        rise: Optional[int] = None,
+        stick_table: Optional[bool] = None,
+        proxy_protocol: Optional[bool] = None,
+        force_https: Optional[bool] = None,
+        backend_keepalive: Optional[bool] = None,
+    ):
+        """Update load balancer settings."""
+        payload = {
+            **({"name": name} if name else {}),
+            **({"preset_id": preset_id} if preset_id else {}),
+            **({"algo": algo} if algo else {}),
+            **({"proto": proto} if proto else {}),
+            **({"port": port} if port else {}),
+            **({"path": path} if path else {}),
+            **({"inter": inter} if inter else {}),
+            **({"timeout": timeout} if timeout else {}),
+            **({"fall": fall} if fall else {}),
+            **({"rise": rise} if rise else {}),
+            **({"is_sticky": stick_table} if stick_table is not None else {}),
+            **({"is_use_proxy": proxy_protocol} if proxy_protocol is not None else {}),
+            **({"is_ssl": force_https} if force_https is not None else {}),
+            **({"is_keepalive": backend_keepalive} if backend_keepalive is not None else {}),
+        }
+        return self._request("PATCH", f"{self.api_url}/balancers", json=payload)
+
+    def delete_load_balancer(
+        self,
+        balancer_id: int,
+        delete_hash: Optional[str] = None,
+        code: Optional[int] = None,
+    ):
+        """Delete load balancer."""
+        params = {
+            **({"hash": delete_hash} if delete_hash else {}),
+            **({"code": code} if code else {}),
+        }
+        return self._request(
+            "DELETE",
+            f"{self.api_url}/balancers{balancer_id}",
+            params=params,
+        )
+
+    def get_load_balancer_ips(self, balancer_id: int):
+       """Get load balancer IP addresses."""
+       return self._request("GET", f"{self.api_url}/balancers/{balancer_id}/ips")
+
+    def add_ips_to_load_balancer(self, balancer_id: int, ips: List[str]):
+        """Attach IP addresses to load balancer."""
+        return self._request(
+            "POST",
+            f"{self.api_url}/balancers/{balancer_id}/ips",
+            json={"ips": ips}
+        )
+
+    def delete_ips_to_load_balancer(self, balancer_id: int, ips: List[str]):
+        """Detach IP addresses from load balancer."""
+        return self._request(
+            "DELETE",
+            f"{self.api_url}/balancers/{balancer_id}/ips",
+            json={"ips": ips}
+        )
+
+    def get_load_balancer_rules(self, balancer_id: int):
+       """Get load balancer IP addresses."""
+       return self._request("GET", f"{self.api_url}/balancers/{balancer_id}/rules")
+
+    def create_load_balancer_rule(
+        self,
+        balancer_id: int,
+        balancer_proto: LoadBalancerProto,
+        balancer_port: int,
+        server_proto: LoadBalancerProto,
+        server_port: int,
+    ):
+        """Create load balancer rule."""
+        payload = {
+            "balancer_proto": balancer_proto,
+            "balancer_port": balancer_port,
+            "server_proto": server_proto,
+            "server_port": server_port,
+        }
+        return self._requset(
+            "POST",
+            f"{self.api_url}/balancers/{balancer_id}/rules",
+            json=payload,
+        )
+
+    def update_load_balancer_rule(
+        self,
+        balancer_id: int,
+        rule_id: int,
+        balancer_proto: Optional[LoadBalancerProto] = None,
+        balancer_port: Optional[int] = None,
+        server_proto: Optional[LoadBalancerProto] = None,
+        server_port: optional[int] = None,
+    ):
+        """Create load balancer rule."""
+        payload = {
+            **({"balancer_proto": balancer_proto} if balancer_proto else {}),
+            **({"balancer_port": balancer_port} if balancer_port else {}),
+            **({"server_proto": server_proto} if server_proto else {}),
+            **({"server_port": server_port} if server_port else {}),
+        }
+        return self._requset(
+            "PATCH",
+            f"{self.api_url}/balancers/{balancer_id}/rules/{rule_id}",
+            json=payload,
+        )
+
+    def delete_load_balancer_rule(self, balancer_id: int, rule_id: int):
+        """Delete load balancer rule."""
+        retrun self._request(
+            "DELETE",
+            f"{self.api_url}/balancers/{balancer_id}/rules/{rule_id}",
+        )
+
+    def get_load_balancer_presets(self):
+        """Get list of LB presets."""
+        return self._request("GET", f"{self.api_url}/presets/balancers")
