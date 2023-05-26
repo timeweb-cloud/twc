@@ -960,19 +960,19 @@ class TimewebCloud(TimewebCloudBase):
     # Load Balancers
 
     def get_load_balancers(self):
-       """Get load balancers list."""
-       return self._request("GET", f"{self.api_url}/balancers")
+        """Get load balancers list."""
+        return self._request("GET", f"{self.api_url}/balancers")
 
     def get_load_balancer(self, balancer_id: int):
-       """Get load balancer."""
-       return self._request("GET", f"{self.api_url}/balancers/{balancer_id}")
+        """Get load balancer."""
+        return self._request("GET", f"{self.api_url}/balancers/{balancer_id}")
 
     def create_load_balancer(
         self,
         name: str,
         preset_id: int,
-        algo: str,
-        proto: str,
+        algo: LoadBalancerAlgo,
+        proto: LoadBalancerProto,
         port: int = 80,
         path: str = "/",
         inter: int = 2,
@@ -1007,8 +1007,8 @@ class TimewebCloud(TimewebCloudBase):
         self,
         name: Optional[str] = None,
         preset_id: Optional[int] = None,
-        algo: Optional[str] = None,
-        proto: Optional[str] = None,
+        algo: Optional[LoadBalancerAlgo] = None,
+        proto: Optional[LoadBalancerProto] = None,
         port: Optional[int] = None,
         path: Optional[str] = None,
         inter: Optional[int] = None,
@@ -1033,11 +1033,21 @@ class TimewebCloud(TimewebCloudBase):
             **({"fall": fall} if fall else {}),
             **({"rise": rise} if rise else {}),
             **({"is_sticky": stick_table} if stick_table is not None else {}),
-            **({"is_use_proxy": proxy_protocol} if proxy_protocol is not None else {}),
+            **(
+                {"is_use_proxy": proxy_protocol}
+                if proxy_protocol is not None
+                else {}
+            ),
             **({"is_ssl": force_https} if force_https is not None else {}),
-            **({"is_keepalive": backend_keepalive} if backend_keepalive is not None else {}),
+            **(
+                {"is_keepalive": backend_keepalive}
+                if backend_keepalive is not None
+                else {}
+            ),
         }
-        return self._request("PATCH", f"{self.api_url}/balancers", json=payload)
+        return self._request(
+            "PATCH", f"{self.api_url}/balancers", json=payload
+        )
 
     def delete_load_balancer(
         self,
@@ -1057,15 +1067,17 @@ class TimewebCloud(TimewebCloudBase):
         )
 
     def get_load_balancer_ips(self, balancer_id: int):
-       """Get load balancer IP addresses."""
-       return self._request("GET", f"{self.api_url}/balancers/{balancer_id}/ips")
+        """Get load balancer IP addresses."""
+        return self._request(
+            "GET", f"{self.api_url}/balancers/{balancer_id}/ips"
+        )
 
     def add_ips_to_load_balancer(self, balancer_id: int, ips: List[str]):
         """Attach IP addresses to load balancer."""
         return self._request(
             "POST",
             f"{self.api_url}/balancers/{balancer_id}/ips",
-            json={"ips": ips}
+            json={"ips": ips},
         )
 
     def delete_ips_to_load_balancer(self, balancer_id: int, ips: List[str]):
@@ -1073,12 +1085,14 @@ class TimewebCloud(TimewebCloudBase):
         return self._request(
             "DELETE",
             f"{self.api_url}/balancers/{balancer_id}/ips",
-            json={"ips": ips}
+            json={"ips": ips},
         )
 
     def get_load_balancer_rules(self, balancer_id: int):
-       """Get load balancer IP addresses."""
-       return self._request("GET", f"{self.api_url}/balancers/{balancer_id}/rules")
+        """Get load balancer IP addresses."""
+        return self._request(
+            "GET", f"{self.api_url}/balancers/{balancer_id}/rules"
+        )
 
     def create_load_balancer_rule(
         self,
@@ -1095,7 +1109,7 @@ class TimewebCloud(TimewebCloudBase):
             "server_proto": server_proto,
             "server_port": server_port,
         }
-        return self._requset(
+        return self._request(
             "POST",
             f"{self.api_url}/balancers/{balancer_id}/rules",
             json=payload,
@@ -1108,7 +1122,7 @@ class TimewebCloud(TimewebCloudBase):
         balancer_proto: Optional[LoadBalancerProto] = None,
         balancer_port: Optional[int] = None,
         server_proto: Optional[LoadBalancerProto] = None,
-        server_port: optional[int] = None,
+        server_port: Optional[int] = None,
     ):
         """Create load balancer rule."""
         payload = {
@@ -1117,7 +1131,7 @@ class TimewebCloud(TimewebCloudBase):
             **({"server_proto": server_proto} if server_proto else {}),
             **({"server_port": server_port} if server_port else {}),
         }
-        return self._requset(
+        return self._request(
             "PATCH",
             f"{self.api_url}/balancers/{balancer_id}/rules/{rule_id}",
             json=payload,
@@ -1125,7 +1139,7 @@ class TimewebCloud(TimewebCloudBase):
 
     def delete_load_balancer_rule(self, balancer_id: int, rule_id: int):
         """Delete load balancer rule."""
-        retrun self._request(
+        return self._request(
             "DELETE",
             f"{self.api_url}/balancers/{balancer_id}/rules/{rule_id}",
         )

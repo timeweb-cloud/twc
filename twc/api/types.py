@@ -146,3 +146,19 @@ class BucketType(str, Enum):
 
     PUBLIC = "public"
     PRIVATE = "private"
+
+
+class LoadBalancerProto(str, Enum):
+    """LB supported protocols."""
+
+    HTTP = "http"
+    HTTP2 = "http2"
+    HTTPS = "https"
+    TCP = "tcp"
+
+
+class LoadBalancerAlgo(str, Enum):
+    """LB supported balancing algorythms."""
+
+    ROUND_ROBIN = "roundrobin"
+    LEAST_CONNECTIONS = "leastconn"
