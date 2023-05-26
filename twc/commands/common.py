@@ -93,8 +93,8 @@ def load_from_config_callback(
             config = config_callback(ctx.params["config"], ctx)
             profile = profile_callback(ctx.params["profile"], ctx)
             debug(
-                f"Set value from file: config={config}, profile={profile},"
-                f" param.name={param.name}"
+                f"Set '{param.name}' value from file:"
+                f" config={config}, profile={profile}"
             )
             value = load_config(config)[profile][param.name]
         except KeyError as err:
