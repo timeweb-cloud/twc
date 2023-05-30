@@ -111,7 +111,7 @@ def server_list(
 ):
     """List Cloud Servers."""
     client = create_client(config, profile)
-    response = client.get_servers()
+    response = client.get_servers(limit=limit)
     fmt.printer(
         response,
         output_format=output_format,
