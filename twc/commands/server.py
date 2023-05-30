@@ -508,7 +508,13 @@ def server_create(
         False,
         "--local-network",
         show_default=True,
-        help="Enable local network.",
+        help="Enable LAN.",
+    ),
+    nat_mode: ServerNATMode = typer.Option(
+        None,
+        "--nat-mode",
+        metavar="MODE",
+        help="Turns on LAN with specified NAT mode."
     ),
     project_id: int = typer.Option(
         None,
@@ -520,6 +526,10 @@ def server_create(
 ):
     """Create Cloud Server."""
     client = create_client(config, profile)
+
+    if nat_mode:
+        local_network = True
+
     payload = {
         "name": name,
         "comment": comment,
@@ -585,11 +595,18 @@ def server_create(
     debug("Create Cloud Server...")
     response = client.create_server(**payload)
 
-    # Add Cloud Server to specific project
     if project_id:
+        debug(f"Add Server to project '{project_id}'...")
         client.add_server_to_project(
             response.json()["server"]["id"],
             project_id,
+        )
+
+    if nat_mode:
+        debug(f"Set NAT mode to '{nat_mode}'")
+        client.set_server_nat_mode(
+            response.json()["server"]["id"],
+            nat_mode=nat_mode
         )
 
     fmt.printer(
