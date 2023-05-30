@@ -90,7 +90,7 @@ class TimewebCloud(TimewebCloudBase):
             **({"ssh_keys_ids": ssh_keys_ids} if ssh_keys_ids else {}),
             "is_ddos_guard": is_ddos_guard,
             "is_local_network": is_local_network,
-            **({"configurator": configuration} if configuration else {}),
+            **({"configuration": configuration} if configuration else {}),
             **({"preset_id": preset_id} if preset_id else {}),
             **({"os_id": os_id} if os_id else {}),
             **({"image_id": image_id} if image_id else {}),

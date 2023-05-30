@@ -555,7 +555,7 @@ def server_create(
             if not locals()[param]:
                 raise UsageError(f"Missing parameter: '--{param}'.")
         requirements = get_requirements(client, DEFAULT_CONFIGURATOR_ID)
-        payload["configurator"] = {
+        payload["configuration"] = {
             "configurator_id": DEFAULT_CONFIGURATOR_ID,
             "cpu": validate_cpu(requirements, cpu),
             "ram": validate_ram(requirements, size_to_mb(ram)),
