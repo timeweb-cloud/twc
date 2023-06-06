@@ -13,6 +13,7 @@ from typer.core import TyperOption
 from click import UsageError
 
 from twc.__version__ import __version__
+from twc.api.types import ServiceRegion
 
 
 class OutputFormat(str, Enum):
@@ -103,6 +104,11 @@ def load_from_config_callback(
     debug(f"Return value: {value}")
     if param.name == "output_format":
         value = value.lower()
+    if param.name == "region":
+        value = value.lower()
+        regions = [v.value for v in ServiceRegion]
+        if value not in regions:
+            sys.exit(f"Error: Location not in {regions}")
     return value
 
 
@@ -254,4 +260,16 @@ filter_option = typer.Option(
 
 yes_option = typer.Option(
     False, "--yes", "-y", help="Confirm the action without prompting."
+)
+
+
+# region: Optional[str] = region_option,
+
+region_option = typer.Option(
+    "ru-1",
+    metavar="REGION",
+    envvar="TWC_REGION",
+    show_envvar=False,
+    callback=load_from_config_callback,
+    help="Use region (location).",
 )

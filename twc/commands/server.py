@@ -28,7 +28,6 @@ from twc.api import (
     BackupAction,
 )
 from twc.vars import (
-    DEFAULT_CONFIGURATOR_ID,
     REGIONS_WITH_CONFIGURATOR,
     REGIONS_WITH_IPV6,
     CONTROL_PANEL_URL,
@@ -40,6 +39,7 @@ from .common import (
     filter_option,
     yes_option,
     output_format_option,
+    region_option,
     load_from_config_callback,
 )
 
@@ -468,6 +468,17 @@ def process_ssh_key(client: TimewebCloud, ssh_key: str) -> int:
     sys.exit(f"Error: SSH-key '{ssh_key}' not found.")
 
 
+def select_configurator(client: TimewebCloud, region: str) -> int:
+    """Find and return configurator_id by location name."""
+    configurators = client.get_server_configurators().json()[
+        "server_configurators"
+    ]
+    for configurator in configurators:
+        if configurator["location"] == region:
+            return configurator["id"]
+    sys.exit(f"Unable to select location: '{region}' not found.")
+
+
 @server.command("create")
 def server_create(
     verbose: Optional[bool] = verbose_option,
@@ -514,8 +525,9 @@ def server_create(
         None,
         "--nat-mode",
         metavar="MODE",
-        help="Turns on LAN with specified NAT mode."
+        help="Turns on LAN with specified NAT mode.",
     ),
+    region: Optional[str] = region_option,
     project_id: int = typer.Option(
         None,
         envvar="TWC_PROJECT",
@@ -554,9 +566,11 @@ def server_create(
         for param in ["cpu", "ram", "disk"]:
             if not locals()[param]:
                 raise UsageError(f"Missing parameter: '--{param}'.")
-        requirements = get_requirements(client, DEFAULT_CONFIGURATOR_ID)
+        # Select configurator_id by region
+        configurator_id = select_configurator(client, region)
+        requirements = get_requirements(client, configurator_id)
         payload["configuration"] = {
-            "configurator_id": DEFAULT_CONFIGURATOR_ID,
+            "configurator_id": configurator_id,
             "cpu": validate_cpu(requirements, cpu),
             "ram": validate_ram(requirements, size_to_mb(ram)),
             "disk": validate_disk(requirements, size_to_mb(disk)),
@@ -605,8 +619,7 @@ def server_create(
     if nat_mode:
         debug(f"Set NAT mode to '{nat_mode}'")
         client.set_server_nat_mode(
-            response.json()["server"]["id"],
-            nat_mode=nat_mode
+            response.json()["server"]["id"], nat_mode=nat_mode
         )
 
     fmt.printer(
@@ -728,13 +741,9 @@ def server_resize(
         # configurator. Don't ask what is this.
         debug("Get configurator_id...")
         if not configurator_id:
-            if (
-                "ssd_2022" in old_preset_tags
-                or "discount35" in old_preset_tags
-            ):
-                configurator_id = 11  # discount configurator
-            else:
-                configurator_id = 9  # old full price configurator
+            configurator_id = select_configurator(
+                client, old_state["location"]
+            )
 
         # Get configurator by configurator_id
         debug(f"configurator_id is {configurator_id}, get confugurator...")
@@ -803,6 +812,12 @@ def server_resize(
         presets = client.get_server_presets().json()["server_presets"]
         for preset in presets:
             if preset["id"] == preset_id:
+                if not preset["location"] == old_state["location"]:
+                    sys.exit(
+                        f"Error: Preset location '{preset['location']}'"
+                        " does not match with server location "
+                        f"'{old_state['location']}'."
+                    )
                 payload["preset_id"] = preset_id
         try:
             payload["preset_id"]
