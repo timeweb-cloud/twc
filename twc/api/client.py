@@ -1,6 +1,6 @@
 """Timeweb Cloud API client."""
 
-from typing import Optional, Union
+from typing import Optional, Union, List
 from uuid import UUID
 from pathlib import Path
 from ipaddress import IPv4Address, IPv6Address
@@ -64,7 +64,7 @@ class TimewebCloud(TimewebCloudBase):
         comment: Optional[str] = None,
         avatar_id: Optional[str] = None,
         software_id: Optional[int] = None,
-        ssh_keys_ids: Optional[list[int]] = None,
+        ssh_keys_ids: Optional[List[int]] = None,
         is_local_network: bool = False,
         is_ddos_guard: bool = False,
     ):
