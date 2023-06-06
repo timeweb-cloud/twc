@@ -46,4 +46,5 @@ disable = [
     "too-many-lines",
     "unused-argument",  # unused 'verbose' arg is OK
     "duplicate-code",
+    "invalid-name",
 ]
