@@ -29,8 +29,6 @@ clean:
 	[ -d .testenv/ ] && rm -rf .testenv/ || true
 	[ -d dist/ ] && rm -rf dist/ || true
 	find . -type d -name __pycache__ -exec rm -rf {} \; > /dev/null 2>&1 || true
-	[ -d $(ZIPAPP) ] && rm -rf $(ZIPAPP) || true
-	[ -d $(ZIPAPP)-env ] && rm -rf $(ZIPAPP)-env || true
 
 zipapp:
 	mkdir -p $(DIST)
@@ -41,3 +39,5 @@ zipapp:
 	. $(ZIPAPP)-env/bin/activate; pip install --target $(ZIPAPP) -r $(ZIPAPP)/requirements.txt > /dev/null
 	find $(ZIPAPP) -type d -name "*.dist-info" -exec rm -rf {} \; > /dev/null 2>&1 || true
 	version=$$(awk '/version/{print substr($$3, 2, 5)}' pyproject.toml); python -m zipapp -c -m twc.__main__:cli -p '/usr/bin/env python3' -o $(DIST)/twc_cli-$${version}.pyz $(ZIPAPP)
+	[ -d $(ZIPAPP) ] && rm -rf $(ZIPAPP) || true
+	[ -d $(ZIPAPP)-env ] && rm -rf $(ZIPAPP)-env || true

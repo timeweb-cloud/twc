@@ -1210,7 +1210,9 @@ $ twc server create [OPTIONS]
 * `--software-id INTEGER`: Software ID to install.
 * `--ssh-key TEXT`: SSH-key file, name or ID. Can be multiple.
 * `--ddos-protection`: Enable DDoS-Guard.
-* `--local-network`: Enable local network.
+* `--local-network`: Enable LAN.
+* `--nat-mode MODE`: Turns on LAN with specified NAT mode.
+* `--region REGION`: Use region (location).  [default: ru-1]
 * `--project-id INTEGER`: Add server to specific project.
 * `--help`: Show this message and exit.
 
