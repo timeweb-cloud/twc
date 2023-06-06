@@ -15,6 +15,7 @@ from .commands import (
     project,
     database,
     storage,
+    balancer,
 )
 from .commands.common import version_callback, version_option, verbose_option
 
@@ -28,6 +29,7 @@ cli.add_typer(image, name="image", aliases=["images", "i"])
 cli.add_typer(project, name="project", aliases=["projects", "p"])
 cli.add_typer(database, name="database", aliases=["databases", "db"])
 cli.add_typer(storage, name="storage", aliases=["storages", "s3"])
+cli.add_typer(balancer, name="balancer", aliases=["balancers", "lb"])
 
 
 @cli.command("version")

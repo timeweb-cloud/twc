@@ -692,7 +692,7 @@ class TimewebCloud(TimewebCloudBase):
 
     def get_databases(self, limit: int = 100, offset: int = 0):
         """Get databases list."""
-        params = ({"limit": limit, "offset": offset},)
+        params = {"limit": limit, "offset": offset}
         return self._request("GET", f"{self.api_url}/dbs", params=params)
 
     def get_database(self, db_id: int):
@@ -975,11 +975,11 @@ class TimewebCloud(TimewebCloudBase):
         proto: LoadBalancerProto,
         port: int = 80,
         path: str = "/",
-        inter: int = 2,
-        timeout: int = 10,
+        inter: int = 10,
+        timeout: int = 5,
         fall: int = 3,
         rise: int = 2,
-        stick_table: bool = False,
+        sticky: bool = False,
         proxy_protocol: bool = False,
         force_https: bool = False,
         backend_keepalive: bool = False,
@@ -996,7 +996,7 @@ class TimewebCloud(TimewebCloudBase):
             "timeout": timeout,
             "fall": fall,
             "rise": rise,
-            "is_sticky": stick_table,
+            "is_sticky": sticky,
             "is_use_proxy": proxy_protocol,
             "is_ssl": force_https,
             "is_keepalive": backend_keepalive,
@@ -1005,6 +1005,7 @@ class TimewebCloud(TimewebCloudBase):
 
     def update_load_balancer(
         self,
+        balancer_id: int,
         name: Optional[str] = None,
         preset_id: Optional[int] = None,
         algo: Optional[LoadBalancerAlgo] = None,
@@ -1015,7 +1016,7 @@ class TimewebCloud(TimewebCloudBase):
         timeout: Optional[int] = None,
         fall: Optional[int] = None,
         rise: Optional[int] = None,
-        stick_table: Optional[bool] = None,
+        sticky: Optional[bool] = None,
         proxy_protocol: Optional[bool] = None,
         force_https: Optional[bool] = None,
         backend_keepalive: Optional[bool] = None,
@@ -1032,7 +1033,7 @@ class TimewebCloud(TimewebCloudBase):
             **({"timeout": timeout} if timeout else {}),
             **({"fall": fall} if fall else {}),
             **({"rise": rise} if rise else {}),
-            **({"is_sticky": stick_table} if stick_table is not None else {}),
+            **({"is_sticky": sticky} if sticky is not None else {}),
             **(
                 {"is_use_proxy": proxy_protocol}
                 if proxy_protocol is not None
@@ -1046,7 +1047,7 @@ class TimewebCloud(TimewebCloudBase):
             ),
         }
         return self._request(
-            "PATCH", f"{self.api_url}/balancers", json=payload
+            "PATCH", f"{self.api_url}/balancers/{balancer_id}", json=payload
         )
 
     def delete_load_balancer(
