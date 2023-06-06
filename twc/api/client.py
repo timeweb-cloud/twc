@@ -690,7 +690,7 @@ class TimewebCloud(TimewebCloudBase):
 
     def get_databases(self, limit: int = 100, offset: int = 0):
         """Get databases list."""
-        params = ({"limit": limit, "offset": offset},)
+        params = {"limit": limit, "offset": offset}
         return self._request("GET", f"{self.api_url}/dbs", params=params)
 
     def get_database(self, db_id: int):
