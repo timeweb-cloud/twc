@@ -372,7 +372,7 @@ def blancer_backend_list(
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: print('\n'.join(response.json()["ips"])),
+        func=lambda response: print("\n".join(response.json()["ips"])),
     )
 
 
@@ -393,7 +393,7 @@ def blancer_backend_add(
     client = create_client(config, profile)
     response = client.add_ips_to_load_balancer(balancer_id, backends)
     if response.status_code == 204:
-        print('\n'.join(backends))
+        print("\n".join(backends))
     else:
         sys.exit(fmt.printer(response))
 
@@ -418,7 +418,7 @@ def blancer_backend_remove(
     client = create_client(config, profile)
     response = client.delete_ips_from_load_balancer(balancer_id, backends)
     if response.status_code == 204:
-        print('\n'.join(backends))
+        print("\n".join(backends))
     else:
         sys.exit(fmt.printer(response))
 
@@ -429,7 +429,8 @@ def blancer_backend_remove(
 
 
 def print_balancer_rules(response: Response):
-    rules = response.json()['rules']
+    """Print balancers list."""
+    rules = response.json()["rules"]
     table = fmt.Table()
     table.header(
         [
@@ -443,11 +444,11 @@ def print_balancer_rules(response: Response):
     for rule in rules:
         table.row(
             [
-                rule['id'],
-                rule['balancer_port'],
-                rule['balancer_proto'],
-                rule['server_port'],
-                rule['server_proto'],
+                rule["id"],
+                rule["balancer_port"],
+                rule["balancer_proto"],
+                rule["server_port"],
+                rule["server_proto"],
             ]
         )
     table.print()
@@ -479,7 +480,7 @@ def balancer_rule_list(
 def port_proto_callback(value):
     """Typer callback for PORT/PROTO validation."""
     if value:
-        port, proto = value.split('/')
+        port, proto = value.split("/")
         if port.isdigit():
             port = int(port)
         else:
@@ -489,6 +490,7 @@ def port_proto_callback(value):
         except ValueError as e:
             raise typer.BadParameter(f"Protocol {e}")
         return port, proto
+    return value
 
 
 @balancer_rule.command("add")
@@ -537,13 +539,13 @@ def balancer_rule_add(
 
 def get_balancer_id_by_rule(client: TimewebCloud, rule_id: int) -> int:
     """Return load balancer ID by balancer rule ID."""
-    balancers = client.get_load_balancers().json()['balancers']
+    balancers = client.get_load_balancers().json()["balancers"]
     for lb in balancers:
-        rules = client.get_load_balancer_rules(lb['id']).json()['rules']
+        rules = client.get_load_balancer_rules(lb["id"]).json()["rules"]
         for rule in rules:
             debug(f"{rule['id']} from {lb['id']} compare with {rule_id}")
-            if rule['id'] == rule_id:
-                return lb['id']
+            if rule["id"] == rule_id:
+                return lb["id"]
     sys.exit(f"Error: Rule '{rule_id}' not found.")
 
 
@@ -572,13 +574,13 @@ def balancer_rule_update(
     b_port = b_proto = None
 
     balancer_id = get_balancer_id_by_rule(client, rule_id)
-    old_rules = client.get_load_balancer_rules(balancer_id).json()['rules']
+    old_rules = client.get_load_balancer_rules(balancer_id).json()["rules"]
     for old_rule in old_rules:
-        if old_rule['id'] == rule_id:
-            f_port = old_rule['balancer_port']
-            f_proto = old_rule['balancer_proto']
-            b_port = old_rule['server_port']
-            b_proto = old_rule['server_proto']
+        if old_rule["id"] == rule_id:
+            f_port = old_rule["balancer_port"]
+            f_proto = old_rule["balancer_proto"]
+            b_port = old_rule["server_port"]
+            b_proto = old_rule["server_proto"]
 
     if frontend:
         f_port, f_proto = frontend
