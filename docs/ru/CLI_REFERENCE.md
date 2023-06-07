@@ -21,6 +21,7 @@ $ twc [OPTIONS] COMMAND [ARGS]...
 **Commands**:
 
 * `account`: Manage Timeweb Cloud account.
+* `balancer`: Manage load balancers. (aliases: balancers, lb)
 * `config`: Manage CLI configuration.
 * `database`: Manage databases. (aliases: databases, db)
 * `image`: Manage disk images. (aliases: images, i)
@@ -122,6 +123,363 @@ $ twc account status [OPTIONS]
 * `-c, --config FILE`: Use config.
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+## `twc balancer`
+
+Manage load balancers.
+
+**Usage**:
+
+```console
+$ twc balancer [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `backend`: Manage load balancer backends. (aliases: backends)
+* `create`: Create load balancer.
+* `get`: Get load balancer info.
+* `list`: List load balancers. (aliases: ls)
+* `remove`: Remove load balancer. (aliases: rm)
+* `rule`: Manage load balancer rules. (aliases: rules)
+* `set`: Change load balancer parameters.
+
+### `twc balancer backend`
+
+Manage load balancer backends.
+
+**Usage**:
+
+```console
+$ twc balancer backend [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `add`: Add new backend servers to balancer.
+* `list`: List load balancer backends. (aliases: ls)
+* `remove`: Remove load balancer backends. (aliases: rm)
+
+#### `twc balancer backend add`
+
+Add new backend servers to balancer.
+
+**Usage**:
+
+```console
+$ twc balancer backend add [OPTIONS] BALANCER_ID BACKEND...
+```
+
+**Arguments**:
+
+* `BALANCER_ID`: [required]
+* `BACKEND...`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `--help`: Show this message and exit.
+
+#### `twc balancer backend list`
+
+List load balancer backends.
+
+**Usage**:
+
+```console
+$ twc balancer backend list [OPTIONS] BALANCER_ID
+```
+
+**Arguments**:
+
+* `BALANCER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+#### `twc balancer backend remove`
+
+Remove load balancer backends.
+
+**Usage**:
+
+```console
+$ twc balancer backend remove [OPTIONS] BALANCER_ID BACKEND...
+```
+
+**Arguments**:
+
+* `BALANCER_ID`: [required]
+* `BACKEND...`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-y, --yes`: Confirm the action without prompting.
+* `--help`: Show this message and exit.
+
+### `twc balancer create`
+
+Create load balancer.
+
+**Usage**:
+
+```console
+$ twc balancer create [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--name TEXT`: Load balancer display name.  [required]
+* `--replicas INTEGER RANGE`: Load balancer replica count.  [default: 1; 1<=x<=2]
+* `--algo [roundrobin|leastconn]`: Balancer algorythm.  [default: roundrobin]
+* `--port INTEGER`: Load balancer listen port.  [default: 80]
+* `--path TEXT`: URL path.  [default: /]
+* `--proto [http|http2|https|tcp]`: Health check protocol.  [required]
+* `--inter INTEGER`: Health checks interval in seconds.  [default: 10]
+* `--timeout INTEGER`: Health check timeout in seconds.  [default: 5]
+* `--rise INTEGER`: Number of successful health checks to consider backend as operational.  [default: 3]
+* `--fall INTEGER`: Number of unsuccessfull health checks to consider backend as dead.  [default: 2]
+* `--sticky / --no-sticky`: Stick on client IP.  [default: no-sticky]
+* `--proxy-protocol / --no-proxy-protocol`: [default: no-proxy-protocol]
+* `--force-https / --no-force-https`: [default: no-force-https]
+* `--backend-keepalive / --no-backend-keepalive`: [default: no-backend-keepalive]
+* `--project-id INTEGER`: Add load balancer to specific project.
+* `--help`: Show this message and exit.
+
+### `twc balancer get`
+
+Get load balancer info.
+
+**Usage**:
+
+```console
+$ twc balancer get [OPTIONS] BALANCER_ID
+```
+
+**Arguments**:
+
+* `BALANCER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--status`: Display status and exit with 0 if status is 'started'.
+* `--help`: Show this message and exit.
+
+### `twc balancer list`
+
+List load balancers.
+
+**Usage**:
+
+```console
+$ twc balancer list [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `-f, --filter KEY:VALUE`: Filter output.
+* `--help`: Show this message and exit.
+
+### `twc balancer remove`
+
+Remove load balancer.
+
+**Usage**:
+
+```console
+$ twc balancer remove [OPTIONS] BALANCER_ID...
+```
+
+**Arguments**:
+
+* `BALANCER_ID...`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-y, --yes`: Confirm the action without prompting.
+* `--help`: Show this message and exit.
+
+### `twc balancer rule`
+
+Manage load balancer rules.
+
+**Usage**:
+
+```console
+$ twc balancer rule [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `add`: Add load balancer rule.
+* `list`: List load balancer rules. (aliases: ls)
+* `remove`: Remove load balancer rule. (aliases: rm)
+* `update`: Update load balancer rule. (aliases: upd)
+
+#### `twc balancer rule add`
+
+Add load balancer rule.
+
+**Usage**:
+
+```console
+$ twc balancer rule add [OPTIONS] BALANCER_ID
+```
+
+**Arguments**:
+
+* `BALANCER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--frontend TEXT`: Frontend port and protocol.  [required]
+* `--backend TEXT`: Backend port and protocol.  [required]
+* `--help`: Show this message and exit.
+
+#### `twc balancer rule list`
+
+List load balancer rules.
+
+**Usage**:
+
+```console
+$ twc balancer rule list [OPTIONS] BALANCER_ID
+```
+
+**Arguments**:
+
+* `BALANCER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+#### `twc balancer rule remove`
+
+Remove load balancer rule.
+
+**Usage**:
+
+```console
+$ twc balancer rule remove [OPTIONS] RULE_ID...
+```
+
+**Arguments**:
+
+* `RULE_ID...`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-y, --yes`: Confirm the action without prompting.
+* `--help`: Show this message and exit.
+
+#### `twc balancer rule update`
+
+Update load balancer rule.
+
+**Usage**:
+
+```console
+$ twc balancer rule update [OPTIONS] RULE_ID
+```
+
+**Arguments**:
+
+* `RULE_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--frontend TEXT`: Frontend port and protocol.
+* `--backend TEXT`: Backend port and protocol.
+* `--help`: Show this message and exit.
+
+### `twc balancer set`
+
+Change load balancer parameters.
+
+**Usage**:
+
+```console
+$ twc balancer set [OPTIONS] BALANCER_ID
+```
+
+**Arguments**:
+
+* `BALANCER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--name TEXT`: Load balancer display name.
+* `--replicas INTEGER RANGE`: Load balancer replica count.  [1<=x<=2]
+* `--algo [roundrobin|leastconn]`: Balancer algorythm.
+* `--port INTEGER`: Load balancer listen port.
+* `--path TEXT`: URL path.
+* `--proto [http|http2|https|tcp]`: Health check protocol.
+* `--inter INTEGER`: Health checks interval in seconds.
+* `--timeout INTEGER`: Health check timeout in seconds.
+* `--rise INTEGER`: Number of successful health checks to consider backend as operational.
+* `--fall INTEGER`: Number of unsuccessfull health checks to consider backend as dead.
+* `--sticky / --no-sticky`: Stick on client IP.
+* `--proxy-protocol / --no-proxy-protocol`
+* `--force-https / --no-force-https`
+* `--backend-keepalive / --no-backend-keepalive`
 * `--help`: Show this message and exit.
 
 ## `twc config`
