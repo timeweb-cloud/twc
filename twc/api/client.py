@@ -1081,7 +1081,7 @@ class TimewebCloud(TimewebCloudBase):
             json={"ips": ips},
         )
 
-    def delete_ips_to_load_balancer(self, balancer_id: int, ips: List[str]):
+    def delete_ips_from_load_balancer(self, balancer_id: int, ips: List[str]):
         """Detach IP addresses from load balancer."""
         return self._request(
             "DELETE",

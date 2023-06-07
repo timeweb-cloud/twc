@@ -3,6 +3,7 @@
 import sys
 from typing import Optional, List
 from pathlib import Path
+from logging import debug
 
 import typer
 from requests import Response
@@ -10,6 +11,7 @@ from requests import Response
 from twc import fmt
 from twc.typerx import TyperAlias
 from twc.apiwrap import create_client
+from twc.api import TimewebCloud
 from twc.api.types import LoadBalancerAlgo, LoadBalancerProto
 from .common import (
     verbose_option,
@@ -347,5 +349,279 @@ def balancer_remove(
             )
         if response.status_code == 204:
             print(balancer_id)
+        else:
+            sys.exit(fmt.printer(response))
+
+
+# ------------------------------------------------------------- #
+# $ twc balancer backed list                                    #
+# ------------------------------------------------------------- #
+
+
+@balancer_backend.command("list", "ls")
+def blancer_backend_list(
+    balancer_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """List load balancer backends."""
+    client = create_client(config, profile)
+    response = client.get_load_balancer_ips(balancer_id)
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=lambda response: print('\n'.join(response.json()["ips"])),
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc balancer backend add                                    #
+# ------------------------------------------------------------- #
+
+
+@balancer_backend.command("add")
+def blancer_backend_add(
+    balancer_id: int = typer.Argument(...),
+    backends: List[str] = typer.Argument(..., metavar="BACKEND..."),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+):
+    """Add new backend servers to balancer."""
+    client = create_client(config, profile)
+    response = client.add_ips_to_load_balancer(balancer_id, backends)
+    if response.status_code == 204:
+        print('\n'.join(backends))
+    else:
+        sys.exit(fmt.printer(response))
+
+
+# ------------------------------------------------------------- #
+# $ twc balancer backed remove                                  #
+# ------------------------------------------------------------- #
+
+
+@balancer_backend.command("remove", "rm")
+def blancer_backend_remove(
+    balancer_id: int = typer.Argument(...),
+    backends: List[str] = typer.Argument(..., metavar="BACKEND..."),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    yes: Optional[bool] = yes_option,
+):
+    """Remove load balancer backends."""
+    if not yes:
+        typer.confirm("This action cannot be undone. Continue?", abort=True)
+    client = create_client(config, profile)
+    response = client.delete_ips_from_load_balancer(balancer_id, backends)
+    if response.status_code == 204:
+        print('\n'.join(backends))
+    else:
+        sys.exit(fmt.printer(response))
+
+
+# ------------------------------------------------------------- #
+# $ twc balancer rule list                                      #
+# ------------------------------------------------------------- #
+
+
+def print_balancer_rules(response: Response):
+    rules = response.json()['rules']
+    table = fmt.Table()
+    table.header(
+        [
+            "ID",
+            "FRONTEND PORT",
+            "FRONTEND PROTO",
+            "BACKEND PORT",
+            "BACKEND PROTO",
+        ]
+    )
+    for rule in rules:
+        table.row(
+            [
+                rule['id'],
+                rule['balancer_port'],
+                rule['balancer_proto'],
+                rule['server_port'],
+                rule['server_proto'],
+            ]
+        )
+    table.print()
+
+
+@balancer_rule.command("list", "ls")
+def balancer_rule_list(
+    balancer_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """List load balancer rules."""
+    client = create_client(config, profile)
+    response = client.get_load_balancer_rules(balancer_id)
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=print_balancer_rules,
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc balancer rule add                                       #
+# ------------------------------------------------------------- #
+
+
+def port_proto_callback(value):
+    """Typer callback for PORT/PROTO validation."""
+    if value:
+        port, proto = value.split('/')
+        if port.isdigit():
+            port = int(port)
+        else:
+            raise typer.BadParameter("Port number must be integer.")
+        try:
+            LoadBalancerProto(proto)
+        except ValueError as e:
+            raise typer.BadParameter(f"Protocol {e}")
+        return port, proto
+
+
+@balancer_rule.command("add")
+def balancer_rule_add(
+    balancer_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    frontend: str = typer.Option(
+        ...,
+        callback=port_proto_callback,
+        help="Frontend port and protocol.",
+    ),
+    backend: str = typer.Option(
+        ...,
+        callback=port_proto_callback,
+        help="Backend port and protocol.",
+    ),
+):
+    """Add load balancer rule."""
+    client = create_client(config, profile)
+
+    f_port, f_proto = frontend
+    b_port, b_proto = backend
+
+    response = client.create_load_balancer_rule(
+        balancer_id,
+        balancer_port=f_port,
+        balancer_proto=f_proto,
+        server_port=b_port,
+        server_proto=b_proto,
+    )
+
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=lambda response: print(response.json()["rule"]["id"]),
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc balancer rule update                                    #
+# ------------------------------------------------------------- #
+
+
+def get_balancer_id_by_rule(client: TimewebCloud, rule_id: int) -> int:
+    """Return load balancer ID by balancer rule ID."""
+    balancers = client.get_load_balancers().json()['balancers']
+    for lb in balancers:
+        rules = client.get_load_balancer_rules(lb['id']).json()['rules']
+        for rule in rules:
+            debug(f"{rule['id']} from {lb['id']} compare with {rule_id}")
+            if rule['id'] == rule_id:
+                return lb['id']
+    sys.exit(f"Error: Rule '{rule_id}' not found.")
+
+
+@balancer_rule.command("update", "upd")
+def balancer_rule_update(
+    rule_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    frontend: Optional[str] = typer.Option(
+        None,
+        callback=port_proto_callback,
+        help="Frontend port and protocol.",
+    ),
+    backend: Optional[str] = typer.Option(
+        None,
+        callback=port_proto_callback,
+        help="Backend port and protocol.",
+    ),
+):
+    """Update load balancer rule."""
+    client = create_client(config, profile)
+
+    f_port = f_proto = None
+    b_port = b_proto = None
+
+    balancer_id = get_balancer_id_by_rule(client, rule_id)
+    old_rules = client.get_load_balancer_rules(balancer_id).json()['rules']
+    for old_rule in old_rules:
+        if old_rule['id'] == rule_id:
+            f_port = old_rule['balancer_port']
+            f_proto = old_rule['balancer_proto']
+            b_port = old_rule['server_port']
+            b_proto = old_rule['server_proto']
+
+    if frontend:
+        f_port, f_proto = frontend
+    if backend:
+        b_port, b_proto = backend
+
+    response = client.update_load_balancer_rule(
+        balancer_id,
+        rule_id,
+        balancer_port=f_port,
+        balancer_proto=f_proto,
+        server_port=b_port,
+        server_proto=b_proto,
+    )
+
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=lambda response: print(response.json()["rule"]["id"]),
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc balancer rule remove                                    #
+# ------------------------------------------------------------- #
+
+
+@balancer_rule.command("remove", "rm")
+def balancer_rule_remove(
+    rule_ids: List[int] = typer.Argument(..., metavar="RULE_ID..."),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    yes: Optional[bool] = yes_option,
+):
+    """Remove load balancer rule."""
+    if not yes:
+        typer.confirm("This action cannot be undone. Continue?", abort=True)
+    client = create_client(config, profile)
+    for rule_id in rule_ids:
+        balancer_id = get_balancer_id_by_rule(client, rule_id)
+        response = client.delete_load_balancer_rule(balancer_id, rule_id)
+        if response.status_code == 204:
+            print(rule_id)
         else:
             sys.exit(fmt.printer(response))
