@@ -472,8 +472,8 @@ def print_subdomains_state(response: Response):
 
 @storage_subdomain.command("add")
 def storage_subdomain_add(
-    subdomains: List[str] = typer.Argument(..., metavar="SUBDOMAIN..."),
     bucket: str = typer.Argument(...),
+    subdomains: List[str] = typer.Argument(..., metavar="SUBDOMAIN..."),
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
