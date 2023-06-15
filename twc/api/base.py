@@ -63,7 +63,7 @@ class TimewebCloudBase:
             _headers["Authorization"] = "Bearer <SENSITIVE_DATA_DELETED>"
         return _headers
 
-    def _log_request(self, response: requests.Request) -> None:
+    def _log_request(self, response: requests.Response) -> None:
         """Log HTTP requests."""
         if self.log_response_body:
             res_body = response.text or "<NO_BODY>"
