@@ -117,7 +117,7 @@ def print_domains_all(response: Response, filters: Optional[str] = None):
                     "true",
                 ]
             )
-        table.row([""])
+        table.row(["","","",""])
 
     table.print()
 
