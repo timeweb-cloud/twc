@@ -24,8 +24,12 @@ from .common import (
 
 
 domain = TyperAlias(help=__doc__, short_help="Manage domains.")
+domain_subdomains = TyperAlias(help="Manage subdomains.")
 domain_record = TyperAlias(help="Manage DNS records.")
 domain.add_typer(domain_record, name="record", aliases=["record", "rec"])
+domain.add_typer(
+    domain_subdomains, name="subdomain", aliases=["subdomain", "sub"]
+)
 
 # ------------------------------------------------------------- #
 # $ twc domain list                                             #
@@ -117,7 +121,7 @@ def print_domains_all(response: Response, filters: Optional[str] = None):
                     "true",
                 ]
             )
-        table.row(["","","",""])
+        table.row(["", "", "", ""])
 
     table.print()
 
@@ -208,12 +212,7 @@ def domain_delete(
     fmt.printer(
         response,
         output_format=output_format,
-        filters=filters,
-        func=(
-            lambda x, filters: print("Complite!")
-            if x.status_code == 204
-            else None
-        ),
+        func=(lambda x,: print("Complite!") if x.status_code == 204 else None),
     )
 
 
@@ -237,12 +236,7 @@ def domain_add(
     fmt.printer(
         response,
         output_format=output_format,
-        filters=filters,
-        func=(
-            lambda x, filters: print("Complite!")
-            if x.status_code == 204
-            else None
-        ),
+        func=(lambda x: print("Complite!") if x.status_code == 204 else None),
     )
 
 
@@ -346,7 +340,6 @@ def domain_remove_dns_record(
     fmt.printer(
         response,
         output_format=output_format,
-        filters=filters,
         func=(lambda x: print("Complite!") if x.status_code == 204 else None),
         response_domain=domain_name,
     )
@@ -387,12 +380,7 @@ def domain_remove_all_dns_record(
     fmt.printer(
         response,
         output_format=output_format,
-        filters=filters,
-        func=(
-            lambda x, filters: print("Complite!")
-            if x.status_code == 204
-            else None
-        ),
+        func=(lambda x: print("Complite!") if x.status_code == 204 else None),
     )
 
 
@@ -432,7 +420,6 @@ def domain_add_dns_records(
     domain_name: str,
     dns_record_type: DNSRecordType,
     value: str,
-    subdomain: Optional[str] = None,
     priority: Optional[int] = None,
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
@@ -442,9 +429,16 @@ def domain_add_dns_records(
 ):
     """Add dns record."""
     client = create_client(config, profile)
+    subdomain_name = None
+
+    if len(domain_name.split(".")) > 2:
+        subdomain_name = domain_name
+        domain_name = ".".join(subdomain_name.split(".")[-2:])
+        print(domain_name)
+        print(subdomain_name)
 
     response = client.add_domain_dns_record(
-        domain_name, dns_record_type, value, subdomain, priority
+        domain_name, dns_record_type, value, subdomain_name, priority
     )
     fmt.printer(
         response,
@@ -486,4 +480,60 @@ def domain_update_dns_records(
         filters=filters,
         func=print_dns_record,
         response_domain=domain_name,
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc domain sub add subdomain.domain.io                      #
+# ------------------------------------------------------------- #
+
+
+@domain_subdomains.command("add")
+def domain_add_subdomain(
+    subdomain_name: str,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    filters: Optional[str] = filter_option,
+):
+    """Delete one dns record on domain."""
+    client = create_client(config, profile)
+
+    domain_name = ".".join(subdomain_name.split(".")[-2:])
+
+    response = client.add_subdomain(
+        domain_name, ".".join(subdomain_name.split(".")[:-2])
+    )
+
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=(lambda x,: print("Complite!") if x.status_code == 201 else None),
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc domain sub rm subdomain.domain.io                      #
+# ------------------------------------------------------------- #
+
+
+@domain_subdomains.command("delete", "rm")
+def domain_add_subdomain(
+    subdomain_name: str,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    filters: Optional[str] = filter_option,
+):
+    """Delete one dns record on domain."""
+    client = create_client(config, profile)
+
+    response = client.delete_subdomain(subdomain_name)
+
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=(lambda x,: print("Complite!") if x.status_code == 204 else None),
     )
