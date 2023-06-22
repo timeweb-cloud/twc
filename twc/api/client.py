@@ -7,6 +7,7 @@ from ipaddress import IPv4Address, IPv6Address
 
 from .base import TimewebCloudBase
 from .types import (
+    DNSRecordType,
     ServerConfiguration,
     ServerAction,
     ServerLogOrder,
@@ -1148,3 +1149,122 @@ class TimewebCloud(TimewebCloudBase):
     def get_load_balancer_presets(self):
         """Get list of LB presets."""
         return self._request("GET", f"{self.api_url}/presets/balancers")
+
+    # -----------------------------------------------------------------------
+    # Domains
+
+    def get_domains(self, limit: int = 100, offset: int = 0):
+        """Get domains list."""
+        params = {"limit": limit, "offset": offset}
+        return self._request("GET", f"{self.api_url}/domains", params=params)
+
+    def get_domain(self, fqdn: str):
+        """Get domain."""
+        return self._request("GET", f"{self.api_url}/domains/{fqdn}")
+
+    def domain_turn_on_autoprolong(
+        self,
+        fqdn: str,
+        is_autoprolong_enabled: bool = False,
+    ):
+        """Turn of/on autoprolong domain."""
+        payload = {
+            "is_autoprolong_enabled": is_autoprolong_enabled,
+        }
+        return self._request(
+            "PATCH", f"{self.api_url}/domains/{fqdn}", json=payload
+        )
+
+    def delete_domain(
+        self,
+        fqdn: str,
+    ):
+        """Delete Domain."""
+        return self._request(
+            "DELETE",
+            f"{self.api_url}/domains/{fqdn}",
+        )
+
+    def add_domain(
+        self,
+        fqdn: str,
+    ):
+        """Add Domain."""
+        return self._request(
+            "POST",
+            f"{self.api_url}/add-domain/{fqdn}",
+        )
+
+    def get_domain_dns_records(
+        self, fqdn: str, limit: int = 100, offset: int = 0
+    ):
+        """Get domain DNS records."""
+        params = {"limit": limit, "offset": offset}
+
+        return self._request(
+            "GET", f"{self.api_url}/domains/{fqdn}/dns-records", params=params
+        )
+
+    def add_domain_dns_record(
+        self,
+        fqdn: str,
+        dns_record_type: DNSRecordType,
+        value: str,
+        subdomain: Optional[str] = None,
+        priority: Optional[int] = None,
+    ):
+        """Add DNS record to domain."""
+        payload = {
+            "type": dns_record_type,
+            "value": value,
+            **({"subdomain": subdomain} if subdomain else {}),
+            **({"priority": priority} if priority else {}),
+        }
+        return self._request(
+            "POST",
+            f"{self.api_url}/domains/{fqdn}/dns-records",
+            json=payload,
+        )
+
+    def update_domain_dns_record(
+        self,
+        fqdn: str,
+        record_id: int,
+        dns_record_type: DNSRecordType,
+        value: str,
+        subdomain: Optional[str] = None,
+        priority: Optional[int] = None,
+    ):
+        """Update DNS record on domain."""
+        payload = {
+            "type": dns_record_type,
+            "value": value,
+            **({"subdomain": subdomain} if subdomain else {}),
+            **({"priority": priority} if priority else {}),
+        }
+        return self._request(
+            "PATCH",
+            f"{self.api_url}/domains/{fqdn}/dns-records/{record_id}",
+            json=payload,
+        )
+
+    def delete_domain_dns_record(self, fqdn: str, record_id: int):
+        """Delete DNS record on domain."""
+        return self._request(
+            "DELETE",
+            f"{self.api_url}/domains/{fqdn}/dns-records/{record_id}",
+        )
+
+    def add_subdomain(self, fqdn: str, subdomain_fqdn: str):
+        """Add subdomian tp domain."""
+        return self._request(
+            "POST",
+            f"{self.api_url}/domains/{fqdn}/subdomains/{subdomain_fqdn}",
+        )
+
+    def delete_subdomain(self, fqdn: str, subdomain_fqdn: str):
+        """Add subdomian tp domain."""
+        return self._request(
+            "DELETE",
+            f"{self.api_url}/domains/{fqdn}/subdomains/{subdomain_fqdn}",
+        )
