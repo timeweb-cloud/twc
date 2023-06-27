@@ -9,3 +9,4 @@ from .project import project
 from .database import database
 from .storage import storage
 from .balancer import balancer
+from .kubernetes import cluster
