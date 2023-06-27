@@ -1251,21 +1251,21 @@ class TimewebCloud(TimewebCloudBase):
             f"{self.api_url}/k8s/clusters/{cluster_id}/kubeconfig",
         )
 
-    def get_k8s_nodes_groups(self, cluster_id: int):
+    def get_k8s_node_groups(self, cluster_id: int):
         """Get list of worker nodes groups."""
         return self._request(
             "GET",
             f"{self.api_url}/k8s/clusters/{cluster_id}/groups",
         )
 
-    def get_k8s_nodes_group(self, cluster_id: int, group_id: int):
+    def get_k8s_node_group(self, cluster_id: int, group_id: int):
         """Get nodes group info."""
         return self._request(
             "GET",
             f"{self.api_url}/k8s/clusters/{cluster_id}/groups/{group_id}",
         )
 
-    def create_k8s_nodes_group(
+    def create_k8s_node_group(
         self,
         cluster_id: int,
         name: str,
@@ -1284,7 +1284,7 @@ class TimewebCloud(TimewebCloudBase):
             json=payload,
         )
 
-    def delete_k8s_nodes_group(self, cluster_id: int, group_id: int):
+    def delete_k8s_node_group(self, cluster_id: int, group_id: int):
         """Delete cluster nodes group."""
         return self._request(
             "DELETE",
