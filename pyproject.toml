@@ -47,4 +47,5 @@ disable = [
     "unused-argument",  # unused 'verbose' arg is OK
     "duplicate-code",
     "invalid-name",
+    "missing-function-docstring",
 ]
