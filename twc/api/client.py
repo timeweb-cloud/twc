@@ -1148,3 +1148,202 @@ class TimewebCloud(TimewebCloudBase):
     def get_load_balancer_presets(self):
         """Get list of LB presets."""
         return self._request("GET", f"{self.api_url}/presets/balancers")
+
+    # -----------------------------------------------------------------------
+    # Kubernetes
+
+    def get_k8s_clusters(self, limit: int = 100, offset: int = 0):
+        """Get list of Kubernetes clusters."""
+        params = {"limit": limit, "offset": offset}
+        return self._request(
+            "GET",
+            f"{self.api_url}/k8s/clusters",
+            params=params,
+        )
+
+    def get_k8s_cluster(self, cluster_id: int):
+        """Get Kubernetes cluster info."""
+        return self._request(
+            "GET",
+            f"{self.api_url}/k8s/clusters/{cluster_id}",
+        )
+
+    def create_k8s_cluster(
+        self,
+        name: str,
+        k8s_version: str,
+        network_driver: str,
+        preset_id: int,
+        description: Optional[str] = None,
+        ingress: bool = True,
+        worker_groups: Optional[list] = None,
+    ):
+        """Create Kubernetes cluster. Default worker groups::
+
+            [{"name":"default","preset_id":399,"node_count":1}]
+
+        preset_id in worker_groups is worker node preset_id.
+
+        API also have `ha=False` field, but it is not functional. It means
+        master node replicas. By default master node have not any replicas.
+        """
+        payload = {
+            "name": name,
+            "description": description or "",
+            "ha": False,
+            "k8s_version": k8s_version,
+            "network_driver": network_driver,
+            "ingress": ingress,
+            "preset_id": preset_id,
+            **(
+                {"worker_groups": worker_groups}
+                if worker_groups is not None
+                else {}
+            ),
+        }
+        return self._request(
+            "POST",
+            f"{self.api_url}/k8s/clusters",
+            json=payload,
+        )
+
+    def delete_k8s_cluster(
+        self,
+        cluster_id: int,
+        delete_hash: Optional[str] = None,
+        code: Optional[int] = None,
+    ):
+        """Delete Kubernetes cluster."""
+        params = {
+            **({"hash": delete_hash} if delete_hash else {}),
+            **({"code": code} if code else {}),
+        }
+        return self._request(
+            "DELETE",
+            f"{self.api_url}/k8s/clusters/{cluster_id}",
+            params=params,
+        )
+
+    def update_k8s_cluster(self, cluster_id: int, description: str):
+        """Update Kubernetes cluster properties."""
+        payload = {
+            "description": description,
+        }
+        return self._request(
+            "PATCH",
+            f"{self.api_url}/k8s/clusters/{cluster_id}",
+            json=payload,
+        )
+
+    def get_k8s_cluster_resources(self, cluster_id: int):
+        """Return cluster resources status."""
+        return self._request(
+            "GET",
+            f"{self.api_url}/k8s/clusters/{cluster_id}/resources",
+        )
+
+    def get_k8s_cluster_kubeconfig(self, cluster_id: int):
+        """Download kubeconfig for kubecctl util. API respond
+        with application/yaml data.
+        """
+        return self._request(
+            "GET",
+            f"{self.api_url}/k8s/clusters/{cluster_id}/kubeconfig",
+        )
+
+    def get_k8s_nodes_groups(self, cluster_id: int):
+        """Get list of worker nodes groups."""
+        return self._request(
+            "GET",
+            f"{self.api_url}/k8s/clusters/{cluster_id}/groups",
+        )
+
+    def get_k8s_nodes_group(self, cluster_id: int, group_id: int):
+        """Get nodes group info."""
+        return self._request(
+            "GET",
+            f"{self.api_url}/k8s/clusters/{cluster_id}/groups/{group_id}",
+        )
+
+    def create_k8s_nodes_group(
+        self,
+        cluster_id: int,
+        name: str,
+        preset_id: int,
+        node_count: int,
+    ):
+        """Add new worker nodes group into Kubernetes cluster."""
+        payload = {
+            "name": name,
+            "preset_id": preset_id,
+            "node_count": node_count,
+        }
+        return self._request(
+            "POST",
+            f"{self.api_url}/k8s/clusters/{cluster_id}/groups",
+            json=payload,
+        )
+
+    def delete_k8s_nodes_group(self, cluster_id: int, group_id: int):
+        """Delete cluster nodes group."""
+        return self._request(
+            "DELETE",
+            f"{self.api_url}/k8s/clusters/{cluster_id}/groups/{group_id}",
+        )
+
+    def get_k8s_nodes_by_group(
+        self, cluster_id: int, group_id: int, limit: int = 100, offset: int = 0
+    ):
+        """Get list of Kubernetes nodes group nodes."""
+        params = {"limit": limit, "offset": offset}
+        return self._request(
+            "GET",
+            f"{self.api_url}/k8s/clusters/{cluster_id}/groups/{group_id}/nodes",
+            params=params,
+        )
+
+    def add_k8s_nodes_to_group(
+        self, cluster_id: int, group_id: int, count: int = 0
+    ):
+        """Add new nodes to nodes group."""
+        return self._request(
+            "POST",
+            f"{self.api_url}/k8s/clusters/{cluster_id}/groups/{group_id}/nodes",
+            json={"count": count},
+        )
+
+    def delete_k8s_nodes_from_group(
+        self, cluster_id: int, group_id: int, count: int = 0
+    ):
+        """Delete nodes from nodes group."""
+        return self._request(
+            "DELETE",
+            f"{self.api_url}/k8s/clusters/{cluster_id}/groups/{group_id}/nodes",
+            json={"count": count},
+        )
+
+    def get_k8s_nodes(self, cluster_id: int):
+        """Get list of Kubernetes nodes."""
+        return self._request(
+            "GET",
+            f"{self.api_url}/k8s/clusters/{cluster_id}/nodes",
+        )
+
+    def delete_k8s_node(self, cluster_id: int, node_id: int):
+        """Delete node from cluster."""
+        return self._request(
+            "GET",
+            f"{self.api_url}/k8s/clusters/{cluster_id}/nodes/{node_id}",
+        )
+
+    def get_k8s_versions(self):
+        """List available Kubernetes versions."""
+        return self._request("GET", f"{self.api_url}/k8s/k8s_versions")
+
+    def get_k8s_network_drivers(self):
+        """List available Kubernetes network drivers."""
+        return self._request("GET", f"{self.api_url}/k8s/network_drivers")
+
+    def get_k8s_presets(self):
+        """List available Kubernetes nodes presets."""
+        return self._request("GET", f"{self.api_url}/presets/k8s")
