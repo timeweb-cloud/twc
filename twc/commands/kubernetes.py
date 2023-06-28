@@ -19,6 +19,7 @@ from .common import (
     filter_option,
     yes_option,
     output_format_option,
+    load_from_config_callback,
 )
 
 
@@ -141,7 +142,14 @@ def cluster_create(
         None,
         "--add-worker-group",
         metavar="NAME,PRESET_ID,NODE_COUNT",
-        help="Add worker nodes group.",
+        help="Add workers node group.",
+    ),
+    project_id: Optional[int] = typer.Option(
+        None,
+        envvar="TWC_PROJECT",
+        show_envvar=False,
+        callback=load_from_config_callback,
+        help="Add cluster to specific project.",
     ),
 ):
     """Create Kubernetes cluster."""
@@ -193,6 +201,12 @@ def cluster_create(
             if preset["ram"] == min(master_presets_ram):
                 master_preset_id = preset["id"]
 
+    if project_id:
+        if not project_id in [
+            prj["id"] for prj in client.get_projects().json()["projects"]
+        ]:
+            sys.exit(f"Wrong project ID: Project '{project_id}' not found.")
+
     response = client.create_k8s_cluster(
         name=name,
         description=desc,
@@ -202,6 +216,14 @@ def cluster_create(
         worker_groups=worker_groups,
         preset_id=master_preset_id,
     )
+
+    # Add created cluster to project if set
+    if project_id:
+        client.add_cluster_to_project(
+            response.json()["cluster"]["id"],
+            project_id,
+        )
+
     fmt.printer(
         response,
         output_format=output_format,
