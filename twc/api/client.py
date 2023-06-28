@@ -1366,7 +1366,7 @@ class TimewebCloud(TimewebCloudBase):
         fqdn: str,
         is_autoprolong_enabled: bool = False,
     ):
-        """Turn of/on autoprolong domain."""
+        """Turn off/on autoprolong domain."""
         payload = {
             "is_autoprolong_enabled": is_autoprolong_enabled,
         }
@@ -1374,32 +1374,19 @@ class TimewebCloud(TimewebCloudBase):
             "PATCH", f"{self.api_url}/domains/{fqdn}", json=payload
         )
 
-    def delete_domain(
-        self,
-        fqdn: str,
-    ):
+    def delete_domain(self, fqdn: str):
         """Delete Domain."""
-        return self._request(
-            "DELETE",
-            f"{self.api_url}/domains/{fqdn}",
-        )
+        return self._request("DELETE", f"{self.api_url}/domains/{fqdn}")
 
-    def add_domain(
-        self,
-        fqdn: str,
-    ):
+    def add_domain(self, fqdn: str):
         """Add Domain."""
-        return self._request(
-            "POST",
-            f"{self.api_url}/add-domain/{fqdn}",
-        )
+        return self._request("POST", f"{self.api_url}/add-domain/{fqdn}")
 
     def get_domain_dns_records(
         self, fqdn: str, limit: int = 100, offset: int = 0
     ):
         """Get domain DNS records."""
         params = {"limit": limit, "offset": offset}
-
         return self._request(
             "GET", f"{self.api_url}/domains/{fqdn}/dns-records", params=params
         )
