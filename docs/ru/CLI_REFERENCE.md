@@ -22,6 +22,7 @@ $ twc [OPTIONS] COMMAND [ARGS]...
 
 * `account`: Manage Timeweb Cloud account.
 * `balancer`: Manage load balancers. (aliases: balancers, lb)
+* `cluster`: Manage Kubernetes clusters. (aliases: clusters, kubernetes, k8s)
 * `config`: Manage CLI configuration.
 * `database`: Manage databases. (aliases: databases, db)
 * `image`: Manage disk images. (aliases: images, i)
@@ -374,8 +375,8 @@ $ twc balancer rule add [OPTIONS] BALANCER_ID
 * `-c, --config FILE`: Use config.
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
-* `--frontend TEXT`: Frontend port and protocol.  [required]
-* `--backend TEXT`: Backend port and protocol.  [required]
+* `--frontend PORT/PROTO`: Frontend port and protocol.  [required]
+* `--backend PORT/PROTO`: Backend port and protocol.  [required]
 * `--help`: Show this message and exit.
 
 #### `twc balancer rule list`
@@ -442,8 +443,8 @@ $ twc balancer rule update [OPTIONS] RULE_ID
 * `-c, --config FILE`: Use config.
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
-* `--frontend TEXT`: Frontend port and protocol.
-* `--backend TEXT`: Backend port and protocol.
+* `--frontend PORT/PROTO`: Frontend port and protocol.
+* `--backend PORT/PROTO`: Backend port and protocol.
 * `--help`: Show this message and exit.
 
 ### `twc balancer set`
@@ -480,6 +481,400 @@ $ twc balancer set [OPTIONS] BALANCER_ID
 * `--proxy-protocol / --no-proxy-protocol`
 * `--force-https / --no-force-https`
 * `--backend-keepalive / --no-backend-keepalive`
+* `--help`: Show this message and exit.
+
+## `twc cluster`
+
+Manage Kubernetes clusters.
+
+**Usage**:
+
+```console
+$ twc cluster [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `create`: Create Kubernetes cluster.
+* `group`: Manage worker node groups. (aliases: groups)
+* `kubeconfig`: Download KubeConfig. (aliases: kubecfg, cfg)
+* `list`: List Kubernetes clusters. (aliases: ls)
+* `list-k8s-versions`: List available Kubernetes versions. (aliases: lv)
+* `list-network-drivers`: List available Kubernetes network drivers.
+* `list-presets`: List nodes configuration presets. (aliases: lp)
+* `node`: Manage worker nodes. (aliases: nodes)
+* `remove`: Remove Kubernetes cluster. (aliases: rm)
+* `show`: Show cluster resource usage.
+
+### `twc cluster create`
+
+Create Kubernetes cluster.
+
+**Usage**:
+
+```console
+$ twc cluster create [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--name TEXT`: Cluster's display name.  [required]
+* `--desc TEXT`: Cluster description.
+* `--k8s-version TEXT`: Kubernetes version. See 'twc k8s list-k8s-versions'. Latest by deafult.
+* `--master-preset-id INTEGER`: Master node configuration preset. Minimal by default.
+* `--network-driver TEXT`: Network driver.  [default: canal]
+* `--ingress / --no-ingress`: Enable Nginx ingress.  [default: ingress]
+* `--add-worker-group NAME,PRESET_ID,NODE_COUNT`: Add workers node group.
+* `--project-id INTEGER`: Add cluster to specific project.
+* `--help`: Show this message and exit.
+
+### `twc cluster group`
+
+Manage worker node groups.
+
+**Usage**:
+
+```console
+$ twc cluster group [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `add`: Add new node group.
+* `list`: List cluster node groups. (aliases: ls)
+* `remove`: Remove node group. (aliases: rm)
+* `scale-down`: Remove worker nodes from group.
+* `scale-up`: Add worker nodes to group.
+
+#### `twc cluster group add`
+
+Add new node group.
+
+**Usage**:
+
+```console
+$ twc cluster group add [OPTIONS] CLUSTER_ID
+```
+
+**Arguments**:
+
+* `CLUSTER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--name TEXT`: Node group display name.  [required]
+* `--preset-id INTEGER`: Nodes configuration preset.  [required]
+* `--nodes INTEGER`: Number of nodes in group.  [default: 1]
+* `--help`: Show this message and exit.
+
+#### `twc cluster group list`
+
+List cluster node groups.
+
+**Usage**:
+
+```console
+$ twc cluster group list [OPTIONS] CLUSTER_ID
+```
+
+**Arguments**:
+
+* `CLUSTER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+#### `twc cluster group remove`
+
+Remove node group.
+
+**Usage**:
+
+```console
+$ twc cluster group remove [OPTIONS] GROUP_ID...
+```
+
+**Arguments**:
+
+* `GROUP_ID...`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-y, --yes`: Confirm the action without prompting.
+* `--help`: Show this message and exit.
+
+#### `twc cluster group scale-down`
+
+Remove worker nodes from group.
+
+**Usage**:
+
+```console
+$ twc cluster group scale-down [OPTIONS] GROUP_ID [COUNT]
+```
+
+**Arguments**:
+
+* `GROUP_ID`: [required]
+* `[COUNT]`: Nodes count.  [default: 1]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+#### `twc cluster group scale-up`
+
+Add worker nodes to group.
+
+**Usage**:
+
+```console
+$ twc cluster group scale-up [OPTIONS] GROUP_ID [COUNT]
+```
+
+**Arguments**:
+
+* `GROUP_ID`: [required]
+* `[COUNT]`: Nodes count.  [default: 1]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+### `twc cluster kubeconfig`
+
+Download KubeConfig.
+
+**Usage**:
+
+```console
+$ twc cluster kubeconfig [OPTIONS] CLUSTER_ID
+```
+
+**Arguments**:
+
+* `CLUSTER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `--save PATH`: Path to file. NOTE: Existing file will be overwitten.
+* `--help`: Show this message and exit.
+
+### `twc cluster list`
+
+List Kubernetes clusters.
+
+**Usage**:
+
+```console
+$ twc cluster list [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `-f, --filter KEY:VALUE`: Filter output.
+* `--help`: Show this message and exit.
+
+### `twc cluster list-k8s-versions`
+
+List available Kubernetes versions.
+
+**Usage**:
+
+```console
+$ twc cluster list-k8s-versions [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+### `twc cluster list-network-drivers`
+
+List available Kubernetes network drivers.
+
+**Usage**:
+
+```console
+$ twc cluster list-network-drivers [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+### `twc cluster list-presets`
+
+List nodes configuration presets.
+
+**Usage**:
+
+```console
+$ twc cluster list-presets [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `-f, --filter KEY:VALUE`: Filter output.
+* `--help`: Show this message and exit.
+
+### `twc cluster node`
+
+Manage worker nodes.
+
+**Usage**:
+
+```console
+$ twc cluster node [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `list`: List cluster node groups. (aliases: ls)
+* `remove`: Remove nodes from cluster. (aliases: rm)
+
+#### `twc cluster node list`
+
+List cluster node groups.
+
+**Usage**:
+
+```console
+$ twc cluster node list [OPTIONS] CLUSTER_ID
+```
+
+**Arguments**:
+
+* `CLUSTER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+#### `twc cluster node remove`
+
+Remove nodes from cluster.
+
+**Usage**:
+
+```console
+$ twc cluster node remove [OPTIONS] CLUSTER_ID NODE_ID...
+```
+
+**Arguments**:
+
+* `CLUSTER_ID`: [required]
+* `NODE_ID...`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-y, --yes`: Confirm the action without prompting.
+* `--help`: Show this message and exit.
+
+### `twc cluster remove`
+
+Remove Kubernetes cluster.
+
+**Usage**:
+
+```console
+$ twc cluster remove [OPTIONS] CLUSTER_ID...
+```
+
+**Arguments**:
+
+* `CLUSTER_ID...`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-y, --yes`: Confirm the action without prompting.
+* `--help`: Show this message and exit.
+
+### `twc cluster show`
+
+Show cluster resource usage.
+
+**Usage**:
+
+```console
+$ twc cluster show [OPTIONS] CLUSTER_ID
+```
+
+**Arguments**:
+
+* `CLUSTER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `--help`: Show this message and exit.
 
 ## `twc config`
@@ -2229,13 +2624,13 @@ Copy SSH-keys to Cloud Server.
 **Usage**:
 
 ```console
-$ twc ssh-key add [OPTIONS] SSH_KEY_ID... SERVER_ID
+$ twc ssh-key add [OPTIONS] SERVER_ID SSH_KEY_ID...
 ```
 
 **Arguments**:
 
-* `SSH_KEY_ID...`: [required]
 * `SERVER_ID`: [required]
+* `SSH_KEY_ID...`: [required]
 
 **Options**:
 
@@ -2547,13 +2942,13 @@ Attach subdomains to bucket.
 **Usage**:
 
 ```console
-$ twc storage subdomain add [OPTIONS] SUBDOMAIN... BUCKET
+$ twc storage subdomain add [OPTIONS] BUCKET SUBDOMAIN...
 ```
 
 **Arguments**:
 
-* `SUBDOMAIN...`: [required]
 * `BUCKET`: [required]
+* `SUBDOMAIN...`: [required]
 
 **Options**:
 
