@@ -1,9 +1,6 @@
-"""Manage domain dns record.
+"""Manage domains and DNS records."""
 
-NOTE: !WARNING HELP PLEASE
-"""
-
-
+import sys
 from typing import Optional
 from pathlib import Path
 
@@ -23,13 +20,14 @@ from .common import (
 )
 
 
-domain = TyperAlias(help=__doc__, short_help="Manage domains.")
+domain = TyperAlias(help=__doc__)
 domain_subdomains = TyperAlias(help="Manage subdomains.")
 domain_record = TyperAlias(help="Manage DNS records.")
-domain.add_typer(domain_record, name="record", aliases=["record", "rec"])
+domain.add_typer(domain_record, name="record", aliases=["records", "rec"])
 domain.add_typer(
-    domain_subdomains, name="subdomain", aliases=["subdomain", "sub"]
+    domain_subdomains, name="subdomain", aliases=["subdomains", "sub"]
 )
+
 
 # ------------------------------------------------------------- #
 # $ twc domain list                                             #
@@ -44,9 +42,8 @@ def print_domains(response: Response, filters: Optional[str] = None):
     table = fmt.Table()
     table.header(
         [
-            "FQDN",
             "ID",
-            "IP",
+            "FQDN",
             "STATUS",
             "EXPIRATION",
         ]
@@ -54,9 +51,8 @@ def print_domains(response: Response, filters: Optional[str] = None):
     for domain_json in domains:
         table.row(
             [
-                domain_json["fqdn"],
                 domain_json["id"],
-                domain_json["linked_ip"],
+                domain_json["fqdn"],
                 domain_json["domain_status"],
                 domain_json["expiration"],
             ]
@@ -71,10 +67,18 @@ def domains_list(
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
     filters: Optional[str] = filter_option,
+    limit: Optional[int] = typer.Option(100, help="Number of items."),
 ):
     """List domains."""
     client = create_client(config, profile)
-    response = client.get_domains()
+    response = client.get_domains(limit=limit)
+    domains_count = response.json()["meta"]["total"]
+    if domains_count > limit:
+        print(
+            f"NOTE: Only {limit} of {domains_count} domain names is displayed.\n"
+            "NOTE: Use '--limit' option to set number of domains to be displayed.",
+            file=sys.stderr,
+        )
     fmt.printer(
         response,
         output_format=output_format,
