@@ -867,7 +867,7 @@ class TimewebCloud(TimewebCloudBase):
         payload = {
             **({"preset_id": preset_id} if preset_id else {}),
             **(
-                {"type": "public" if is_public else "private"}
+                {"bucket_type": "public" if is_public else "private"}
                 if is_public is not None
                 else {}
             ),
