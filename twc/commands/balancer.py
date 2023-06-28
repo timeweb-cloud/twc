@@ -1,5 +1,6 @@
 """Manage load balancers."""
 
+import re
 import sys
 from typing import Optional, List
 from pathlib import Path
@@ -480,6 +481,11 @@ def balancer_rule_list(
 def port_proto_callback(value):
     """Typer callback for PORT/PROTO validation."""
     if value:
+        if not re.match(r"^\d+\/(http|http2|https|tcp)$", value):
+            sys.exit(
+                f"Error: Malformed argument: '{value}': "
+                "Correct patterns: '443/https', '2000/tcp', etc."
+            )
         port, proto = value.split("/")
         if port.isdigit():
             port = int(port)
@@ -503,11 +509,13 @@ def balancer_rule_add(
     frontend: str = typer.Option(
         ...,
         callback=port_proto_callback,
+        metavar="PORT/PROTO",
         help="Frontend port and protocol.",
     ),
     backend: str = typer.Option(
         ...,
         callback=port_proto_callback,
+        metavar="PORT/PROTO",
         help="Backend port and protocol.",
     ),
 ):
@@ -559,11 +567,13 @@ def balancer_rule_update(
     frontend: Optional[str] = typer.Option(
         None,
         callback=port_proto_callback,
+        metavar="PORT/PROTO",
         help="Frontend port and protocol.",
     ),
     backend: Optional[str] = typer.Option(
         None,
         callback=port_proto_callback,
+        metavar="PORT/PROTO",
         help="Backend port and protocol.",
     ),
 ):
