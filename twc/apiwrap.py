@@ -19,6 +19,8 @@ def request_handler(func):
     def wrapper(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
+        except exc.NetworkError as err:
+            sys.exit(f"Error: {err}")
         except exc.UnauthorizedError as err:
             sys.exit(
                 textwrap.dedent(

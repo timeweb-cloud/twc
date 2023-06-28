@@ -117,16 +117,19 @@ class TimewebCloudBase:
         _headers = self._secure_log(headers)
         self.log.debug("Called with args: %s %s %s", method, url, _headers)
 
-        response = requests.request(
-            method,
-            url,
-            headers=headers,
-            params=params,
-            data=data,
-            json=json,
-            files=files,
-            timeout=timeout,
-        )
+        try:
+            response = requests.request(
+                method,
+                url,
+                headers=headers,
+                params=params,
+                data=data,
+                json=json,
+                files=files,
+                timeout=timeout,
+            )
+        except requests.exceptions.ConnectionError as conerr:
+            raise exc.NetworkError(f"Coul'd not connect to server: {conerr}")
 
         try:
             response.raise_for_status()
