@@ -162,3 +162,14 @@ class LoadBalancerAlgo(str, Enum):
 
     ROUND_ROBIN = "roundrobin"
     LEAST_CONNECTIONS = "leastconn"
+
+
+class DNSRecordType(str, Enum):
+    """Type DNS record"""
+
+    TXT = "TXT"
+    SRV = "SRV"
+    CNAME = "CNAME"
+    AAAA = "AAAA"
+    MX = "MX"
+    A = "A"

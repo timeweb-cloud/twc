@@ -178,7 +178,7 @@ def filter_list(objects: list, filters: str) -> list:
                 filter(
                     # pylint: disable=cell-var-from-loop
                     # This is fine
-                    lambda x: str(query_dict(x, key.split("."))) == val,
+                    lambda x, filters: str(query_dict(x, key.split("."))) == val,
                     objects,
                 )
             )
