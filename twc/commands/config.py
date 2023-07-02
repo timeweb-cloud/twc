@@ -202,7 +202,7 @@ def config_dump(
 def validate_params_callback(value: list) -> list:
     """Validate CLI configuration parameters."""
     for param in value:
-        if not re.match(r"^[a-z0-9_]+=[a-z0-9]+$", param, re.I):
+        if not re.match(r"^[a-z0-9_]+=[a-z0-9-_.]+$", param, re.I):
             raise typer.BadParameter(
                 f"'{param}': Parameter must be a KEY=VALUE pair."
             )

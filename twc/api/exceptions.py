@@ -88,3 +88,7 @@ class TooManyRequestsError(TimewebCloudException):
 
 class InternalServerError(TimewebCloudException):
     """500 Internal Server Error."""
+
+
+class NetworkError(Exception):
+    """Raises on requests.exceptions.ConnectionError."""

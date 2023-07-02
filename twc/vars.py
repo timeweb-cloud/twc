@@ -11,5 +11,5 @@ S3_ENDPOINT = "s3.timeweb.com"
 REGIONS_WITH_CONFIGURATOR = ["ru-1", "ru-2", "pl-1", "kz-1", "nl-1"]
 REGIONS_WITH_IPV6 = ["ru-1", "pl-1"]
 REGIONS_WITH_IMAGES = ["ru-1"]
-REGIONS_WITH_LAN = ["ru-1"]
+REGIONS_WITH_LAN = ["ru-1", "pl-1"]
 REGIONS_WITH_DBAAS = ["ru-1", "pl-1"]

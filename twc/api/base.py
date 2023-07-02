@@ -63,7 +63,7 @@ class TimewebCloudBase:
             _headers["Authorization"] = "Bearer <SENSITIVE_DATA_DELETED>"
         return _headers
 
-    def _log_request(self, response: requests.Request) -> None:
+    def _log_request(self, response: requests.Response) -> None:
         """Log HTTP requests."""
         if self.log_response_body:
             res_body = response.text or "<NO_BODY>"
@@ -117,16 +117,19 @@ class TimewebCloudBase:
         _headers = self._secure_log(headers)
         self.log.debug("Called with args: %s %s %s", method, url, _headers)
 
-        response = requests.request(
-            method,
-            url,
-            headers=headers,
-            params=params,
-            data=data,
-            json=json,
-            files=files,
-            timeout=timeout,
-        )
+        try:
+            response = requests.request(
+                method,
+                url,
+                headers=headers,
+                params=params,
+                data=data,
+                json=json,
+                files=files,
+                timeout=timeout,
+            )
+        except requests.exceptions.ConnectionError as conerr:
+            raise exc.NetworkError(f"Coul'd not connect to server: {conerr}")
 
         try:
             response.raise_for_status()

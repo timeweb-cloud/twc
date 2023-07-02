@@ -205,8 +205,8 @@ def ssh_key_edit(
 
 @ssh_key.command("add", "copy")
 def ssh_key_add(
-    ssh_keys_ids: List[int] = typer.Argument(..., metavar="SSH_KEY_ID..."),
     server_id: int = typer.Argument(...),
+    ssh_keys_ids: List[int] = typer.Argument(..., metavar="SSH_KEY_ID..."),
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
