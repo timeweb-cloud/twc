@@ -2,6 +2,7 @@
 
 from typing import Optional
 from pathlib import Path
+from textwrap import dedent
 
 import typer
 from requests import Response
@@ -29,26 +30,18 @@ account.add_typer(account_access, name="access")
 
 def print_account_status(response: Response):
     """Print table with account info."""
-    table = fmt.Table()
     status = response.json()["status"]
-    translated_keys = {
-        "company_info": "Company",
-        "ym_client_id": "Yandex.Metrika client ID",
-        "is_blocked": "Blocked",
-        "is_permanent_blocked": "Permanently blocked",
-        "is_send_bill_letters": "Send bill emails",
-        "last_password_changed_at": "Password changed at",
-    }
-    for key in status.keys():
-        try:
-            if key == "company_info":
-                table.row([translated_keys[key], ":", status[key]["name"]])
-            else:
-                table.row([translated_keys[key], ":", status[key]])
-        except KeyError:
-            pass
-    table.print()
-
+    output = dedent(
+        f"""
+        Provider: {status["company_info"]["name"]}
+        Yandex.Metrika ID: {status["ym_client_id"]}
+        Blocked: {status["is_blocked"]}
+        Permanently blocked: {status["is_permanent_blocked"]}
+        Send bill emails: {status["is_send_bill_letters"]}
+        Password changed at: {status["last_password_changed_at"]}
+        """
+    ).strip()
+    print(output)
 
 @account.command("status")
 def account_status(
@@ -72,27 +65,23 @@ def account_status(
 
 def print_account_finances(response: Response):
     """Print table with finances info."""
-    table = fmt.Table()
     finances = response.json()["finances"]
-    translated_keys = {
-        "balance": "Balance",
-        "currency": "Currency",
-        "discount_end_date_at": "Discount ends at",
-        "discount_percent": "Discount",
-        "hourly_cost": "Hourly cost",
-        "hourly_fee": "Hourly fee",
-        "monthly_cost": "Monthly cost",
-        "monthly_fee": "Monthly fee",
-        "total_paid": "Total paid",
-        "hours_left": "Hours left",
-        "autopay_card_info": "Autopay Card",
-    }
-    for key in finances.keys():
-        try:
-            table.row([translated_keys[key], ":", finances[key]])
-        except KeyError:
-            pass
-    table.print()
+    output = dedent(
+        f"""
+        Balance: {finances["balance"]}
+        Currency: {finances["currency"]}
+        Discount: {finances["discount_percent"]}
+          Discount ends at: {finances["discount_end_date_at"]}
+        Hourly cost: {finances["hourly_cost"]}
+        Hourly fee: {finances["hourly_fee"]}
+        Hours left: {finances["hours_left"]}
+        Monthly cost: {finances["monthly_cost"]}
+        Monthly fee: {finances["monthly_fee"]}
+        Total paid: {finances["total_paid"]}
+        Autopay card: {finances["autopay_card_info"]}
+        """
+    ).strip()
+    print(output)
 
 
 @account.command("finances")
@@ -129,7 +118,7 @@ def print_restrictions_status(
             print("IP restrictions: enabled")
             print("Allowed IPs:")
             for ip_addr in restrictions["white_list"]["ips"]:
-                print(f" - {ip_addr}")
+                print(f"  {ip_addr}")
         else:
             print("IP restrictions: disabled")
 
@@ -138,7 +127,7 @@ def print_restrictions_status(
             print("Country restrictions: enabled")
             print("Allowed countries:")
             for country in restrictions["white_list"]["countries"]:
-                print(f" - {country}")
+                print(f"  {country}")
         else:
             print("Country restrictions: disabled")
 
