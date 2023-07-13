@@ -1,7 +1,8 @@
 """Manage domains and DNS records."""
 
+import re
 import sys
-from typing import Optional
+from typing import Optional, List
 from pathlib import Path
 
 import typer
@@ -17,15 +18,16 @@ from .common import (
     profile_option,
     filter_option,
     output_format_option,
+    yes_option,
 )
 
 
 domain = TyperAlias(help=__doc__)
-domain_subdomains = TyperAlias(help="Manage subdomains.")
+domain_subdomain = TyperAlias(help="Manage subdomains.")
 domain_record = TyperAlias(help="Manage DNS records.")
 domain.add_typer(domain_record, name="record", aliases=["records", "rec"])
 domain.add_typer(
-    domain_subdomains, name="subdomain", aliases=["subdomains", "sub"]
+    domain_subdomain, name="subdomain", aliases=["subdomains", "sub"]
 )
 
 
@@ -34,7 +36,11 @@ domain.add_typer(
 # ------------------------------------------------------------- #
 
 
-def print_domains(response: Response, filters: Optional[str] = None):
+def print_domains(
+    response: Response,
+    filters: Optional[str] = None,
+    with_subdomains: bool = False,
+):
     """Print table with domains list."""
     domains = response.json()["domains"]
     if filters:
@@ -42,7 +48,6 @@ def print_domains(response: Response, filters: Optional[str] = None):
     table = fmt.Table()
     table.header(
         [
-            "ID",
             "FQDN",
             "STATUS",
             "EXPIRATION",
@@ -51,12 +56,20 @@ def print_domains(response: Response, filters: Optional[str] = None):
     for domain_json in domains:
         table.row(
             [
-                domain_json["id"],
                 domain_json["fqdn"],
                 domain_json["domain_status"],
                 domain_json["expiration"],
             ]
         )
+        if with_subdomains:
+            for subdomain in domain_json["subdomains"]:
+                table.row(
+                    [
+                        subdomain["fqdn"],
+                        "",
+                        "",
+                    ]
+                )
     table.print()
 
 
@@ -67,113 +80,60 @@ def domains_list(
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
     filters: Optional[str] = filter_option,
-    limit: Optional[int] = typer.Option(100, help="Number of items."),
+    limit: Optional[int] = typer.Option(
+        100,
+        "--limit",
+        "-l",
+        help="Number of items to display.",
+    ),
+    with_subdomains: bool = typer.Option(
+        False,
+        "--all",
+        "-a",
+        help="Show subdomains too.",
+    ),
 ):
     """List domains."""
     client = create_client(config, profile)
     response = client.get_domains(limit=limit)
-    domains_count = response.json()["meta"]["total"]
-    if domains_count > limit:
+    dom_count = response.json()["meta"]["total"]
+    if dom_count > limit:
         print(
-            f"NOTE: Only {limit} of {domains_count} domain names is displayed.\n"
-            "NOTE: Use '--limit' option to set number of domains to be displayed.",
+            f"NOTE: Only {limit} of {dom_count} domain names is displayed.\n"
+            "NOTE: Use '--limit' option to set number of domains to display.",
             file=sys.stderr,
         )
     fmt.printer(
         response,
         output_format=output_format,
         filters=filters,
+        with_subdomains=with_subdomains,
         func=print_domains,
     )
 
 
 # ------------------------------------------------------------- #
-# $ twc domain list-all                                         #
+# $ twc domain info                                             #
 # ------------------------------------------------------------- #
 
 
-def print_domains_all(response: Response, filters: Optional[str] = None):
-    """Print domains and subdomains."""
-    domains = response.json()["domains"]
-    if filters:
-        domains = fmt.filter_list(domains, filters)
-
-    table = fmt.Table()
-    table.header(
-        [
-            "FQDN",
-            "ID",
-            "IP",
-            "SUBDOMAIN",
-        ]
-    )
-    for domain_json in domains:
-        table.row(
-            [
-                domain_json["fqdn"],
-                domain_json["id"],
-                domain_json["linked_ip"],
-                "",
-            ]
-        )
-        for subdomain in domain_json["subdomains"]:
-            table.row(
-                [
-                    subdomain["fqdn"],
-                    subdomain["id"],
-                    subdomain["linked_ip"],
-                    "true",
-                ]
-            )
-        table.row(["", "", "", ""])
-
-    table.print()
-
-
-@domain.command("list-all", "la")
-def domain_list_all(
-    verbose: Optional[bool] = verbose_option,
-    config: Optional[Path] = config_option,
-    profile: Optional[str] = profile_option,
-    output_format: Optional[str] = output_format_option,
-    filters: Optional[str] = filter_option,
-):
-    """List all domains."""
-    client = create_client(config, profile)
-    response = client.get_domains()
-    fmt.printer(
-        response,
-        output_format=output_format,
-        filters=filters,
-        func=print_domains_all,
-    )
-
-
-# ------------------------------------------------------------- #
-# $ twc domain info domain.io                                   #
-# ------------------------------------------------------------- #
-
-
-def print_domain_info(response: Response, filters: Optional[str] = None):
+def print_domain_info(response: Response):
     """Print domain info."""
     domain_json = response.json()["domain"]
 
     output = (
         f'Domain: {domain_json["fqdn"]}\n'
         + f'Exp date: {domain_json["expiration"]}\n'
+        + f'Registrar: {domain_json["provider"]}\n'
+        + f'ID: {domain_json["id"]}\n'
         + f'Technical: {domain_json["is_technical"]}\n'
-        + f'Provider: {domain_json["provider"]}\n'
-        + "Subdomain: \n"
+        + "Subdomains: \n"
         + "".join(
-            (
-                f'  Domain: {sub["fqdn"]}\n'
-                + f'    ID: {sub["id"]}\n'
-                + f'    IP: {sub["linked_ip"]}\n'
-            )
+            (f'  FQDN: {sub["fqdn"]}\n' + f'    ID: {sub["id"]}\n')
             for sub in domain_json["subdomains"]
         )
     )
-    print(output)
+    print(output.strip())
 
 
 @domain.command("info")
@@ -183,7 +143,6 @@ def domain_info(
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
-    filters: Optional[str] = filter_option,
 ):
     """Get domain info."""
     client = create_client(config, profile)
@@ -191,37 +150,48 @@ def domain_info(
     fmt.printer(
         response,
         output_format=output_format,
-        filters=filters,
         func=print_domain_info,
     )
 
 
 # ------------------------------------------------------------- #
-# $ twc domain rm domain.io                                     #
+# $ twc domain rm                                               #
 # ------------------------------------------------------------- #
 
 
-@domain.command("delete", "del", "rm")
+@domain.command("remove", "rm")
 def domain_delete(
-    domain_name: str,
+    domain_names: List[str] = typer.Argument(..., metavar="DOMAIN_NAME..."),
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
-    output_format: Optional[str] = output_format_option,
-    filters: Optional[str] = filter_option,
+    yes: Optional[bool] = yes_option,
+    force: bool = typer.Option(False, "--force", help="Force removal."),
 ):
-    """List Object Storage presets."""
+    """Remove domain names."""
+    if not yes:
+        typer.confirm("This action cannot be undone. Continue?", abort=True)
     client = create_client(config, profile)
-    response = client.delete_domain(domain_name)
-    fmt.printer(
-        response,
-        output_format=output_format,
-        func=(lambda x,: print("Complite!") if x.status_code == 204 else None),
-    )
+    for domain_name in domain_names:
+        # API Issue: API removes domain if subdomain is passed
+        # Prevent domain removal!
+        if re.match(r"^(.+\.){2}.+$", domain_name) and not force:
+            sys.exit(
+                "Error: It looks like you want to delete a subdomain.\n"
+                "Please use command 'twc domain rmsub SUBDOMAIN' for this.\n"
+                "NOTE: This command will delete the domain itself even if its"
+                " subdomain is passed. If you are sure you want to continue "
+                "use the '--force' option."
+            )
+        response = client.delete_domain(domain_name)
+        if response.status_code == 204:
+            print(domain_name)
+        else:
+            sys.exit(fmt.printer(response))
 
 
 # ------------------------------------------------------------- #
-# $ twc domain add domain.io                                    #
+# $ twc domain add                                              #
 # ------------------------------------------------------------- #
 
 
@@ -231,65 +201,63 @@ def domain_add(
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
-    output_format: Optional[str] = output_format_option,
-    filters: Optional[str] = filter_option,
 ):
     """Add domain to account."""
     client = create_client(config, profile)
     response = client.add_domain(domain_name)
-    fmt.printer(
-        response,
-        output_format=output_format,
-        func=(lambda x: print("Complite!") if x.status_code == 204 else None),
-    )
+    if response.status_code == 204:
+        print(domain_name)
+    else:
+        sys.exit(fmt.printer(response))
 
 
 # ------------------------------------------------------------- #
-# $ twc domain record list domain.io                            #
+# $ twc domain record list                                      #
 # ------------------------------------------------------------- #
 
 
 def print_domain_record_list(
     response: Response,
-    not_ignore_subdomains,
-    response_domain,
+    requested_domain: str,
     filters: Optional[str] = None,
+    with_subdomains: bool = False,
 ):
     """Print domain records."""
-    domains = response.json()["dns_records"]
+    records = response.json()["dns_records"]
 
-    if not not_ignore_subdomains:
-        domains = filter(lambda x: "subdomain" not in x["data"], domains)
+    if not with_subdomains:
+        records = filter(lambda x: "subdomain" not in x["data"], records)
 
     if filters:
-        domains = fmt.filter_list(domains, filters)
+        records = fmt.filter_list(records, filters)
 
     table = fmt.Table()
     table.header(
         [
-            *(["SUB"] if not_ignore_subdomains else []),
+            "NAME",
+            "ID",
             "TYPE",
             "VALUE",
-            "ID",
         ]
     )
 
-    for domain_json in domains:
+    for record in records:
+        if "subdomain" in record["data"]:
+            _sub = record["data"]["subdomain"]
+            if _sub is None:
+                fqdn = requested_domain
+            else:
+                fqdn = _sub + "." + requested_domain
+        else:
+            fqdn = requested_domain
         table.row(
             [
-                *(
-                    [domain_json["data"]["subdomain"]]
-                    if "subdomain" in domain_json["data"]
-                    else [""]
-                    if not_ignore_subdomains
-                    else []
-                ),
-                domain_json["type"],
-                domain_json["data"]["value"],
-                domain_json["id"],
+                fqdn,
+                record["id"],
+                record["type"],
+                record["data"]["value"],
             ]
         )
-    print(f"DOMAIN: {response_domain}\n")
     table.print()
 
 
@@ -301,243 +269,234 @@ def domain_records_list(
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
     filters: Optional[str] = filter_option,
-    not_ignore_subdomains: bool = typer.Option(
+    with_subdomains: bool = typer.Option(
         False,
-        "--not-ignore-subdomains",
-        case_sensitive=False,
-        help="Not ignoring TXT subdomain records.",
+        "--all",
+        "-a",
+        help="Show subdomain records too.",
     ),
 ):
-    """List dns records on domain."""
+    """List DNS-records on domain."""
     client = create_client(config, profile)
     response = client.get_domain_dns_records(domain_name)
-
     fmt.printer(
         response,
         output_format=output_format,
         filters=filters,
+        with_subdomains=with_subdomains,
+        requested_domain=domain_name,
         func=print_domain_record_list,
-        not_ignore_subdomains=not_ignore_subdomains,
-        response_domain=domain_name,
     )
 
 
 # ------------------------------------------------------------- #
-# $ twc domain record rm domain.io record_id                    #
+# $ twc domain record remove                                    #
 # ------------------------------------------------------------- #
 
 
-@domain_record.command("delete", "rm")
+@domain_record.command("remove", "rm")
 def domain_remove_dns_record(
     domain_name: str,
     record_id: int,
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
-    output_format: Optional[str] = output_format_option,
-    filters: Optional[str] = filter_option,
 ):
-    """Delete one dns record on domain."""
+    """Delete one DNS-record on domain."""
     client = create_client(config, profile)
     response = client.delete_domain_dns_record(domain_name, record_id)
-
-    fmt.printer(
-        response,
-        output_format=output_format,
-        func=(lambda x: print("Complite!") if x.status_code == 204 else None),
-        response_domain=domain_name,
-    )
+    if response.status_code == 204:
+        print(record_id)
+    else:
+        sys.exit(fmt.printer(response))
 
 
 # ------------------------------------------------------------- #
-# $ twc domain record rma domain.io                             #
+# $ twc domain record add                                       #
 # ------------------------------------------------------------- #
-
-
-@domain_record.command("delete-all", "rma")
-def domain_remove_all_dns_record(
-    domain_json: str,
-    verbose: Optional[bool] = verbose_option,
-    config: Optional[Path] = config_option,
-    profile: Optional[str] = profile_option,
-    output_format: Optional[str] = output_format_option,
-    not_ignore_subdomains: bool = typer.Option(
-        False,
-        "--not-ignore-subdomains",
-        case_sensitive=False,
-        help="Not ignoring TXT subdomain records.",
-    ),
-    filters: Optional[str] = filter_option,
-):
-    """Delete all dns records on domain."""
-    client = create_client(config, profile)
-
-    response = client.get_domain_dns_records(domain_json)
-    domains = response.json()["dns_records"]
-
-    if not not_ignore_subdomains:
-        domains = filter(lambda x: "subdomain" not in x["data"], domains)
-
-    for record in domains:
-        client.delete_domain_dns_record(domain_json, record["id"])
-
-    fmt.printer(
-        response,
-        output_format=output_format,
-        func=(lambda x: print("Complite!") if x.status_code == 204 else None),
-    )
-
-
-# ------------------------------------------------------------- #
-# $ twc domain record add domain.io                             #
-# ------------------------------------------------------------- #
-
-
-def print_dns_record(
-    response: Response, response_domain: str, filters: Optional[str] = None
-):
-    """Print dns record."""
-    domain_record_json = response.json()["dns_record"]
-
-    table = fmt.Table()
-    table.header(
-        [
-            "TYPE",
-            "VALUE",
-            "ID",
-        ]
-    )
-
-    table.row(
-        [
-            domain_record_json["type"],
-            domain_record_json["data"]["value"],
-            domain_record_json["id"],
-        ]
-    )
-    print(f"DOMAIN: {response_domain}\n add record\n")
-    table.print()
 
 
 @domain_record.command("add")
-def domain_add_dns_records(
+def domain_add_dns_record(
     domain_name: str,
-    dns_record_type: DNSRecordType,
-    value: str,
-    priority: Optional[int] = None,
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
     filters: Optional[str] = filter_option,
+    record_type: DNSRecordType = typer.Option(
+        ...,
+        "--type",
+        case_sensitive=False,
+        metavar="TYPE",
+        help=f"[{'|'.join([k.value for k in DNSRecordType])}]",
+    ),
+    value: Optional[str] = typer.Option(...),
+    priority: Optional[int] = typer.Option(
+        None,
+        "--prio",
+        help="Record priority. Supported for MX, SRV records.",
+    ),
+    second_ld: Optional[bool] = typer.Option(
+        False,
+        "--2ld",
+        help="Parse subdomain as 2LD.",
+    ),
 ):
-    """Add dns record."""
+    """Add dns record for domain or subdomain."""
     client = create_client(config, profile)
-    subdomain_name = None
 
-    if len(domain_name.split(".")) > 2:
-        subdomain_name = domain_name
-        domain_name = ".".join(subdomain_name.split(".")[-2:])
-        print(domain_name)
-        print(subdomain_name)
+    if second_ld:
+        offset = 3
+    else:
+        offset = 2
+
+    subdomain = domain_name
+    domain_name = ".".join(domain_name.split(".")[-offset:])
+
+    if subdomain == domain_name:
+        subdomain = None
 
     response = client.add_domain_dns_record(
-        domain_name, dns_record_type, value, subdomain_name, priority
+        domain_name, record_type, value, subdomain, priority
     )
     fmt.printer(
         response,
         output_format=output_format,
-        filters=filters,
-        func=print_dns_record,
-        response_domain=domain_name,
+        func=lambda response: print(response.json()["dns_record"]["id"]),
     )
 
 
 # ------------------------------------------------------------- #
-# $ twc domain record update domain.io record_id type value     #
+# $ twc domain record update                                    #
 # ------------------------------------------------------------- #
 
 
-@domain_record.command("update", "up")
+@domain_record.command("update", "upd")
 def domain_update_dns_records(
     domain_name: str,
     record_id: int,
-    dns_record_type: DNSRecordType,
-    value: str,
-    subdomain: Optional[str] = None,
-    priority: Optional[int] = None,
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
     filters: Optional[str] = filter_option,
+    record_type: DNSRecordType = typer.Option(
+        ...,
+        "--type",
+        case_sensitive=False,
+        metavar="TYPE",
+        help=f"[{'|'.join([k.value for k in DNSRecordType])}]",
+    ),
+    value: Optional[str] = typer.Option(...),
+    priority: Optional[int] = typer.Option(
+        None,
+        "--prio",
+        help="Record priority. Supported for MX, SRV records.",
+    ),
+    second_ld: Optional[bool] = typer.Option(
+        False,
+        "--2ld",
+        help="Parse subdomain as 2LD.",
+    ),
 ):
-    """Update dns record on record_id."""
+    """Update DNS record."""
     client = create_client(config, profile)
+
+    if second_ld:
+        offset = 3
+    else:
+        offset = 2
+
+    subdomain = domain_name
+    domain_name = ".".join(domain_name.split(".")[-offset:])
+
+    if subdomain == domain_name:
+        subdomain = None
 
     response = client.update_domain_dns_record(
-        domain_name, record_id, dns_record_type, value, subdomain, priority
+        domain_name, record_id, record_type, value, subdomain, priority
     )
     fmt.printer(
         response,
         output_format=output_format,
-        filters=filters,
-        func=print_dns_record,
-        response_domain=domain_name,
+        func=lambda response: print(response.json()["dns_record"]["id"]),
     )
 
 
 # ------------------------------------------------------------- #
-# $ twc domain sub add subdomain.domain.io                      #
+# $ twc domain sub add                                          #
 # ------------------------------------------------------------- #
 
 
-@domain_subdomains.command("add")
+@domain_subdomain.command("add")
 def domain_add_subdomain(
-    subdomain_name: str,
+    subdomain: str = typer.Argument(..., metavar="FQDN"),
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
     filters: Optional[str] = filter_option,
+    second_ld: Optional[bool] = typer.Option(
+        False,
+        "--2ld",
+        help="Parse subdomain as 2LD.",
+    ),
 ):
-    """Delete one dns record on domain."""
+    """Create subdomain."""
     client = create_client(config, profile)
 
-    domain_name = ".".join(subdomain_name.split(".")[-2:])
+    if second_ld:
+        offset = 3
+    else:
+        offset = 2
 
-    response = client.add_subdomain(
-        domain_name, ".".join(subdomain_name.split(".")[:-2])
-    )
+    domain_name = ".".join(subdomain.split(".")[-offset:])
+    subdomain = ".".join(subdomain.split(".")[:-offset])
 
+    response = client.add_subdomain(domain_name, subdomain)
     fmt.printer(
         response,
         output_format=output_format,
-        func=(lambda x,: print("Complite!") if x.status_code == 201 else None),
+        func=lambda response: print(response.json()["subdomain"]["fqdn"]),
     )
 
 
 # ------------------------------------------------------------- #
-# $ twc domain sub rm subdomain.domain.io                      #
+# $ twc domain sub remove                                       #
 # ------------------------------------------------------------- #
 
 
-@domain_subdomains.command("delete", "rm")
-def domain_add_subdomain(
-    subdomain_name: str,
+@domain_subdomain.command("remove", "rm")
+def domain_rm_subdomain(
+    subdomain: str = typer.Argument(..., metavar="FQDN"),
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
     filters: Optional[str] = filter_option,
+    second_ld: Optional[bool] = typer.Option(
+        False,
+        "--2ld",
+        help="Parse subdomain as 2LD.",
+    ),
+    yes: Optional[bool] = yes_option,
 ):
-    """Delete one dns record on domain."""
+    """Delete subdomain with they DNS records."""
+    if not yes:
+        typer.confirm("This action cannot be undone. Continue?", abort=True)
     client = create_client(config, profile)
 
-    response = client.delete_subdomain(subdomain_name)
+    if second_ld:
+        offset = 3
+    else:
+        offset = 2
 
-    fmt.printer(
-        response,
-        output_format=output_format,
-        func=(lambda x,: print("Complite!") if x.status_code == 204 else None),
-    )
+    domain_name = ".".join(subdomain.split(".")[-offset:])
+    subdomain = ".".join(subdomain.split(".")[:-offset])
+
+    response = client.delete_subdomain(domain_name, subdomain)
+    if response.status_code == 204:
+        print(subdomain)
+    else:
+        sys.exit(fmt.printer(response))
