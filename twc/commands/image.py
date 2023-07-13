@@ -77,17 +77,12 @@ def image_list(
         case_sensitive=False,
         help="Use region (location).",
     ),
-    with_deleted: Optional[bool] = typer.Option(
-        False,
-        "--with-deleted",
-        help="Show all images including deleted images.",
-    ),
 ):
     """List images."""
     if region:
         filters = f"{filters},location:{region}"
     client = create_client(config, profile)
-    response = client.get_images(limit=limit, with_deleted=with_deleted)
+    response = client.get_images(limit=limit)
     fmt.printer(
         response,
         output_format=output_format,
