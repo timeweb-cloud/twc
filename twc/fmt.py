@@ -174,12 +174,26 @@ def filter_list(objects: list, filters: str) -> list:
                 if val.lower().endswith("g"):
                     val = str(int(val[:-1]) * 1024)
 
+            # API Issue: Worst datatype design in /domains/{fqdn}/dns-records
+            # dns_records object 'data' key may have or not keys 'subdomain'
+            # and 'priority'. There is workaround that makes possible to
+            # filter 'data' object.
+            if key in ["data.priority", "data.subdomain"]:
+                # Add keys into source object
+                objects_fixed = []
+                for obj in objects:
+                    if "subdomain" not in obj["data"].keys():
+                        obj["data"]["subdomain"] = None
+                    if "priority" not in obj["data"].keys():
+                        obj["data"]["priority"] = None
+                    objects_fixed.append(obj)
+                objects = objects_fixed
+
             objects = list(
                 filter(
                     # pylint: disable=cell-var-from-loop
                     # This is fine
-                    lambda x, filters: str(query_dict(x, key.split(".")))
-                    == val,
+                    lambda x: str(query_dict(x, key.split("."))) == val,
                     objects,
                 )
             )
