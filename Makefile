@@ -10,6 +10,9 @@ all: format lint build zipapp docs
 format:
 	poetry run black $(SRC)
 
+format-dryrun:
+	poetry run black --diff --color $(SRC)
+
 lint:
 	poetry run pylint $(SRC)
 
