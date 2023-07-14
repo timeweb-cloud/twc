@@ -45,8 +45,6 @@ def print_images(response: Response, filters: Optional[str] = None):
             "UUID",
             "NAME",
             "REGION",
-            "STATUS",
-            "DISK",
             "SIZE",
         ]
     )
@@ -54,10 +52,10 @@ def print_images(response: Response, filters: Optional[str] = None):
         table.row(
             [
                 img["id"],
-                img["name"],
+                img["name"][:18] + "..."
+                if len(img["name"]) > 18
+                else img["name"],
                 img["location"],
-                img["status"],
-                img["disk_id"],
                 str(round(img["size"] / 1024)) + "G",
             ]
         )

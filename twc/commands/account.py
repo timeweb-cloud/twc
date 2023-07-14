@@ -43,6 +43,7 @@ def print_account_status(response: Response):
     ).strip()
     print(output)
 
+
 @account.command("status")
 def account_status(
     verbose: Optional[bool] = verbose_option,
