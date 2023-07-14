@@ -18,6 +18,7 @@ from .commands import (
     balancer,
     cluster,
     domain,
+    vpc,
 )
 from .commands.common import version_callback, version_option, verbose_option
 
@@ -36,6 +37,7 @@ cli.add_typer(
     cluster, name="cluster", aliases=["clusters", "kubernetes", "k8s"]
 )
 cli.add_typer(domain, name="domain", aliases=["domains", "d"])
+cli.add_typer(vpc, name="vpc", aliases=["vpcs", "network", "networks", "net"])
 
 
 @cli.command("version")

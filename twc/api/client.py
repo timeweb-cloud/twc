@@ -3,7 +3,7 @@
 from typing import Optional, Union, List
 from uuid import UUID
 from pathlib import Path
-from ipaddress import IPv4Address, IPv6Address
+from ipaddress import IPv4Address, IPv6Address, IPv4Network
 
 from .base import TimewebCloudBase
 from .types import (
@@ -1454,3 +1454,63 @@ class TimewebCloud(TimewebCloudBase):
             "DELETE",
             f"{self.api_url}/domains/{fqdn}/subdomains/{subdomain_fqdn}",
         )
+
+    # -----------------------------------------------------------------------
+    # VPC
+
+    # API issue: Why some VPC methods belong to /api/v1 and others to /api/v2??
+
+    def get_vpcs(self):
+        """Return list of private networks."""
+        return self._request("GET", f"{self.api_url_v2}/vpcs")
+
+    def get_vpc(self, vpc_id: str):
+        """Return network information."""
+        return self._request("GET", f"{self.api_url_v2}/vpcs/{vpc_id}")
+
+    def create_vpc(
+        self,
+        name: str,
+        subnet: IPv4Network,
+        location: ServiceRegion,
+        description: Optional[str] = None,
+    ):
+        """Create new virtual private network."""
+        payload = {
+            "name": name,
+            "subnet_v4": subnet,
+            "location": location,
+            **({"description": description} if description else {}),
+        }
+        return self._request("POST", f"{self.api_url_v2}/vpcs", json=payload)
+
+    def update_vpc(
+        self,
+        vpc_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ):
+        """Update network information."""
+        payload = {
+            **({"name": name} if name else {}),
+            **({"description": description} if description else {}),
+        }
+        return self._request(
+            "PATCH",
+            f"{self.api_url_v2}/vpcs/{vpc_id}",
+            json=payload,
+        )
+
+    def delete_vpc(self, vpc_id: str):
+        """Delete network."""
+        return self._request("DELETE", f"{self.api_url_v1}/vpcs/{vpc_id}")
+
+    def get_services_in_vpc(self, vpc_id: str):
+        """Return network information."""
+        return self._request(
+            "GET", f"{self.api_url_v2}/vpcs/{vpc_id}/services"
+        )
+
+    def get_vpc_ports(self, vpc_id: str):
+        """Return network information."""
+        return self._request("GET", f"{self.api_url_v1}/vpcs/{vpc_id}/ports")

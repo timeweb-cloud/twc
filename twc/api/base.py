@@ -17,7 +17,6 @@ class TimewebCloudBase:
     # pylint: disable=invalid-name
 
     API_BASE_URL = "https://api.timeweb.cloud"
-    API_PATH = "/api/v1"
     TIMEOUT = 100
     USER_AGENT = f"TWC-CLI/{__version__} Python {__pyversion__}"
 
@@ -25,7 +24,7 @@ class TimewebCloudBase:
         self,
         api_token: str,
         api_base_url: Optional[str] = API_BASE_URL,
-        api_path: Optional[str] = API_PATH,
+        api_path: Optional[str] = "/api/v1",
         headers: Optional[dict] = None,
         user_agent: Optional[str] = USER_AGENT,
         timeout: Optional[int] = TIMEOUT,
@@ -37,6 +36,8 @@ class TimewebCloudBase:
         self.api_base_url = api_base_url
         self.api_path = api_path
         self.api_url = self.api_base_url + self.api_path
+        self.api_url_v1 = self.api_base_url + "/api/v1"
+        self.api_url_v2 = self.api_base_url + "/api/v2"
         self.timeout = timeout
         self.headers = requests.utils.default_headers()
         self.headers["User-Agent"] = user_agent

@@ -11,3 +11,4 @@ from .storage import storage
 from .balancer import balancer
 from .kubernetes import cluster
 from .domain import domain
+from .vpc import vpc
