@@ -491,17 +491,12 @@ def port_proto_callback(value):
         if not re.match(r"^\d+\/(http|http2|https|tcp)$", value):
             sys.exit(
                 f"Error: Malformed argument: '{value}': "
-                "Correct patterns: '443/https', '2000/tcp', etc."
+                "Correct patterns: '443/https', '2000/tcp', etc.\n"
+                "Available protocols: "
+                f"{', '.join([lb.value for lb in LoadBalancerProto])}"
             )
         port, proto = value.split("/")
-        if port.isdigit():
-            port = int(port)
-        else:
-            raise typer.BadParameter("Port number must be integer.")
-        try:
-            LoadBalancerProto(proto)
-        except ValueError as e:
-            raise typer.BadParameter(f"Protocol {e}")
+        port = int(port)
         return port, proto
     return value
 
