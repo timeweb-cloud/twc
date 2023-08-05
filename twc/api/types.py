@@ -111,8 +111,8 @@ class BackupInterval(str, Enum):
     MONTH = "month"
 
 
-class ProjectResource(str, Enum):
-    """Project resource types."""
+class ResourceType(str, Enum):
+    """Resource types."""
 
     SERVER = "server"
     BALANCER = "balancer"
@@ -173,3 +173,18 @@ class DNSRecordType(str, Enum):
     AAAA = "AAAA"
     MX = "MX"
     A = "A"
+
+
+class FirewallProto(str, Enum):
+    """Protocols supported by Firewall service."""
+
+    TCP = "tcp"
+    UDP = "udp"
+    ICMP = "icmp"
+
+
+class FirewallDirection(str, Enum):
+    """Traffic directions for Firewall service."""
+
+    INGRESS = "ingress"
+    EGRESS = "egress"

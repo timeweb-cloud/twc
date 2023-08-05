@@ -11,7 +11,7 @@ from requests import Response
 from twc import fmt
 from twc.typerx import TyperAlias
 from twc.apiwrap import create_client
-from twc.api import TimewebCloud, ProjectResource
+from twc.api import TimewebCloud, ResourceType
 from .common import (
     verbose_option,
     config_option,
@@ -28,7 +28,7 @@ project.add_typer(project_resource, name="resource", aliases=["rsrc"])
 # API issue: Inconsistent resource naming
 # Some entities have different names in cases.
 RESOURCE_TYPES = [
-    *[r.value for r in ProjectResource],
+    *[r.value for r in ResourceType],
     "cluster",  # also named 'kubernetes'
     "bucket",  # also named 'storage'
     "dedicated_server",  # also named 'dedicated'

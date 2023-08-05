@@ -3,7 +3,7 @@
 from typing import Optional, Union, List
 from uuid import UUID
 from pathlib import Path
-from ipaddress import IPv4Address, IPv6Address, IPv4Network
+from ipaddress import IPv4Address, IPv6Address, IPv4Network, IPv6Network
 
 from .base import TimewebCloudBase
 from .types import (
@@ -18,11 +18,13 @@ from .types import (
     BackupInterval,
     IPVersion,
     ServiceRegion,
-    ProjectResource,
+    ResourceType,
     DBMS,
     MySQLAuthPlugin,
     LoadBalancerProto,
     LoadBalancerAlgo,
+    FirewallProto,
+    FirewallDirection,
 )
 
 
@@ -581,7 +583,7 @@ class TimewebCloud(TimewebCloudBase):
         from_project: int,
         to_project: int,
         resource_id: int,
-        resource_type: ProjectResource,
+        resource_type: ResourceType,
     ):
         """Move resource to project."""
         payload = {
@@ -1522,3 +1524,164 @@ class TimewebCloud(TimewebCloudBase):
     def get_vpc_ports(self, vpc_id: str):
         """Return network information."""
         return self._request("GET", f"{self.api_url_v1}/vpcs/{vpc_id}/ports")
+
+    # -----------------------------------------------------------------------
+    # Firewall
+
+    def get_firewall_groups(self, limit: int = 100, offset: int = 0):
+        """Get list of firewall groups."""
+        params = {"limit": limit, "offset": offset}
+        return self._request(
+            "GET", f"{self.api_url}/firewall/groups", params=params
+        )
+
+    def create_firewall_group(
+        self, name: str, description: Optional[str] = None
+    ):
+        payload = {
+            "name": name,
+            **({"description": description} if description else {}),
+        }
+        return self._request(
+            "POST", f"{self.api_url}/firewall/groups", json=payload
+        )
+
+    def get_firewall_group(self, group_id: UUID):
+        return self._request(
+            "GET", f"{self.api_url}/firewall/groups/{group_id}"
+        )
+
+    def delete_firewall_group(self, group_id: UUID):
+        return self._request(
+            "DELETE", f"{self.api_url}/firewall/groups/{group_id}"
+        )
+
+    def update_firewall_group(
+        self,
+        group_id: UUID,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ):
+        payload = {
+            **({"name": name} if name else {}),
+            **({"description": description} if description else {}),
+        }
+        return self._request(
+            "PATCH", f"{self.api_url}/firewall/groups/{group_id}", json=payload
+        )
+
+    def get_firewall_group_resources(
+        self, group_id: UUID, limit: int = 100, offset: int = 0
+    ):
+        params = {"limit": limit, "offset": offset}
+        return self._request(
+            "GET",
+            f"{self.api_url}/firewall/groups/{group_id}/resources",
+            params=params,
+        )
+
+    def link_resource_to_firewall(
+        self,
+        group_id: UUID,
+        resource_id: Union[str, int],
+        resource_type: ResourceType,
+    ):
+        return self._request(
+            "POST",
+            f"{self.api_url}/firewall/groups/{group_id}/resources/{resource_id}",
+            params={"resource_type": resource_type},
+        )
+
+    def unlink_resource_from_firewall(
+        self,
+        group_id: UUID,
+        resource_id: Union[str, int],
+        resource_type: ResourceType,
+    ):
+        return self._request(
+            "DELETE",
+            f"{self.api_url}/firewall/groups/{group_id}/resources/{resource_id}",
+            params={"resource_type": resource_type},
+        )
+
+    def get_firewall_rules(
+        self, group_id: UUID, limit: int = 100, offset: int = 0
+    ):
+        """Get list of firewall rules."""
+        params = {"limit": limit, "offset": offset}
+        return self._request(
+            "GET",
+            f"{self.api_url}/firewall/groups/{group_id}/rules",
+            params=params,
+        )
+
+    def create_firewall_rule(
+        self,
+        group_id: UUID,
+        direction: FirewallDirection,
+        proto: FirewallProto,
+        cidr: Union[IPv4Network, IPv6Network],
+        port: Optional[int] = None,
+        description: Optional[str] = None,
+    ):
+        payload = {
+            **({"description": description} if description else {}),
+            **({} if proto == FirewallProto.ICMP.value else {"port": port}),
+            "direction": direction,
+            "protocol": proto,
+            "cidr": cidr,
+        }
+        return self._request(
+            "POST",
+            f"{self.api_url}/firewall/groups/{group_id}/rules",
+            json=payload,
+        )
+
+    def get_firewall_rule(self, group_id: UUID, rule_id: UUID):
+        return self._request(
+            "GET", f"{self.api_url}/firewall/groups/{group_id}/rules/{rule_id}"
+        )
+
+    def delete_firewall_rule(self, group_id: UUID, rule_id: UUID):
+        return self._request(
+            "DELETE",
+            f"{self.api_url}/firewall/groups/{group_id}/rules/{rule_id}",
+        )
+
+    def update_firewall_rule(
+        self,
+        group_id: UUID,
+        rule_id: UUID,
+        direction: FirewallDirection,
+        proto: FirewallProto,
+        cidr: Union[IPv4Network, IPv6Network],
+        port: Optional[int] = None,
+        description: Optional[str] = None,
+    ):
+        payload = {
+            **({"description": description} if description else {}),
+            **({} if proto == FirewallProto.ICMP.value else {"port": port}),
+            "direction": direction,
+            "protocol": proto,
+            "cidr": cidr,
+        }
+        return self._request(
+            "PATCH",
+            f"{self.api_url}/firewall/groups/{group_id}/rules/{rule_id}",
+            json=payload,
+        )
+
+    def get_resource_firewall_groups(
+        self,
+        resource_id: Union[int, str],
+        resource_type: str,
+        limit: int = 100,
+        offset: int = 0,
+    ):
+        params = {"limit": limit, "offset": offset}
+        if resource_type not in ["server", "dbaas", "balancer"]:
+            raise ValueError('Invalid resource type')
+        return self._request(
+            "GET",
+            f"{self.api_url}/firewall/service/{resource_type}/{resource_id}"
+        )

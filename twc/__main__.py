@@ -19,6 +19,7 @@ from .commands import (
     cluster,
     domain,
     vpc,
+    firewall,
 )
 from .commands.common import version_callback, version_option, verbose_option
 
@@ -38,6 +39,7 @@ cli.add_typer(
 )
 cli.add_typer(domain, name="domain", aliases=["domains", "d"])
 cli.add_typer(vpc, name="vpc", aliases=["vpcs", "network", "networks", "net"])
+cli.add_typer(firewall, name="firewall", aliases=["fw"])
 
 
 @cli.command("version")
