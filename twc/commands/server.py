@@ -544,7 +544,7 @@ def server_create(
 
     if nat_mode:
         if not network:
-            sys.exit(f"Error: Pass '--network' option first.")
+            sys.exit("Error: Pass '--network' option first.")
 
     payload = {
         "name": name,
@@ -552,7 +552,11 @@ def server_create(
         "avatar_id": avatar_id,
         "software_id": software_id,
         "is_ddos_guard": ddos_protection,
-        **({"is_local_network": local_network} if local_network is not None else {}),
+        **(
+            {"is_local_network": local_network}
+            if local_network is not None
+            else {}
+        ),
     }
 
     if network:

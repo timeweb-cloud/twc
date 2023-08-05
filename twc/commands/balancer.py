@@ -187,7 +187,7 @@ def balancer_create(
         callback=load_from_config_callback,
         help="Add load balancer to specific project.",
     ),
-    network: Optional[str] = typer.Option(None, help='Private network ID.'),
+    network: Optional[str] = typer.Option(None, help="Private network ID."),
 ):
     """Create load balancer."""
     client = create_client(config, profile)
