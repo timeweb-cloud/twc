@@ -515,17 +515,20 @@ def server_create(
         show_default=True,
         help="Enable DDoS-Guard.",
     ),
-    local_network: bool = typer.Option(
-        False,
+    local_network: Optional[bool] = typer.Option(
+        # is_local_network paramenter is deprecated!
+        None,
         "--local-network",
         show_default=True,
         help="Enable LAN.",
+        hidden=True,
     ),
+    network: Optional[str] = typer.Option(None, help="Private network ID."),
     nat_mode: ServerNATMode = typer.Option(
         None,
         "--nat-mode",
         metavar="MODE",
-        help="Turns on LAN with specified NAT mode.",
+        help="Apply NAT mode.",
     ),
     region: Optional[str] = region_option,
     project_id: int = typer.Option(
@@ -540,7 +543,8 @@ def server_create(
     client = create_client(config, profile)
 
     if nat_mode:
-        local_network = True
+        if not network:
+            sys.exit(f"Error: Pass '--network' option first.")
 
     payload = {
         "name": name,
@@ -548,8 +552,11 @@ def server_create(
         "avatar_id": avatar_id,
         "software_id": software_id,
         "is_ddos_guard": ddos_protection,
-        "is_local_network": local_network,
+        **({"is_local_network": local_network} if local_network is not None else {}),
     }
+
+    if network:
+        payload["network"] = {"id": network}
 
     # Set server configuration parameters
     if preset_id and (cpu or ram or disk):

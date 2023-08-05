@@ -149,7 +149,7 @@ def vpc_remove(
         typer.confirm("This action cannot be undone. Continue?", abort=True)
     client = create_client(config, profile)
     for vpc_id in vpc_ids:
-        response = delete_vpc(vpc_id)
+        response = client.delete_vpc(vpc_id)
         if response.status_code == 204:
             print(vpc_id)
         else:

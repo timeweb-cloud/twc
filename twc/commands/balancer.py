@@ -48,8 +48,8 @@ def print_balancers(response: Response, filters: Optional[str]):
             "ID",
             "NAME",
             "STATUS",
-            "EXTERNAL IP",
             "INTERNAL IP",
+            "EXTERNAL IP",
         ]
     )
     for lb in balancers:
@@ -58,8 +58,8 @@ def print_balancers(response: Response, filters: Optional[str]):
                 lb["id"],
                 lb["name"],
                 lb["status"],
-                lb["ip"],
                 lb["local_ip"],
+                lb["ip"],
             ]
         )
     table.print()
@@ -98,8 +98,8 @@ def print_balancer(response: Response):
             "ID",
             "NAME",
             "STATUS",
-            "EXTERNAL IP",
             "INTERNAL IP",
+            "EXTERNAL IP",
         ]
     )
     table.row(
@@ -107,8 +107,8 @@ def print_balancer(response: Response):
             lb["id"],
             lb["name"],
             lb["status"],
-            lb["ip"],
             lb["local_ip"],
+            lb["ip"],
         ]
     )
     table.print()
@@ -164,7 +164,7 @@ def balancer_create(
     port: int = typer.Option(80, help="Load balancer listen port."),
     path: str = typer.Option("/", help="URL path."),
     proto: LoadBalancerProto = typer.Option(
-        ..., help="Health check protocol."
+        LoadBalancerProto.HTTP.value, help="Health check protocol."
     ),
     inter: int = typer.Option(10, help="Health checks interval in seconds."),
     timeout: int = typer.Option(5, help="Health check timeout in seconds."),
@@ -187,6 +187,7 @@ def balancer_create(
         callback=load_from_config_callback,
         help="Add load balancer to specific project.",
     ),
+    network: Optional[str] = typer.Option(None, help='Private network ID.'),
 ):
     """Create load balancer."""
     client = create_client(config, profile)
@@ -206,22 +207,28 @@ def balancer_create(
         ]:
             sys.exit(f"Wrong project ID: Project '{project_id}' not found.")
 
-    response = client.create_load_balancer(
-        name=name,
-        preset_id=preset_id,
-        algo=algo,
-        proto=proto,
-        port=port,
-        path=path,
-        inter=inter,
-        timeout=timeout,
-        fall=fall,
-        rise=rise,
-        sticky=sticky,
-        proxy_protocol=proxy_protocol,
-        force_https=force_https,
-        backend_keepalive=backend_keepalive,
-    )
+    payload = {
+        "name": name,
+        "preset_id": preset_id,
+        "algo": algo,
+        "proto": proto,
+        "port": port,
+        "path": path,
+        "inter": inter,
+        "timeout": timeout,
+        "fall": fall,
+        "rise": rise,
+        "sticky": sticky,
+        "proxy_protocol": proxy_protocol,
+        "force_https": force_https,
+        "backend_keepalive": backend_keepalive,
+    }
+
+    if network:
+        payload["network"] = {"id": network}
+
+    # Create LB
+    response = client.create_load_balancer(**payload)
 
     # Add created LB to project if set
     if project_id:

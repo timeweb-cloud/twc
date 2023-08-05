@@ -68,8 +68,9 @@ class TimewebCloud(TimewebCloudBase):
         avatar_id: Optional[str] = None,
         software_id: Optional[int] = None,
         ssh_keys_ids: Optional[List[int]] = None,
-        is_local_network: bool = False,
+        is_local_network: Optional[bool] = None,
         is_ddos_guard: bool = False,
+        network: Optional[dict] = None,
     ):
         """Create new Cloud Server. Note:
 
@@ -92,7 +93,8 @@ class TimewebCloud(TimewebCloudBase):
             **({"software_id": software_id} if software_id else {}),
             **({"ssh_keys_ids": ssh_keys_ids} if ssh_keys_ids else {}),
             "is_ddos_guard": is_ddos_guard,
-            "is_local_network": is_local_network,
+            **({"is_local_network": is_local_network} if is_local_network is not None else {}),
+            **({"network": network} if network else {}),
             **({"configuration": configuration} if configuration else {}),
             **({"preset_id": preset_id} if preset_id else {}),
             **({"os_id": os_id} if os_id else {}),
@@ -984,6 +986,7 @@ class TimewebCloud(TimewebCloudBase):
         proxy_protocol: bool = False,
         force_https: bool = False,
         backend_keepalive: bool = False,
+        network: Optional[dict] = None,
     ):
         """Create load balancer."""
         payload = {
@@ -1001,6 +1004,7 @@ class TimewebCloud(TimewebCloudBase):
             "is_use_proxy": proxy_protocol,
             "is_ssl": force_https,
             "is_keepalive": backend_keepalive,
+            **({"network": network} if network else {}),
         }
         return self._request("POST", f"{self.api_url}/balancers", json=payload)
 
@@ -1064,7 +1068,7 @@ class TimewebCloud(TimewebCloudBase):
         }
         return self._request(
             "DELETE",
-            f"{self.api_url}/balancers{balancer_id}",
+            f"{self.api_url}/balancers/{balancer_id}",
             params=params,
         )
 
