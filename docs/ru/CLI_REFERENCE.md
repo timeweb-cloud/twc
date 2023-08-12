@@ -33,7 +33,7 @@ $ twc [OPTIONS] COMMAND [ARGS]...
 * `ssh-key`: Manage SSH-keys. (aliases: ssh-keys, k)
 * `storage`: Manage object storage buckets. (aliases: storages, s3)
 * `version`: Show version and exit.
-* `vpc`: Manage virtual networks. (aliases: vpcs, network, networks, net)
+* `vpc`: Manage virtual networks. (aliases: vpcs, network, networks)
 
 ## `twc account`
 
@@ -901,6 +901,7 @@ $ twc config [OPTIONS] COMMAND [ARGS]...
 * `edit`: Open configuration file in default editor.
 * `file`: Print config file path.
 * `init`: Make new configuration file if not exist...
+* `profiles`: Display configuration profiles.
 * `set`: Set config parameters.
 * `unset`: Unset config parameters.
 
@@ -958,6 +959,20 @@ Make new configuration file if not exist or edit existing.
 
 ```console
 $ twc config init [OPTIONS]
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+### `twc config profiles`
+
+Display configuration profiles.
+
+**Usage**:
+
+```console
+$ twc config profiles [OPTIONS]
 ```
 
 **Options**:
@@ -1982,7 +1997,6 @@ $ twc image list [OPTIONS]
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `--limit INTEGER`: Items to display.  [default: 500]
 * `-f, --filter KEY:VALUE`: Filter output.
-* `--region [ru-1|ru-2|pl-1|kz-1|nl-1]`: Use region (location).
 * `--help`: Show this message and exit.
 
 ### `twc image remove`
@@ -2054,7 +2068,7 @@ $ twc image upload [OPTIONS] FILE
 * `--name TEXT`: Image human readable name.
 * `--desc TEXT`: Image description.
 * `--os-type OS_TYPE`: OS type. This value is formal and not affects on server/image.  [default: other]
-* `--region [ru-1|ru-2|pl-1|kz-1|nl-1]`: Region (location) to upload image.  [default: ru-1]
+* `--region REGION`: Use region (location).  [default: ru-1]
 * `--help`: Show this message and exit.
 
 ## `twc project`
