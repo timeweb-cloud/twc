@@ -28,6 +28,12 @@ from .common import (
 
 
 vpc = TyperAlias(help=__doc__)
+vpc_port = TyperAlias(help="Manage network ports.")
+vpc.add_typer(vpc_port, name="port", aliases=["ports"])
+
+ALLOWED_SUBNETS = [IPv4Network("10.0.0.0/16"), IPv4Network("192.168.0.0/16")]
+MAX_PREFIXLEN = 16
+MIN_PREFIXLEN = 32
 
 
 # ------------------------------------------------------------- #
@@ -82,32 +88,36 @@ def validate_network(value):
             network = IPv4Network(value)
         except (NetmaskValueError, AddressValueError, ValueError) as err:
             sys.exit(f"Error: Invalid CIDR: {err}")
-        if not network.is_private:
-            sys.exit(f"Error: Network {value} is not for private usage.")
-        net_192 = IPv4Network("192.168.0.0/16")
-        net_10 = IPv4Network("10.0.0.0/8")
-        if not network.subnet_of(net_10) and not network.subnet_of(net_192):
+
+        is_valid = False
+        for subnet in ALLOWED_SUBNETS:
+            if network.subnet_of(subnet):
+                is_valid = True
+
+        if is_valid is False:
             sys.exit(
-                "Error: Only subnets of 10.0.0.0/8 and 192.168.0.0/16 is allowed."
+                f"Error: Network {value} is not subnet of: "
+                f"{[n.with_prefixlen for n in ALLOWED_SUBNETS]}"
             )
-        if not (network.prefixlen >= 16 and network.prefixlen <= 32):
+        if network.prefixlen in range(MIN_PREFIXLEN, MAX_PREFIXLEN + 1):
             sys.exit("Error: Minimum network prefix is 32, maximum is 16.")
     return value
 
 
 @vpc.command("create")
 def vpc_create(
+    subnet: str = typer.Argument(
+        ...,
+        metavar="IP_NETWORK",
+        callback=validate_network,
+        help="IPv4 network CIDR.",
+    ),
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
-    name: str = typer.Option(..., help="Network display name."),
+    name: str = typer.Option(None, help="Network display name."),
     desc: Optional[str] = typer.Option(None, help="Description."),
-    subnet: str = typer.Option(
-        ...,
-        callback=validate_network,
-        help="Network IPv4 CIDR.",
-    ),
     region: Optional[str] = region_option,
 ):
     """Create network."""
@@ -117,6 +127,8 @@ def vpc_create(
             f"Error: Cannot create network in location '{region}'. "
             f"Available regions is {REGIONS_WITH_LAN}"
         )
+    if not name:
+        name = subnet
     response = client.create_vpc(
         name,
         description=desc,
@@ -182,7 +194,7 @@ def vpc_set(
 
 
 # ------------------------------------------------------------- #
-# $ twc vpc list-ports                                          #
+# $ twc vpc port list                                           #
 # ------------------------------------------------------------- #
 
 
@@ -209,8 +221,8 @@ def print_ports(response: Response, filters: Optional[str] = None):
     table.print()
 
 
-@vpc.command("list-ports", "lsp", "ports")
-def vpc_ports(
+@vpc_port.command("list", "ls")
+def vpc_ports_list(
     vpc_id: str,
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
@@ -244,8 +256,8 @@ def print_resources(response: Response, filters: Optional[str] = None):
             "ID",
             "NAME",
             "TYPE",
-            "PUBLIC IP",
             "PRIVATE IP",
+            "PUBLIC IP",
         ]
     )
     for res in resources:
@@ -254,8 +266,8 @@ def print_resources(response: Response, filters: Optional[str] = None):
                 res["id"],
                 res["name"],
                 res["type"],
-                res["public_ip"],
                 res["local_ip"],
+                res["public_ip"],
             ]
         )
     table.print()

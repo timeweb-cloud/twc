@@ -7,6 +7,11 @@ from typer.models import CommandFunctionType, CommandInfo, TyperInfo, Default
 from typer.core import TyperCommand, TyperGroup
 
 
+CONTEXT_SETTINGS = {
+    "help_option_names": ["-h", "--help"]
+}
+
+
 class TyperAlias(Typer):
     """Commands and groups aliases support for Typer."""
 
@@ -17,7 +22,7 @@ class TyperAlias(Typer):
         self,
         *names: Optional[Sequence[str]],
         cls: Optional[Type[TyperCommand]] = None,
-        context_settings: Optional[Dict[Any, Any]] = None,
+        context_settings: Optional[Dict[Any, Any]] = CONTEXT_SETTINGS,
         help: Optional[str] = None,
         epilog: Optional[str] = None,
         short_help: Optional[str] = None,
@@ -98,12 +103,12 @@ class TyperAlias(Typer):
         aliases: Optional[List[str]] = None,
         cls: Optional[Type[TyperGroup]] = Default(None),
         invoke_without_command: bool = Default(False),
-        no_args_is_help: bool = Default(False),
+        no_args_is_help: bool = Default(True),
         subcommand_metavar: Optional[str] = Default(None),
         chain: bool = Default(False),
         result_callback: Optional[Callable[..., Any]] = Default(None),
         # Command
-        context_settings: Optional[Dict[Any, Any]] = Default(None),
+        context_settings: Optional[Dict[Any, Any]] = Default(CONTEXT_SETTINGS),
         callback: Optional[Callable[..., Any]] = Default(None),
         help: Optional[str] = Default(None),
         epilog: Optional[str] = Default(None),

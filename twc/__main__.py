@@ -24,7 +24,11 @@ from .commands import (
 from .commands.common import version_callback, version_option, verbose_option
 
 
-cli = TyperAlias(help=__doc__)
+cli = TyperAlias(
+    help=__doc__,
+    no_args_is_help=True,
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 cli.add_typer(config, name="config")
 cli.add_typer(account, name="account")
 cli.add_typer(server, name="server", aliases=["servers", "s"])
@@ -38,7 +42,7 @@ cli.add_typer(
     cluster, name="cluster", aliases=["clusters", "kubernetes", "k8s"]
 )
 cli.add_typer(domain, name="domain", aliases=["domains", "d"])
-cli.add_typer(vpc, name="vpc", aliases=["vpcs", "network", "networks", "net"])
+cli.add_typer(vpc, name="vpc", aliases=["vpcs", "network", "networks"])
 cli.add_typer(firewall, name="firewall", aliases=["fw"])
 
 

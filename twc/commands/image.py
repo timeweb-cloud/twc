@@ -22,6 +22,7 @@ from .common import (
     filter_option,
     yes_option,
     output_format_option,
+    region_option,
 )
 
 
@@ -42,21 +43,25 @@ def print_images(response: Response, filters: Optional[str] = None):
     table = fmt.Table()
     table.header(
         [
-            "UUID",
+            "ID",
             "NAME",
             "REGION",
-            "SIZE",
+            "STATUS",
+            #"SIZE",
         ]
     )
     for img in images:
         table.row(
             [
                 img["id"],
+
                 img["name"][:18] + "..."
                 if len(img["name"]) > 18
                 else img["name"],
+
                 img["location"],
-                str(round(img["size"] / 1024)) + "G",
+                img["status"],
+                #str(round(img["size"] / 1024)) + "G",
             ]
         )
     table.print()
@@ -70,15 +75,8 @@ def image_list(
     output_format: Optional[str] = output_format_option,
     limit: int = typer.Option(500, help="Items to display."),
     filters: Optional[str] = filter_option,
-    region: Optional[ServiceRegion] = typer.Option(
-        None,
-        case_sensitive=False,
-        help="Use region (location).",
-    ),
 ):
     """List images."""
-    if region:
-        filters = f"{filters},location:{region}"
     client = create_client(config, profile)
     response = client.get_images(limit=limit)
     fmt.printer(
@@ -99,7 +97,7 @@ def print_image(response: Response):
     table = fmt.Table()
     table.header(
         [
-            "UUID",
+            "ID",
             "NAME",
             "REGION",
             "STATUS",
@@ -256,11 +254,7 @@ def image_upload(
         case_sensitive=False,
         help="OS type. This value is formal and not affects on server/image.",
     ),
-    region: Optional[ServiceRegion] = typer.Option(
-        ServiceRegion.RU_1.value,
-        case_sensitive=False,
-        help="Region (location) to upload image.",
-    ),
+    region: Optional[str] = region_option,
 ):
     """Upload image from URL."""
     client = create_client(config, profile)

@@ -24,7 +24,7 @@ from .common import (
 )
 
 
-config = typer.Typer(help=__doc__)
+config = typer.Typer(help=__doc__, no_args_is_help=False)
 
 
 DEFAULT_CONFIG = {"default": {"token": None}}
@@ -277,3 +277,30 @@ def config_edit(
 ):
     """Open configuration file in default editor."""
     typer.launch(str(config))
+
+
+# ------------------------------------------------------------- #
+# $ twc config profiles                                         #
+# ------------------------------------------------------------- #
+
+
+@config.command("profiles")
+def config_profile(
+    # pylint: disable=redefined-outer-name
+    config: Optional[Path] = typer.Option(
+        None,
+        "--config",
+        "-c",
+        envvar="TWC_CONFIG_FILE",
+        show_envvar=False,
+        exists=True,
+        dir_okay=False,
+        callback=config_callback,
+        hidden=True,
+        help="Use config.",
+    ),
+):
+    """Display configuration profiles."""
+    config_dict = load_config(config)
+    for key in config_dict.keys():
+        print(key)

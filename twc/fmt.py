@@ -174,7 +174,7 @@ def filter_list(objects: list, filters: str) -> list:
                 if val.lower().endswith("g"):
                     val = str(int(val[:-1]) * 1024)
 
-            # API Issue: Worst datatype design in /domains/{fqdn}/dns-records
+            # API Issue: Worst DTO design in /domains/{fqdn}/dns-records
             # dns_records object 'data' key may have or not keys 'subdomain'
             # and 'priority'. There is workaround that makes possible to
             # filter 'data' object.

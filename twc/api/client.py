@@ -1559,11 +1559,11 @@ class TimewebCloud(TimewebCloudBase):
     def update_firewall_group(
         self,
         group_id: UUID,
-        name: Optional[str] = None,
+        name: str,
         description: Optional[str] = None,
     ):
         payload = {
-            **({"name": name} if name else {}),
+            "name": name,
             **({"description": description} if description else {}),
         }
         return self._request(
@@ -1584,8 +1584,10 @@ class TimewebCloud(TimewebCloudBase):
         self,
         group_id: UUID,
         resource_id: Union[str, int],
-        resource_type: ResourceType,
+        resource_type: str,
     ):
+        if resource_type not in ["server", "dbaas", "balancer"]:
+            raise ValueError("Invalid resource type")
         return self._request(
             "POST",
             f"{self.api_url}/firewall/groups/{group_id}/resources/{resource_id}",
@@ -1596,8 +1598,10 @@ class TimewebCloud(TimewebCloudBase):
         self,
         group_id: UUID,
         resource_id: Union[str, int],
-        resource_type: ResourceType,
+        resource_type: str,
     ):
+        if resource_type not in ["server", "dbaas", "balancer"]:
+            raise ValueError("Invalid resource type")
         return self._request(
             "DELETE",
             f"{self.api_url}/firewall/groups/{group_id}/resources/{resource_id}",
@@ -1621,7 +1625,7 @@ class TimewebCloud(TimewebCloudBase):
         direction: FirewallDirection,
         proto: FirewallProto,
         cidr: Union[IPv4Network, IPv6Network],
-        port: Optional[int] = None,
+        port: Optional[str] = None,
         description: Optional[str] = None,
     ):
         payload = {
@@ -1655,7 +1659,7 @@ class TimewebCloud(TimewebCloudBase):
         direction: FirewallDirection,
         proto: FirewallProto,
         cidr: Union[IPv4Network, IPv6Network],
-        port: Optional[int] = None,
+        port: Optional[str] = None,
         description: Optional[str] = None,
     ):
         payload = {
@@ -1680,8 +1684,9 @@ class TimewebCloud(TimewebCloudBase):
     ):
         params = {"limit": limit, "offset": offset}
         if resource_type not in ["server", "dbaas", "balancer"]:
-            raise ValueError('Invalid resource type')
+            raise ValueError("Invalid resource type")
         return self._request(
             "GET",
-            f"{self.api_url}/firewall/service/{resource_type}/{resource_id}"
+            f"{self.api_url}/firewall/service/{resource_type}/{resource_id}",
+            params=params,
         )

@@ -152,13 +152,17 @@ def profile_callback(value: str, ctx: typer.Context) -> str:
 def filter_callback(value: str) -> str:
     """Validate filters format."""
     if value:
-        if not re.match(r"^(([a-z0-9._-]+:[a-z0-9._-]+),?)+$", value, re.I):
+        if not re.match(
+            r"^(([a-z0-9._-]+:[a-z0-9._\-/+%]+),?)+$", value, re.I
+        ):
             raise UsageError(
                 "Invalid filter format. Filter must contain comma separated "
-                + "KEY:VALUE pairs. Allowed characters: [a-zA-Z0-9_.]"
+                + "KEY:VALUE pairs. Allowed characters: [a-zA-Z0-9_.-/+%]"
             )
-        # Make alias 'region=location'
-        value = value.replace("region", "location")
+        # Make aliases
+        value = value.replace("region:", "location:")
+        value = value.replace("proto:", "protocol:")
+        value = value.replace("rule_id:", "id:")
     return value
 
 

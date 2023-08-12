@@ -485,13 +485,13 @@ def balancer_rule_list(
 # ------------------------------------------------------------- #
 
 
-def port_proto_callback(value):
+def validate_balancer_port_proto_callback(value):
     """Typer callback for PORT/PROTO validation."""
     if value:
-        if not re.match(r"^\d+\/(http|http2|https|tcp)$", value):
+        if not re.match(r"^\d+\/(http|http2|https|tcp)$", value, re.I):
             sys.exit(
                 f"Error: Malformed argument: '{value}': "
-                "Correct patterns: '443/https', '2000/tcp', etc.\n"
+                "Correct patterns: '443/HTTPS', '2000/TCP', etc.\n"
                 "Available protocols: "
                 f"{', '.join([lb.value for lb in LoadBalancerProto])}"
             )
@@ -510,13 +510,13 @@ def balancer_rule_add(
     output_format: Optional[str] = output_format_option,
     frontend: str = typer.Option(
         ...,
-        callback=port_proto_callback,
+        callback=validate_balancer_port_proto_callback,
         metavar="PORT/PROTO",
         help="Frontend port and protocol.",
     ),
     backend: str = typer.Option(
         ...,
-        callback=port_proto_callback,
+        callback=validate_balancer_port_proto_callback,
         metavar="PORT/PROTO",
         help="Backend port and protocol.",
     ),
@@ -568,13 +568,13 @@ def balancer_rule_update(
     output_format: Optional[str] = output_format_option,
     frontend: Optional[str] = typer.Option(
         None,
-        callback=port_proto_callback,
+        callback=validate_balancer_port_proto_callback,
         metavar="PORT/PROTO",
         help="Frontend port and protocol.",
     ),
     backend: Optional[str] = typer.Option(
         None,
-        callback=port_proto_callback,
+        callback=validate_balancer_port_proto_callback,
         metavar="PORT/PROTO",
         help="Backend port and protocol.",
     ),
