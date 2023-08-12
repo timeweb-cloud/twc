@@ -572,7 +572,7 @@ def get_group_id_by_rule(client: TimewebCloud, rule_id: UUID) -> str:
     for group in groups:
         rules = client.get_firewall_rules(group["id"]).json()["rules"]
         for rule in rules:
-            if rule_id == rule["id"]:
+            if str(rule_id) == rule["id"]:
                 return group["id"]
     sys.exit(f"Error: Rule '{rule_id}' not found")
 
