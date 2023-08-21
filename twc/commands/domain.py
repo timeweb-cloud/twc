@@ -357,6 +357,16 @@ def domain_add_dns_record(
     if subdomain == domain_name:
         subdomain = None
 
+    # API issue: see text below
+    # API can add TXT record (only TXT, why?) with non-existent subdomain,
+    # but 'subdomain' option must not be passed as FQDN!
+    # API issue: You cannot create subdomains with underscore. Why?
+    # Use previous described bug for this! Pass your subdomain with
+    # underscores to this function.
+    if record_type.lower() == 'txt':
+        # 'ftp.example.org' --> 'ftp'
+        subdomain = subdomain.split(".")[:offset-1]
+
     response = client.add_domain_dns_record(
         domain_name, record_type, value, subdomain, priority
     )
@@ -453,6 +463,13 @@ def domain_add_subdomain(
 
     domain_name = ".".join(subdomain.split(".")[-offset:])
     subdomain = ".".join(subdomain.split(".")[:-offset])
+
+    # API issue: You cannot create 'www' subdomain
+    if subdomain.startswith("www."):
+        sys.exit(
+            "Error: API does not support custom www subdomains. "
+            "www subdomain always have the same A-record with @"
+        )
 
     response = client.add_subdomain(domain_name, subdomain)
     fmt.printer(
