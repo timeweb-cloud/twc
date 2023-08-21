@@ -14,7 +14,7 @@ from requests import Response
 from twc import fmt
 from twc.typerx import TyperAlias
 from twc.apiwrap import create_client
-from twc.api import ServiceRegion, ServerOSType
+from twc.api import ServerOSType
 from .common import (
     verbose_option,
     config_option,
@@ -44,24 +44,24 @@ def print_images(response: Response, filters: Optional[str] = None):
     table.header(
         [
             "ID",
-            "NAME",
+            # "NAME",
+            "TYPE",
             "REGION",
             "STATUS",
-            #"SIZE",
+            "SIZE",
         ]
     )
     for img in images:
         table.row(
             [
                 img["id"],
-
-                img["name"][:18] + "..."
-                if len(img["name"]) > 18
-                else img["name"],
-
+                img["type"],
+                # img["name"][:18] + "..."
+                # if len(img["name"]) > 18
+                # else img["name"],
                 img["location"],
                 img["status"],
-                #str(round(img["size"] / 1024)) + "G",
+                str(round(img["size"] / 1024)) + "G",
             ]
         )
     table.print()
@@ -99,6 +99,7 @@ def print_image(response: Response):
         [
             "ID",
             "NAME",
+            "TYPE",
             "REGION",
             "STATUS",
             "DISK",
@@ -110,6 +111,7 @@ def print_image(response: Response):
         [
             img["id"],
             img["name"],
+            img["type"],
             img["location"],
             img["status"],
             img["disk_id"],
