@@ -363,9 +363,9 @@ def domain_add_dns_record(
     # API issue: You cannot create subdomains with underscore. Why?
     # Use previous described bug for this! Pass your subdomain with
     # underscores to this function.
-    if record_type.lower() == 'txt':
+    if record_type.lower() == "txt":
         # 'ftp.example.org' --> 'ftp'
-        subdomain = subdomain.split(".")[:offset-1][0]
+        subdomain = subdomain.split(".")[: offset - 1][0]
 
     response = client.add_domain_dns_record(
         domain_name, record_type, value, subdomain, priority

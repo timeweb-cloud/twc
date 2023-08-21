@@ -7,9 +7,7 @@ from typer.models import CommandFunctionType, CommandInfo, TyperInfo, Default
 from typer.core import TyperCommand, TyperGroup
 
 
-CONTEXT_SETTINGS = {
-    "help_option_names": ["-h", "--help"]
-}
+CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
 
 class TyperAlias(Typer):
@@ -22,7 +20,7 @@ class TyperAlias(Typer):
         self,
         *names: Optional[Sequence[str]],
         cls: Optional[Type[TyperCommand]] = None,
-        context_settings: Optional[Dict[Any, Any]] = CONTEXT_SETTINGS,
+        context_settings: Optional[Dict[Any, Any]] = None,
         help: Optional[str] = None,
         epilog: Optional[str] = None,
         short_help: Optional[str] = None,
@@ -35,6 +33,8 @@ class TyperAlias(Typer):
     ) -> Callable[[CommandFunctionType], CommandFunctionType]:
         if cls is None:
             cls = TyperCommand
+        if context_settings is None:
+            context_settings = CONTEXT_SETTINGS
 
         name = None
         aliases = []
