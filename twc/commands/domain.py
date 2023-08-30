@@ -365,7 +365,7 @@ def domain_add_dns_record(
     # underscores to this function.
     if record_type.lower() == "txt":
         # 'ftp.example.org' --> 'ftp'
-        subdomain = subdomain.split(".")[: offset - 1][0]
+        subdomain = ".".join(subdomain.split(".")[:-offset])
 
     response = client.add_domain_dns_record(
         domain_name, record_type, value, subdomain, priority
