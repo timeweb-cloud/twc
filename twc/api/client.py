@@ -1343,7 +1343,7 @@ class TimewebCloud(TimewebCloudBase):
     def delete_k8s_node(self, cluster_id: int, node_id: int):
         """Delete node from cluster."""
         return self._request(
-            "GET",
+            "DELETE",
             f"{self.api_url}/k8s/clusters/{cluster_id}/nodes/{node_id}",
         )
 
