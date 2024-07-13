@@ -963,7 +963,7 @@ def server_remove(
     profile: Optional[str] = profile_option,
     yes: Optional[bool] = yes_option,
 ):
-    """Clone Cloud Server."""
+    """Remove Cloud Server."""
     if not yes:
         typer.confirm("This action cannot be undone. Continue?", abort=True)
 

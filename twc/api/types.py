@@ -1,6 +1,6 @@
 """Custom data types for Timeweb Cloud API entities."""
 
-from typing import NamedTuple
+from typing import TypedDict
 from enum import Enum
 
 
@@ -9,6 +9,7 @@ class ServiceRegion(str, Enum):
 
     RU_1 = "ru-1"
     RU_2 = "ru-2"
+    RU_3 = "ru-3"
     PL_1 = "pl-1"
     KZ_1 = "kz-1"
     NL_1 = "nl-1"
@@ -64,13 +65,11 @@ class IPVersion(str, Enum):
     IPV6 = "ipv6"
 
 
-class ServerConfiguration(NamedTuple):
+class ServerConfiguration(TypedDict):
     """
     For `confugurator_id` see `get_server_configurators()`. `disk` and
-    `ram` must be in megabytes. Values must values must comply with the
-    configurator constraints.
-
-    TODO: Replace NamedTuple with TypedDict when drop Python 3.7
+    `ram` must be in megabytes. Values must comply with the configurator
+    constraints.
     """
 
     configurator_id: int
