@@ -453,7 +453,7 @@ def filrewall_rule_list(
 
 
 # ------------------------------------------------------------- #
-# $ twc firewall rule add                                       #
+# $ twc firewall rule create                                    #
 # ------------------------------------------------------------- #
 
 
@@ -482,8 +482,8 @@ def validate_cidr_callback(value):
     return value
 
 
-@firewall_rule.command("add")
-def firewall_allow(
+@firewall_rule.command("create", "add")
+def firewall_rule_create(
     ports: List[str] = typer.Argument(
         ...,
         metavar="[PORT[-PORT]/]PROTO...",
@@ -520,7 +520,7 @@ def firewall_allow(
         help="IPv4 or IPv6 CIDR.",
     ),
 ):
-    """Add new firewall rule."""
+    """Create new firewall rule."""
     client = create_client(config, profile)
     if make_group is not None and group is not None:
         raise UsageError(
