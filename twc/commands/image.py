@@ -262,13 +262,16 @@ def image_upload(
     client = create_client(config, profile)
     if re.match(r"https?://", file):
         debug(f"Upload URL: {file}")
-        response = client.create_image(
-            upload_url=file,
-            name=name,
-            description=desc,
-            os_type=os_type,
-            location=region,
-        )
+    else:
+        sys.exit(f"Invalid link: {file}")
+
+    response = client.create_image(
+        upload_url=file,
+        name=name,
+        description=desc,
+        os_type=os_type,
+        location=region,
+    )
 
     # FUTURE: Implement file upload from local disk
 

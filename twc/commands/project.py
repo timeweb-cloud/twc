@@ -295,11 +295,10 @@ def project_resource_move(
     if bucket:
         for bucket_id in bucket:
             if not bucket_id.isdigit():
-                bucket_name = bucket_id
                 bucket_id = resolve_bucket_id(client, bucket_id)
             response = client.add_bucket_to_project(bucket_id, project_id)
             if response.status_code == 200:
-                print(bucket_name)
+                print(bucket_id)
             else:
                 sys.exit(fmt.printer(response))
     if cluster:

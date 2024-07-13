@@ -80,10 +80,9 @@ def print_servers(
         ]
     )
     for srv in servers:
+        main_ipv4 = None
         for network in srv["networks"]:
             if network["type"] == "public":
-                if not network["ips"]:
-                    main_ipv4 = None
                 for addr in network["ips"]:
                     if addr["type"] == "ipv4" and addr["is_main"]:
                         main_ipv4 = addr["ip"]
@@ -139,10 +138,9 @@ def print_server(response: Response):
             "IPV4",
         ]
     )
+    main_ipv4 = None
     for network in srv["networks"]:
         if network["type"] == "public":
-            if not network["ips"]:
-                main_ipv4 = None
             for addr in network["ips"]:
                 if addr["type"] == "ipv4" and addr["is_main"]:
                     main_ipv4 = addr["ip"]
@@ -775,6 +773,7 @@ def server_resize(
         payload["configuration"] = {}
 
         # Get original size of primary disk
+        primary_disk_size = 0
         for old_disk in old_state["disks"]:
             if old_disk["is_system"]:  # is True
                 primary_disk_size = old_disk["size"]

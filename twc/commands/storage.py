@@ -5,7 +5,6 @@ Cloud specific API methods instead. Use third party S3 clients to manage
 objects e.g. s3cmd, rclone, etc.
 """
 
-
 import sys
 from logging import debug
 from typing import Optional, List
