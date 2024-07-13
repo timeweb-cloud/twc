@@ -11,18 +11,18 @@ include = ["CHANGELOG.md", "COPYING"]
 packages = [{ include = "twc", from = "." }]
 
 [tool.poetry.dependencies]
-python = "^3.7.9"
-requests = "^2.31.0"
-typer = "^0.7.0"
-shellingham = "^1.5.0.post1"
+python = "^3.8.19"
+requests = "^2.32.3"
+typer = "^0.12.3"
+shellingham = "^1.5.4"
 colorama = "^0.4.6"
 toml = "^0.10.2"
-pyyaml = "^6.0"
-pygments = "^2.15.0"
+pyyaml = "^6.0.1"
+pygments = "^2.18.0"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.3.0"
-pylint = "^2.17.2"
+black = "^24.4.2"
+pylint = "^3.2.5"
 
 [tool.poetry.scripts]
 twc = "twc.__main__:cli"
