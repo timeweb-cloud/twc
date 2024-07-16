@@ -7,6 +7,19 @@ ZIPAPP = .zipapp
 
 all: format lint build zipapp docs
 
+help:
+	@echo Targets:
+	@echo '	all			run format, lint, build, zipapp, docs'
+	@echo '	format			run code formatter'
+	@echo '	format-dryrun		run code formatter in dry-run mode'
+	@echo '	lint			run code linter'
+	@echo '	build			build twc-cli Python package'
+	@echo '	zipapp			build twc-cli package in zipapp format'
+	@echo '	publish-pypi		publish twc-cli Python package on PyPI'
+	@echo '	publish-testpypi	publish twc-cli Python package on test PyPI'
+	@echo '	docs			build markdown documentation'
+	@echo '	clean			clean temporary files (including build artifacts)'
+
 format:
 	poetry run black $(SRC)
 
