@@ -35,7 +35,7 @@ cli.add_typer(server, name="server", aliases=["servers", "s"])
 cli.add_typer(ssh_key, name="ssh-key", aliases=["ssh-keys", "k"])
 cli.add_typer(image, name="image", aliases=["images", "i"])
 cli.add_typer(project, name="project", aliases=["projects", "p"])
-cli.add_typer(database, name="database", aliases=["databases", "db"])
+cli.add_typer(database, name="database", aliases=["databases", "db"], deprecated=True)
 cli.add_typer(storage, name="storage", aliases=["storages", "s3"])
 cli.add_typer(balancer, name="balancer", aliases=["balancers", "lb"])
 cli.add_typer(
