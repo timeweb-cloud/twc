@@ -73,8 +73,8 @@ def create_client(config: Path, profile: str, **kwargs) -> TimewebCloud:
 
     if log_settings:
         for param in log_settings.split(","):
-            if param == "log_response":
-                kwargs["log_response_body"] = True
+            if param.lower() == "debug":
+                pass # FUTURE: set logging.DEBUG
 
     if token:
         debug("Config: use API token from environment")

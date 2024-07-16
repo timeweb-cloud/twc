@@ -29,7 +29,6 @@ class TimewebCloudBase:
         user_agent: Optional[str] = USER_AGENT,
         timeout: Optional[int] = TIMEOUT,
         hide_token: Optional[bool] = True,
-        log_response_body: Optional[bool] = False,
         request_decorator: Optional[Callable] = None,
     ):
         self.api_token = api_token
@@ -44,7 +43,6 @@ class TimewebCloudBase:
         self.headers["Authorization"] = f"Bearer {self.api_token}"
         self.log = logging.getLogger("api_client")
         self.hide_token = hide_token
-        self.log_response_body = log_response_body
 
         if headers:
             self.headers.update(headers)
@@ -66,10 +64,10 @@ class TimewebCloudBase:
 
     def _log_request(self, response: requests.Response) -> None:
         """Log HTTP requests."""
-        if self.log_response_body:
-            res_body = response.text or "<NO_BODY>"
-        else:
-            res_body = "<NOT_LOGGED>"
+        res_body = response.text or "<NO_BODY>"
+        req_body = response.request.body or "<NO_BODY>"
+        if isinstance(req_body, (bytes, bytearray)):
+            req_body = req_body.decode()
 
         self.log.debug(
             textwrap.dedent(
@@ -89,7 +87,7 @@ class TimewebCloudBase:
                 req_headers=self._format_headers(
                     self._secure_log(response.request.headers)
                 ),
-                req_body=response.request.body or "<NO_BODY>",
+                req_body=req_body,
                 res=response,
                 res_headers=self._format_headers(response.headers),
                 res_body=res_body,
