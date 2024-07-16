@@ -13,9 +13,10 @@ import typer
 from requests import Response
 
 from twc import fmt
+from twc.api import ServiceRegion, ServiceAvailabilityZone
 from twc.typerx import TyperAlias
 from twc.apiwrap import create_client
-from twc.vars import REGIONS_WITH_LAN
+from twc.vars import REGIONS_WITH_LAN, ZONES_WITH_LAN
 from .common import (
     verbose_option,
     config_option,
@@ -24,6 +25,7 @@ from .common import (
     output_format_option,
     filter_option,
     region_option,
+    zone_option,
 )
 
 
@@ -31,9 +33,11 @@ vpc = TyperAlias(help=__doc__)
 vpc_port = TyperAlias(help="Manage network ports.")
 vpc.add_typer(vpc_port, name="port", aliases=["ports"])
 
-ALLOWED_SUBNETS = [IPv4Network("10.0.0.0/16"), IPv4Network("192.168.0.0/16")]
-MAX_PREFIXLEN = 16
-MIN_PREFIXLEN = 32
+ALLOWED_SUBNETS = [
+    IPv4Network("10.0.0.0/8"),
+    IPv4Network("192.168.0.0/16"),
+    IPv4Network("172.16.0.0/12"),
+]
 
 
 # ------------------------------------------------------------- #
@@ -46,12 +50,13 @@ def print_networks(response: Response, filters: Optional[str] = None):
     if filters:
         nets = fmt.filter_list(nets, filters)
     table = fmt.Table()
-    table.header(["ID", "REGION", "SUBNET"])
+    table.header(["ID", "REGION", "ZONE", "SUBNET"])
     for net in nets:
         table.row(
             [
                 net["id"],
                 net["location"],
+                net["availability_zone"],
                 net["subnet_v4"],
             ]
         )
@@ -99,8 +104,6 @@ def validate_network(value):
                 f"Error: Network {value} is not subnet of: "
                 f"{[n.with_prefixlen for n in ALLOWED_SUBNETS]}"
             )
-        if network.prefixlen in range(MIN_PREFIXLEN, MAX_PREFIXLEN + 1):
-            sys.exit("Error: Minimum network prefix is 32, maximum is 16.")
     return value
 
 
@@ -108,7 +111,7 @@ def validate_network(value):
 def vpc_create(
     subnet: str = typer.Argument(
         ...,
-        metavar="IP_NETWORK",
+        metavar="NETWORK_SUBNET",
         callback=validate_network,
         help="IPv4 network CIDR.",
     ),
@@ -119,13 +122,21 @@ def vpc_create(
     name: str = typer.Option(None, help="Network display name."),
     desc: Optional[str] = typer.Option(None, help="Description."),
     region: Optional[str] = region_option,
+    zone: Optional[str] = zone_option,
 ):
     """Create network."""
     client = create_client(config, profile)
     if region not in REGIONS_WITH_LAN:
         sys.exit(
             f"Error: Cannot create network in location '{region}'. "
-            f"Available regions is {REGIONS_WITH_LAN}"
+            f"Available regions are: {REGIONS_WITH_LAN}"
+        )
+    usable_zones = set(ZONES_WITH_LAN).intersection(set(ServiceRegion.get_zones(region)))
+    if zone is not None and zone not in usable_zones:
+        sys.exit(
+            f"Error: Cannot create network in region '{region}' with "
+            f"availability zone '{zone}'. "
+            f"Usable zones are: {list(usable_zones)}"
         )
     if not name:
         name = subnet
@@ -134,6 +145,7 @@ def vpc_create(
         description=desc,
         subnet=subnet,
         location=region,
+        zone=zone,
     )
     fmt.printer(
         response,
