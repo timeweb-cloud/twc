@@ -6,11 +6,11 @@ expand or other infrastructure or product changes occur.
 
 # Service URLs
 CONTROL_PANEL_URL = "https://timeweb.cloud/my"
-S3_ENDPOINT = "s3.timeweb.com"
+S3_ENDPOINT_DEPRECATED = "s3.timeweb.com"
+S3_ENDPOINT = "s3.timeweb.cloud"
 
 # Location specific parameters. May change later.
-REGIONS_WITH_CONFIGURATOR = ["ru-1", "ru-2", "pl-1", "kz-1", "nl-1"]
 REGIONS_WITH_IPV6 = ["ru-1", "pl-1"]
-REGIONS_WITH_IMAGES = ["ru-1", "pl-1", "nl-1"]
-REGIONS_WITH_LAN = ["ru-1", "pl-1"]
-REGIONS_WITH_DBAAS = ["ru-1", "pl-1"]
+REGIONS_WITH_IMAGES = ["ru-1", "ru-3", "kz-1", "pl-1", "nl-1"]
+REGIONS_WITH_LAN = ["ru-1", "ru-3", "nl-1", "pl-1"]
+ZONES_WITH_LAN = ["spb-1", "spb-4", "msk-1", "ams-1", "gdn-1"]

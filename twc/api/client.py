@@ -18,6 +18,7 @@ from .types import (
     BackupInterval,
     IPVersion,
     ServiceRegion,
+    ServiceAvailabilityZone,
     ResourceType,
     DBMS,
     MySQLAuthPlugin,
@@ -70,9 +71,10 @@ class TimewebCloud(TimewebCloudBase):
         avatar_id: Optional[str] = None,
         software_id: Optional[int] = None,
         ssh_keys_ids: Optional[List[int]] = None,
-        is_local_network: Optional[bool] = None,
+        is_local_network: Optional[bool] = None,  # deprecated
         is_ddos_guard: bool = False,
         network: Optional[dict] = None,
+        zone: Optional[ServiceAvailabilityZone] = None,
     ):
         """Create new Cloud Server. Note:
 
@@ -105,6 +107,7 @@ class TimewebCloud(TimewebCloudBase):
             **({"preset_id": preset_id} if preset_id else {}),
             **({"os_id": os_id} if os_id else {}),
             **({"image_id": image_id} if image_id else {}),
+            **({"availability_zone": zone} if zone else {}),
         }
 
         return self._request("POST", f"{self.api_url}/servers", json=payload)
@@ -1483,6 +1486,7 @@ class TimewebCloud(TimewebCloudBase):
         name: str,
         subnet: IPv4Network,
         location: ServiceRegion,
+        zone: Optional[ServiceAvailabilityZone] = None,
         description: Optional[str] = None,
     ):
         """Create new virtual private network."""
@@ -1490,6 +1494,7 @@ class TimewebCloud(TimewebCloudBase):
             "name": name,
             "subnet_v4": subnet,
             "location": location,
+            **({"availability_zone": zone} if zone else {}),
             **({"description": description} if description else {}),
         }
         return self._request("POST", f"{self.api_url_v2}/vpcs", json=payload)

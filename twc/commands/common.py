@@ -13,7 +13,7 @@ from typer.core import TyperOption
 from click import UsageError
 
 from twc.__version__ import __version__
-from twc.api.types import ServiceRegion
+from twc.api.types import ServiceRegion, ServiceAvailabilityZone
 
 
 class OutputFormat(str, Enum):
@@ -109,6 +109,11 @@ def load_from_config_callback(
         regions = [v.value for v in ServiceRegion]
         if value not in regions:
             sys.exit(f"Error: Location not in {regions}")
+    if param.name == "zone":
+        value = value.lower()
+        zones = [z.value for z in ServiceAvailabilityZone]
+        if value not in zones:
+            sys.exit(f"Error: Availability zone not in {zones}")
     return value
 
 
@@ -276,4 +281,15 @@ region_option = typer.Option(
     show_envvar=False,
     callback=load_from_config_callback,
     help="Use region (location).",
+)
+
+# zone: Optional[str] = zone_option,
+
+zone_option = typer.Option(
+    None,
+    metavar="ZONE",
+    envvar="TWC_AVAILABILITY_ZONE",
+    show_envvar=False,
+    callback=load_from_config_callback,
+    help="Use availability zone.",
 )
