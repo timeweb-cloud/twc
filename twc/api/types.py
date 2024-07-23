@@ -17,17 +17,17 @@ class ServiceRegion(str, Enum):
     @classmethod
     def get_zones(cls, region: str) -> List[str]:
         if region == cls.RU_1:
-            return ['spb-1', 'spb-2', 'sbp-3', 'spb-4']
+            return ["spb-1", "spb-2", "spb-3", "spb-4"]
         elif region == cls.RU_2:
-            return ['nsk-1']
+            return ["nsk-1"]
         elif region == cls.RU_3:
-            return ['msk-1']
+            return ["msk-1"]
         elif region == cls.KZ_1:
-            return ['ala-1']
+            return ["ala-1"]
         elif region == cls.PL_1:
-            return ['gdn-1']
+            return ["gdn-1"]
         elif region == cls.NL_1:
-            return ['ams-1']
+            return ["ams-1"]
         else:
             return []
 
