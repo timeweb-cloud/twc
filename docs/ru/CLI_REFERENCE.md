@@ -28,6 +28,7 @@ $ twc [OPTIONS] COMMAND [ARGS]...
 * `domain`: Manage domains and DNS records. (aliases: domains, d)
 * `firewall`: Manage Cloud Firewall rules and groups. (aliases: fw)
 * `image`: Manage disk images. (aliases: images, i)
+* `ip`: Manage floating IPs. (aliases: ips)
 * `project`: Manage projects. (aliases: projects, p)
 * `server`: Manage Cloud Servers. (aliases: servers, s)
 * `ssh-key`: Manage SSH-keys. (aliases: ssh-keys, k)
@@ -1240,7 +1241,7 @@ $ twc database list-presets [OPTIONS]
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `-f, --filter KEY:VALUE`: Filter output.
-* `--region [ru-1|ru-2|pl-1|kz-1|nl-1]`: Use region (location).
+* `--region [ru-1|ru-2|ru-3|kz-1|pl-1|nl-1]`: Use region (location).
 * `--help`: Show this message and exit.
 
 ### `twc database remove`
@@ -1760,19 +1761,19 @@ $ twc firewall rule [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
-* `add`: Add new firewall rule.
+* `create`: Create new firewall rule. (aliases: add)
 * `list`: List rules in group. (aliases: ls)
 * `remove`: Remove firewall rule. (aliases: rm)
 * `update`: Change firewall rule. (aliases: upd)
 
-#### `twc firewall rule add`
+#### `twc firewall rule create`
 
-Add new firewall rule.
+Create new firewall rule.
 
 **Usage**:
 
 ```console
-$ twc firewall rule add [OPTIONS] [PORT[-PORT]/]PROTO...
+$ twc firewall rule create [OPTIONS] [PORT[-PORT]/]PROTO...
 ```
 
 **Arguments**:
@@ -2068,7 +2069,182 @@ $ twc image upload [OPTIONS] FILE
 * `--name TEXT`: Image human readable name.
 * `--desc TEXT`: Image description.
 * `--os-type OS_TYPE`: OS type. This value is formal and not affects on server/image.  [default: other]
-* `--region REGION`: Use region (location).  [default: ru-1]
+* `--region REGION`: Region (location).  [default: ru-1]
+* `--help`: Show this message and exit.
+
+## `twc ip`
+
+Manage floating IPs.
+
+**Usage**:
+
+```console
+$ twc ip [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `attach`: Attach floating IP to service.
+* `create`: Create new floating IP.
+* `detach`: Detach floating IP from service.
+* `get`: Get floating IP.
+* `list`: List floating IPs. (aliases: ls)
+* `remove`: Remove floating IPs. (aliases: rm)
+* `set`: Set floating IP parameters.
+
+### `twc ip attach`
+
+Attach floating IP to service.
+
+**Usage**:
+
+```console
+$ twc ip attach [OPTIONS] IP
+```
+
+**Arguments**:
+
+* `IP`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `--server INTEGER`: Attach IP to Cloud Server.
+* `--balancer INTEGER`: Attach IP to Load Balancer.
+* `--database INTEGER`: Attach IP to managed database cluster.
+* `--help`: Show this message and exit.
+
+### `twc ip create`
+
+Create new floating IP.
+
+**Usage**:
+
+```console
+$ twc ip create [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--availability-zone ZONE`: Availability zone.  [required]
+* `--ddos-protection`: Request IP-address with L3/L4 DDoS protection.
+* `--help`: Show this message and exit.
+
+### `twc ip detach`
+
+Detach floating IP from service.
+
+**Usage**:
+
+```console
+$ twc ip detach [OPTIONS] IP
+```
+
+**Arguments**:
+
+* `IP`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `--help`: Show this message and exit.
+
+### `twc ip get`
+
+Get floating IP.
+
+**Usage**:
+
+```console
+$ twc ip get [OPTIONS] IP
+```
+
+**Arguments**:
+
+* `IP`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+### `twc ip list`
+
+List floating IPs.
+
+**Usage**:
+
+```console
+$ twc ip list [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+### `twc ip remove`
+
+Remove floating IPs.
+
+**Usage**:
+
+```console
+$ twc ip remove [OPTIONS] IP...
+```
+
+**Arguments**:
+
+* `IP...`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-y, --yes`: Confirm the action without prompting.
+* `--help`: Show this message and exit.
+
+### `twc ip set`
+
+Set floating IP parameters.
+
+**Usage**:
+
+```console
+$ twc ip set [OPTIONS] IP
+```
+
+**Arguments**:
+
+* `IP`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--comment TEXT`: Set comment.
+* `--ptr TEXT`: Set reverse DNS pointer.
 * `--help`: Show this message and exit.
 
 ## `twc project`
@@ -2273,14 +2449,14 @@ $ twc server [OPTIONS] COMMAND [ARGS]...
 * `disk`: Manage Cloud Server disks.
 * `get`: Get Cloud Server info.
 * `history`: View Cloud Server events log.
-* `ip`: Manage public IPs.
+* `ip`: (Deprecated) Manage public IPs.
 * `list`: List Cloud Servers. (aliases: ls)
 * `list-os-images`: List prebuilt operating system images. (aliases: li)
 * `list-presets`: List configuration presets. (aliases: lp)
 * `list-software`: List software. (aliases: lsw)
 * `reboot`: Reboot Cloud Server. (aliases: restart)
 * `reinstall`: Reinstall OS or software.
-* `remove`: Clone Cloud Server. (aliases: rm)
+* `remove`: Remove Cloud Server. (aliases: rm)
 * `reset-root-password`: Reset root user password.
 * `resize`: Update vCPUs number, RAM, disk and bandwidth.
 * `set`: Set Cloud Server properties.
@@ -2595,10 +2771,15 @@ $ twc server create [OPTIONS]
 * `--bandwidth INTEGER`: Network bandwidth.
 * `--software-id INTEGER`: Software ID to install.
 * `--ssh-key TEXT`: SSH-key file, name or ID. Can be multiple.
-* `--ddos-protection`: Enable DDoS-Guard.
+* `--user-data FILENAME`: user-data file for cloud-init.
+* `--ddos-protection`: Request public IPv4 with L3/L4 DDoS protection.
 * `--network TEXT`: Private network ID.
+* `--private-ip TEXT`: Private IPv4 address.
+* `--public-ip TEXT`: Public IPv4 address. New address by default.
+* `--no-public-ip`: Do not add public IPv4 address.
 * `--nat-mode MODE`: Apply NAT mode.
-* `--region REGION`: Use region (location).  [default: ru-1]
+* `--region REGION`: Region (location).  [default: ru-1]
+* `--availability-zone ZONE`: Availability zone.
 * `--project-id INTEGER`: Add server to specific project.
 * `--help`: Show this message and exit.
 
@@ -2974,7 +3155,7 @@ $ twc server list-presets [OPTIONS]
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `-f, --filter KEY:VALUE`: Filter output.
-* `--region [ru-1|ru-2|pl-1|kz-1|nl-1]`: Use region (location).
+* `--region [ru-1|ru-2|ru-3|kz-1|pl-1|nl-1]`: Use region (location).
 * `--help`: Show this message and exit.
 
 ### `twc server list-software`
@@ -3045,7 +3226,7 @@ $ twc server reinstall [OPTIONS] SERVER_ID
 
 ### `twc server remove`
 
-Clone Cloud Server.
+Remove Cloud Server.
 
 **Usage**:
 
@@ -3063,6 +3244,7 @@ $ twc server remove [OPTIONS] SERVER_ID...
 * `-c, --config FILE`: Use config.
 * `-p, --profile NAME`: Use profile.
 * `-y, --yes`: Confirm the action without prompting.
+* `--keep-public-ip`: Do not remove public IP attached to server. [default: false]
 * `--help`: Show this message and exit.
 
 ### `twc server reset-root-password`
@@ -3469,7 +3651,7 @@ $ twc storage list-presets [OPTIONS]
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `-f, --filter KEY:VALUE`: Filter output.
-* `--region [ru-1|ru-2|pl-1|kz-1|nl-1]`: Use region (location).
+* `--region [ru-1|ru-2|ru-3|kz-1|pl-1|nl-1]`: Use region (location).
 * `--help`: Show this message and exit.
 
 ### `twc storage mb`
@@ -3762,12 +3944,12 @@ Create network.
 **Usage**:
 
 ```console
-$ twc vpc create [OPTIONS] IP_NETWORK
+$ twc vpc create [OPTIONS] NETWORK_SUBNET
 ```
 
 **Arguments**:
 
-* `IP_NETWORK`: IPv4 network CIDR.  [required]
+* `NETWORK_SUBNET`: IPv4 network CIDR.  [required]
 
 **Options**:
 
@@ -3777,7 +3959,8 @@ $ twc vpc create [OPTIONS] IP_NETWORK
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `--name TEXT`: Network display name.
 * `--desc TEXT`: Description.
-* `--region REGION`: Use region (location).  [default: ru-1]
+* `--region REGION`: Region (location).  [default: ru-1]
+* `--availability-zone ZONE`: Availability zone.
 * `--help`: Show this message and exit.
 
 ### `twc vpc list`

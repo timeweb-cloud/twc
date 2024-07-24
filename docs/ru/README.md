@@ -70,7 +70,7 @@
 
 ## pip (рекомендованный способ)
 
-1. Убедитесь, что на компьютер установены Python не ниже версии 3.7 и пакетный менеджер pip. См. [инструкцию](PYTHON_INSTALL.md).
+1. Убедитесь, что на компьютер установены Python не ниже версии 3.8 и пакетный менеджер pip. См. [инструкцию](PYTHON_INSTALL.md).
 2. Установите  пакет twc-cli с помощью pip командой:
 
 ```
@@ -81,7 +81,7 @@ pip install twc-cli
 
 ## pipx
 
-1. Убедитесь, что на компьютер установен Python не ниже версии 3.7 и пакетный менеджер pip. См. [инструкцию](PYTHON_INSTALL.md).
+1. Убедитесь, что на компьютер установен Python не ниже версии 3.8 и пакетный менеджер pip. См. [инструкцию](PYTHON_INSTALL.md).
 2. Установите пакетный менеджер [pipx](https://pypa.github.io/pipx/) по [инструкции](https://pypa.github.io/pipx/installation/).
 3. Установите пакет twc-cli:
 
@@ -91,7 +91,7 @@ pipx install twc-cli
 
 ## Архив .tar.gz
 
-1. Убедитесь, что на компьютер установены Python не ниже версии 3.7 и пакетный менеджер pip. См. [инструкцию](PYTHON_INSTALL.md).
+1. Убедитесь, что на компьютер установены Python не ниже версии 3.8 и пакетный менеджер pip. См. [инструкцию](PYTHON_INSTALL.md).
 2. Скачайте пакет twc-cli в формате `.tar.gz` со [страницы загрузок](https://github.com/timeweb-cloud/twc/releases).
 3. Перейдите в терминале в директорию где расположен файл .tar.gz и установите его с помощью pip:
 
@@ -101,12 +101,12 @@ pip install ./twc_cli-2.1.1.tar.gz
 
 ## zipapp
 
-1. Убедитесь, что на компьютер установен Python не ниже версии 3.7. См. [инструкцию](PYTHON_INSTALL.md).
+1. Убедитесь, что на компьютер установен Python не ниже версии 3.8. См. [инструкцию](PYTHON_INSTALL.md).
 2. Скачайте пакет в формате `.pyz` со [страницы загрузок](https://github.com/timeweb-cloud/twc/releases).
 3. а) Приложение в формате zipapp не требует установки, вы можете сразу запустить программу следующим образом:
 
 ```
-python twc-cli-2.1.1.pyz --help
+./twc-cli-2.5.0.pyz --help
 ```
 
 3. б) Вы можете поместить файл в директорию из [PATH](https://ru.wikipedia.org/wiki/PATH_(%D0%BF%D0%B5%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F)), например так (на UNIX-подобных системах):
@@ -188,59 +188,59 @@ twc server get  -o yaml 1235631
 ID сервера можно получить запросив их список командой `twc server list`.
 
 ```yaml
-response_id: 80903661-f587-43ca-abfc-d610ac3bc50c
+response_id: e0fc3d62-f689-4933-97b5-c629a35e1c61
 server:
+  availability_zone: ams-1
   avatar_id: null
   boot_mode: std
+  cloud_init: "#cloud-config\nusers: []\nchpasswd:\n\tusers:\n  \t- name: root\n \
+    \     password: eExjpAqpc4pv\n      type: text\n  expire: false\ndisable_root:\
+    \ false\npackage_update: true\npackage_upgrade: true\npackages:\n\t- qemu-guest-agent\n\
+    runcmd:\n  - [ systemctl, daemon-reload ]\n  - [ systemctl, enable, qemu-guest-agent.service\
+    \ ]\n  - [ systemctl, start, --no-block, qemu-guest-agent.service ]"
   comment: ''
-  configurator_id: 11
+  configurator_id: null
   cpu: 2
   cpu_frequency: '3.3'
-  created_at: '2023-02-04T15:08:20.000Z'
+  created_at: '2024-05-31T18:04:25.000Z'
   disks:
-  - id: 8260143
+  - id: 19573009
+    is_auto_backup: false
     is_mounted: true
     is_system: true
-    size: 30720
+    size: 51200
     status: done
     system_name: vda
     type: nvme
-    used: 0
-  - id: 8471677
-    is_mounted: true
-    is_system: false
-    size: 40960
-    status: done
-    system_name: vdb
-    type: nvme
-    used: 0
-  id: 1235631
+    used: 21890
+  id: 3038501
+  image: null
   is_ddos_guard: false
-  location: ru-1
-  name: dev-1
+  is_master_ssh: false
+  is_qemu_agent: true
+  location: nl-1
+  name: mainframe
   networks:
   - bandwidth: 200
+    blocked_ports: []
     ips:
-    - ip: x.x.x.x
+    - id: b11b3462-b1e8-4131-9494-a21c7e1ca9b5
+      ip: 147.45.233.199
       is_main: true
-      ptr: example.tld
+      ptr: null
       type: ipv4
     type: public
-  - ips:
-    - ip: 172.16.16.51
-      type: ipv4
-    nat_mode: dnat_and_snat
-    type: local
   os:
-    id: 79
-    name: ubuntu
-    version: '22.04'
-  preset_id: null
-  ram: 2048
+    id: 95
+    name: debian
+    version: '12'
+  preset_id: 3346
+  ram: 4096
+  root_pass: xxxxxxxxxxxxxxxxxxx
   software: null
-  start_at: '2023-02-20T12:12:15.000Z'
+  start_at: '2024-06-24T17:48:32.000Z'
   status: 'on'
-  vnc_pass: soG7u7JA
+  vnc_pass: ''
 ```
 
 Чтобы постоянно использовать определённый формат вывода задайте переменную окружения [`TWC_OUTPUT_FORMAT`](#переменные-окружения) или параметр `output_format` в [конфигурационном файле](#конфигурационный-файл).
@@ -315,11 +315,12 @@ twc server create --name dev-1 --image ubuntu-22.04 --preset-id 2573 --ssh-key ~
 twc server create --name dev-1 --image ubuntu-22.04 --cpu 2 --ram 2G --disk 50G --ssh-key ~/.ssh/id_rsa.pub --region ru-1
 ```
 
-Значения `--ram` и `--disk` поддерживают запись в `M`, `G` и `T`.
+Значения `--ram` и `--disk` поддерживают запись в `M` (мебибайты), `G` (гибибайты) и `T` (тебибайты).
 
 В качестве аргумента опции `--ssh-key` вы можете передать путь до публичного SSH-ключа на вашем компьютере, имя или ID уже добавленного в личный кабинет ключа. Ранее добавленный ключ не будет загружен повторно.
 
 *Добавлено в версии v2.1.0* Опционально можно задать опцию `--region` для выбора локации.
+*Добавлено в версии v2.5.0* Опционально можно задать `--availability-zone` для выбора конкретной [зоны доступности](https://timeweb.cloud/docs/zony-dostupnosti).
 
 Посмотрите встроенную справку по созданию серверов [`twc server create --help`](CLI_REFERENCE.md#twc-server-create), чтобы изучить все доступные опции.
 
@@ -423,11 +424,7 @@ twc server disk list 1234567  # идентичный результат
 twc server get --networks 1234567
 ```
 
-Обратите внимание, что команда выше покажет информацию как о публичной, так и о приватной сети. Следующая команда покажет только публичную сеть:
-
-```
-twc server ip list 1234567
-```
+Обратите внимание, что команда выше покажет информацию как о публичной, так и о приватной сети.
 
 Опция `--status` позволит отобразить на экране лишь статус сервера без посторонней информации. Если статус не равен `on` twc завершит работу с кодом выхода `1`. Это применимо в Shell-скриптах для автоматизации. Например, так можно выполнить команды при условии, что сервер включён:
 
@@ -469,24 +466,23 @@ twc server resize --bandwidth 300 1234567
 
 ## Управление IP-адресами
 
-Команда `ip` предоставляет интерфейс для работы с публичными IP-адресами.
+Команда `twc ip` предоставляет интерфейс для работы с публичными IP-адресами.
 
 ```
-twc server ip --help
+twc ip --help
 ```
 
-Следующая команда добавит к серверу дополнительный IPv4-адрес:
+Добавить к серверу новый IPv4-адрес можно следующим образом (предварительно проверьте зону доступности сервера и закажите IP из той же зоны):
 
 ```
-twc server ip add --ipv4 1234567
+twc ip create --availability-zone spb-1
+twc ip attach 123.123.123.123 --server 1234567
 ```
-
-Опцию `--ipv4` можно опустить, по умолчанию применяется IPv4.
 
 Задать PTR `mail.example.org` для IP-адреса `123.123.123.123`:
 
 ```
-twc server ip set --ptr mail.example.org 123.123.123.123
+twc ip set --ptr mail.example.org 123.123.123.123
 ```
 
 ## Управление дисками
@@ -1170,12 +1166,13 @@ twc config file
 
 Поддерживаемые параметры:
 
-Параметр        | Описание
---------------- | --------------------------------------------------------------
-`token`         | Токен доступа Timeweb Cloud. Параметр записывается автоматически при вызове `twc config`
-`output_format` | Соответствует опции [`--output` (`-o`)](#формат-вывода)
-`project_id`    | ID проекта, куда будет добавлен ресурс после создания
-`region`        | Локация по умолчанию для новых ресуерсов
+Параметр            | Описание
+------------------- | --------------------------------------------------------------
+`token`             | Токен доступа Timeweb Cloud. Параметр записывается автоматически при вызове `twc config`
+`output_format`     | Соответствует опции [`--output` (`-o`)](#формат-вывода)
+`project_id`        | ID проекта, куда будет добавлен ресурс после создания
+`region`            | Локация по умолчанию для новых ресуерсов
+`availability_zone` | Зона доступности по умолчанию для новых ресурсов
 
 Параметры в конфигурационном файле имеют самый низкий приоритет, twc применит значения этих параметров если они не переданы в командной строке и не заданы как [переменные окружения](#переменные-окружения).
 
@@ -1201,16 +1198,17 @@ twc config set -p dev output_format=yaml
 
 twc поддерживает ряд переменных окружения (они же переменные среды), которые могут быть использованы для конфигурации во время выполнения. Прочитайте страницу о переменных окружения [в Википедии](https://ru.wikipedia.org/wiki/%D0%9F%D0%B5%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F_%D1%81%D1%80%D0%B5%D0%B4%D1%8B).
 
-Переменная            | Опция             | Описание
---------------------- | ----------------- | ------------------------------------
-`TWC_TOKEN`           |                   | Токен доступа
-`TWC_PROFILE`         | `--profile`, `-p` | Имя профиля
-`TWC_CONFIG_FILE`     | `--config`, `-c`  | Путь до конфигурационного файла
-`TWC_DEBUG`           | `--verbose`, `-v` | Включить подробный лог
-`TWC_OUTPUT_FORMAT`   | `--output`, `-o`  | Формат вывода (`default`, `raw`, `json`, `yaml`)
-`TWC_PROJECT`         | `--project-id`    | ID проекта, куда будет добавлен ресурс после создания
-`TWC_LOG`             |                   | Параметры логирования через запятую, допустимые параметры: `log_response`
-`TWC_REGION`          | `--region`        | Локация по умолчанию для новых ресуерсов
+Переменная              | Опция                 | Описание
+----------------------- | --------------------- | ------------------------------------
+`TWC_TOKEN`             |                       | Токен доступа
+`TWC_PROFILE`           | `--profile`, `-p`     | Имя профиля
+`TWC_CONFIG_FILE`       | `--config`, `-c`      | Путь до конфигурационного файла
+`TWC_DEBUG`             | `--verbose`, `-v`     | Включить подробный лог
+`TWC_OUTPUT_FORMAT`     | `--output`, `-o`      | Формат вывода (`default`, `raw`, `json`, `yaml`)
+`TWC_PROJECT`           | `--project-id`        | ID проекта, куда будет добавлен ресурс после создания
+`TWC_LOG`               |                       | Параметры логирования через запяту. *C версии 2.5.0 игнорируется*.
+`TWC_REGION`            | `--region`            | Локация по умолчанию для новых ресуерсов
+`TWC_AVAILABILITY_ZONE` | `--availability-zone` | Зона доступности по умолчанию для новых ресурсов
 
 Опции командной строки имеют высший приоритет над переменными окружения. Таким образом, если одновременно будут заданы переменная окружения и соответствующая ей опция, то будет использовано значение переданное как аргумент опции.
 

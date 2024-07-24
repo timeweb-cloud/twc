@@ -1,4 +1,4 @@
-![TWC CLI](https://github.com/timeweb-cloud/twc/blob/master/artwork/logo.svg)
+![TWC CLI](https://github.com/timeweb-cloud/twc/blob/master/artwork/light.svg)
 
 Timeweb Cloud Command Line Interface and simple SDK 💫
 

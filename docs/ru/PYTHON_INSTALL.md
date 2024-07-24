@@ -1,6 +1,6 @@
 # Установка Python и pip
 
-Обязательное требование — **версия Python 3.7 или выше**.
+Обязательное требование — **версия Python 3.8 или выше**.
 
 # Windows
 
@@ -23,29 +23,7 @@ sudo dnf install python3 python3-pip
 
 ## CentOS 7
 
-> Рекомендуем обновиться до актуальной версии CentOS Stream или перейти на альтернативные дистрибутивы AlmaLinux или Rocky Linux. 
-
-Для CentOS 7 нет готовых пакетов Python 3.7, придётся собрать Python из исходных кодов. Просто введите команды ниже по очереди.
-
-Команда `sudo make altinstall` запустит компиляцию. Процесс может занять длительное время.
-
-```
-sudo yum -y install wget make gcc openssl-devel bzip2-devel libffi-devel
-cd /tmp/
-wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz
-tar xzf Python-3.7.9.tgz
-cd Python-3.7.9
-./configure --enable-optimizations
-sudo make altinstall
-sudo ln -sfn /usr/local/bin/python3.7 /usr/bin/python3.7
-sudo ln -sfn /usr/local/bin/pip3.7 /usr/bin/pip3.7
-```
-
-Важно! Для установки twc-cli используйте команду:
-
-```
-pip3.7 install twc-cli
-```
+> Рекомендуем обновиться до актуальной версии CentOS Stream или перейти на альтернативные дистрибутивы AlmaLinux или Rocky Linux.
 
 ## Arch Linux
 
