@@ -134,7 +134,6 @@ class TimewebCloudBase:
             response.raise_for_status()
             self._log_request(response)
         except requests.HTTPError as e:
-            self.log_response_body = True  # Always log response body on errors
             self._log_request(response)
 
             # API issue: Bad response: 401 Unauthorized response haven't body

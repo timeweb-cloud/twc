@@ -16,29 +16,29 @@ class ServiceRegion(str, Enum):
 
     @classmethod
     def get_zones(cls, region: str) -> List[str]:
+        # pylint: disable=too-many-return-statements
         if region == cls.RU_1:
             return ["spb-1", "spb-2", "spb-3", "spb-4"]
-        elif region == cls.RU_2:
+        if region == cls.RU_2:
             return ["nsk-1"]
-        elif region == cls.RU_3:
+        if region == cls.RU_3:
             return ["msk-1"]
-        elif region == cls.KZ_1:
+        if region == cls.KZ_1:
             return ["ala-1"]
-        elif region == cls.PL_1:
+        if region == cls.PL_1:
             return ["gdn-1"]
-        elif region == cls.NL_1:
+        if region == cls.NL_1:
             return ["ams-1"]
-        else:
-            return []
+        return []
 
 
 class ServiceAvailabilityZone(str, Enum):
     """Availability zones."""
 
-    SBP_1 = "spb-1"
-    SBP_2 = "spb-2"
-    SBP_3 = "spb-3"
-    SBP_4 = "spb-4"
+    SPB_1 = "spb-1"
+    SPB_2 = "spb-2"
+    SPB_3 = "spb-3"
+    SPB_4 = "spb-4"
     MSK_1 = "msk-1"
     NSK_1 = "nsk-1"
     ALA_1 = "ala-1"
@@ -47,20 +47,20 @@ class ServiceAvailabilityZone(str, Enum):
 
     @classmethod
     def get_region(cls, zone: str) -> Optional[str]:
-        if zone in [cls.SPB_1, cls.SPB_2, cls.SPB_3, cls.SBP_4]:
+        # pylint: disable=too-many-return-statements
+        if zone in [cls.SPB_1, cls.SPB_2, cls.SPB_3, cls.SPB_4]:
             return ServiceRegion.RU_1
-        elif zone == cls.NSK_1:
+        if zone == cls.NSK_1:
             return ServiceRegion.RU_2
-        elif zone == cls.MSK_1:
+        if zone == cls.MSK_1:
             return ServiceRegion.RU_3
-        elif zone == cls.ALA_1:
+        if zone == cls.ALA_1:
             return ServiceRegion.KZ_1
-        elif zone == cls.GDN_1:
+        if zone == cls.GDN_1:
             return ServiceRegion.PL_1
-        elif zone == cls.AMS_1:
+        if zone == cls.AMS_1:
             return ServiceRegion.NL_1
-        else:
-            return None
+        return None
 
 
 class ServerAction(str, Enum):
