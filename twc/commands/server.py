@@ -7,7 +7,7 @@ from logging import debug
 from typing import Optional, List, Union
 from pathlib import Path
 from datetime import date, datetime
-from ipaddress import IPv4Address, IPv6Address
+from ipaddress import IPv4Address, IPv6Address, IPv4Network
 
 import typer
 from click import UsageError
@@ -28,7 +28,6 @@ from twc.api import (
     BackupAction,
 )
 from twc.vars import (
-    REGIONS_WITH_CONFIGURATOR,
     REGIONS_WITH_IPV6,
     CONTROL_PANEL_URL,
 )
@@ -40,6 +39,7 @@ from .common import (
     yes_option,
     output_format_option,
     region_option,
+    zone_option,
     load_from_config_callback,
 )
 
@@ -48,7 +48,7 @@ server = TyperAlias(help=__doc__)
 server_ip = TyperAlias(help="Manage public IPs.")
 server_disk = TyperAlias(help="Manage Cloud Server disks.")
 server_backup = TyperAlias(help="Manage Cloud Server disk backups.")
-server.add_typer(server_ip, name="ip")
+server.add_typer(server_ip, name="ip", deprecated=True)
 server.add_typer(server_disk, name="disk")
 server.add_typer(server_backup, name="backup")
 
@@ -507,11 +507,14 @@ def server_create(
     ssh_keys: Optional[List[str]] = typer.Option(
         None, "--ssh-key", help="SSH-key file, name or ID. Can be multiple."
     ),
+    user_data: Optional[typer.FileText] = typer.Option(
+        None, help="user-data file for cloud-init."
+    ),
     ddos_protection: bool = typer.Option(
         False,
         "--ddos-protection",
         show_default=True,
-        help="Enable DDoS-Guard.",
+        help="Request public IPv4 with L3/L4 DDoS protection.",
     ),
     local_network: Optional[bool] = typer.Option(
         # is_local_network paramenter is deprecated!
@@ -522,6 +525,15 @@ def server_create(
         hidden=True,
     ),
     network: Optional[str] = typer.Option(None, help="Private network ID."),
+    private_ip: Optional[str] = typer.Option(
+        None, help="Private IPv4 address."
+    ),
+    public_ip: Optional[str] = typer.Option(
+        None, help="Public IPv4 address. New address by default."
+    ),
+    no_public_ip: Optional[bool] = typer.Option(
+        False, "--no-public-ip", help="Do not add public IPv4 address."
+    ),
     nat_mode: ServerNATMode = typer.Option(
         None,
         "--nat-mode",
@@ -529,6 +541,7 @@ def server_create(
         help="Apply NAT mode.",
     ),
     region: Optional[str] = region_option,
+    availability_zone: Optional[str] = zone_option,
     project_id: int = typer.Option(
         None,
         envvar="TWC_PROJECT",
@@ -539,17 +552,14 @@ def server_create(
 ):
     """Create Cloud Server."""
     client = create_client(config, profile)
-
-    if nat_mode:
-        if not network:
-            sys.exit("Error: Pass '--network' option first.")
-
     payload = {
         "name": name,
         "comment": comment,
         "avatar_id": avatar_id,
         "software_id": software_id,
         "is_ddos_guard": ddos_protection,
+        "availability_zone": availability_zone,
+        "network": {},
         **(
             {"is_local_network": local_network}
             if local_network is not None
@@ -557,8 +567,44 @@ def server_create(
         ),
     }
 
+    # Check availability zone
+    usable_zones = ServiceRegion.get_zones(region)
+    if availability_zone is not None and availability_zone not in usable_zones:
+        sys.exit(
+            f"Error: Wrong availability zone, usable zones are: {usable_zones}"
+        )
+
+    # Set network parameters
+    if nat_mode or private_ip:
+        if not network:
+            sys.exit("Error: Pass '--network' option first.")
     if network:
-        payload["network"] = {"id": network}
+        payload["network"]["id"] = network
+        if private_ip:
+            net = IPv4Network(
+                client.get_vpc(network).json()["vpc"]["subnet_v4"]
+            )
+            if IPv4Address(private_ip) > IPv4Address(
+                int(net.network_address) + 4
+            ):
+                payload["network"]["ip"] = private_ip
+            else:
+                # First 3 addresses is reserved for networks OVN based networks
+                sys.exit(
+                    f"Error: Private address '{private_ip}' is not allowed. "
+                    "IP must be at least the fourth in order in the network."
+                )
+    if public_ip:
+        try:
+            _ = IPv4Address(public_ip)
+            payload["network"]["floating_ip"] = public_ip
+        except ValueError:
+            sys.exit(f"Error: '{public_ip}' is not valid IPv4 address.")
+    else:
+        # New public IPv4 address will be automatically requested with
+        # correct availability zone. This is official dirty hack.
+        if no_public_ip is False:
+            payload["network"]["floating_ip"] = "create_ip"
 
     # Set server configuration parameters
     if preset_id and (cpu or ram or disk):
@@ -606,6 +652,10 @@ def server_create(
         for key in ssh_keys:
             ssh_keys_ids.append(process_ssh_key(client, key))
     payload["ssh_keys_ids"] = ssh_keys_ids
+
+    # Set cloud-init user-data
+    if user_data:
+        payload["cloud_init"] = user_data.read()
 
     # Check project_id before creating server
     if project_id:
@@ -736,12 +786,6 @@ def server_resize(
     # Return error if user tries to switch from preset to configurator in
     # location where configurator is unavailable.
     if cpu or ram or disk:
-        if old_state["location"] not in REGIONS_WITH_CONFIGURATOR:
-            sys.exit(
-                "Error: Can not change configuration in location "
-                + f"'{old_state['location']}'. Change preset_id instead."
-            )
-
         # Get original server configurator_id
         configurator_id = old_state["configurator_id"]
         configurator = None
@@ -962,6 +1006,11 @@ def server_remove(
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
     yes: Optional[bool] = yes_option,
+    keep_public_ip: Optional[bool] = typer.Option(
+        False,
+        "--keep-public-ip",
+        help="Do not remove public IP attached to server. [default: false]",
+    ),
 ):
     """Remove Cloud Server."""
     if not yes:
@@ -969,6 +1018,7 @@ def server_remove(
 
     client = create_client(config, profile)
     for server_id in server_ids:
+        server_data = client.get_server(server_id).json()["server"]
         response = client.delete_server(server_id)
         if response.status_code == 200:
             del_hash = response.json()["server_delete"]["hash"]
@@ -980,6 +1030,11 @@ def server_remove(
             print(server_id)
         else:
             sys.exit(fmt.printer(response))
+        if keep_public_ip is False:
+            for network in server_data["networks"]:
+                for ip in network["ips"]:
+                    if ip.get("id") is not None:
+                        client.delete_floating_ip(ip["id"])
 
 
 # ------------------------------------------------------------- #
