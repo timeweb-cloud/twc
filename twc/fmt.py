@@ -31,7 +31,7 @@ class Table:
 
     """
 
-    def __init__(self, whitespace: str = "\t"):
+    def __init__(self, whitespace: str = "  "):
         self.__rows = []
         self.__whitespace = whitespace
 

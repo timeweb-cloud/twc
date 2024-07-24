@@ -13,7 +13,7 @@ import typer
 from requests import Response
 
 from twc import fmt
-from twc.api import ServiceRegion, ServiceAvailabilityZone
+from twc.api import ServiceRegion
 from twc.typerx import TyperAlias
 from twc.apiwrap import create_client
 from twc.vars import REGIONS_WITH_LAN, ZONES_WITH_LAN
@@ -122,7 +122,7 @@ def vpc_create(
     name: str = typer.Option(None, help="Network display name."),
     desc: Optional[str] = typer.Option(None, help="Description."),
     region: Optional[str] = region_option,
-    zone: Optional[str] = zone_option,
+    availability_zone: Optional[str] = zone_option,
 ):
     """Create network."""
     client = create_client(config, profile)
@@ -131,11 +131,13 @@ def vpc_create(
             f"Error: Cannot create network in location '{region}'. "
             f"Available regions are: {REGIONS_WITH_LAN}"
         )
-    usable_zones = set(ZONES_WITH_LAN).intersection(set(ServiceRegion.get_zones(region)))
-    if zone is not None and zone not in usable_zones:
+    usable_zones = set(ZONES_WITH_LAN).intersection(
+        set(ServiceRegion.get_zones(region))
+    )
+    if availability_zone is not None and availability_zone not in usable_zones:
         sys.exit(
             f"Error: Cannot create network in region '{region}' with "
-            f"availability zone '{zone}'. "
+            f"availability zone '{availability_zone}'. "
             f"Usable zones are: {list(usable_zones)}"
         )
     if not name:
@@ -145,7 +147,7 @@ def vpc_create(
         description=desc,
         subnet=subnet,
         location=region,
-        zone=zone,
+        availability_zone=availability_zone,
     )
     fmt.printer(
         response,

@@ -20,6 +20,7 @@ from .commands import (
     domain,
     vpc,
     firewall,
+    floating_ip,
 )
 from .commands.common import version_callback, version_option, verbose_option
 
@@ -35,7 +36,7 @@ cli.add_typer(server, name="server", aliases=["servers", "s"])
 cli.add_typer(ssh_key, name="ssh-key", aliases=["ssh-keys", "k"])
 cli.add_typer(image, name="image", aliases=["images", "i"])
 cli.add_typer(project, name="project", aliases=["projects", "p"])
-cli.add_typer(database, name="database", aliases=["databases", "db"], deprecated=True)
+cli.add_typer(database, name="database", aliases=["databases", "db"])
 cli.add_typer(storage, name="storage", aliases=["storages", "s3"])
 cli.add_typer(balancer, name="balancer", aliases=["balancers", "lb"])
 cli.add_typer(
@@ -44,6 +45,7 @@ cli.add_typer(
 cli.add_typer(domain, name="domain", aliases=["domains", "d"])
 cli.add_typer(vpc, name="vpc", aliases=["vpcs", "network", "networks"])
 cli.add_typer(firewall, name="firewall", aliases=["fw"])
+cli.add_typer(floating_ip, name="ip", aliases=["ips"])
 
 
 @cli.command("version")

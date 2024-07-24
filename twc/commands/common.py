@@ -280,10 +280,10 @@ region_option = typer.Option(
     envvar="TWC_REGION",
     show_envvar=False,
     callback=load_from_config_callback,
-    help="Use region (location).",
+    help="Region (location).",
 )
 
-# zone: Optional[str] = zone_option,
+# availability_zone: Optional[str] = zone_option,
 
 zone_option = typer.Option(
     None,
@@ -291,5 +291,5 @@ zone_option = typer.Option(
     envvar="TWC_AVAILABILITY_ZONE",
     show_envvar=False,
     callback=load_from_config_callback,
-    help="Use availability zone.",
+    help="Availability zone.",
 )
