@@ -74,7 +74,7 @@ class TimewebCloud(TimewebCloudBase):
         is_local_network: Optional[bool] = None,  # deprecated
         is_ddos_guard: bool = False,
         network: Optional[dict] = None,
-        zone: Optional[ServiceAvailabilityZone] = None,
+        availability_zone: Optional[ServiceAvailabilityZone] = None,
     ):
         """Create new Cloud Server. Note:
 
@@ -107,7 +107,11 @@ class TimewebCloud(TimewebCloudBase):
             **({"preset_id": preset_id} if preset_id else {}),
             **({"os_id": os_id} if os_id else {}),
             **({"image_id": image_id} if image_id else {}),
-            **({"availability_zone": zone} if zone else {}),
+            **(
+                {"availability_zone": str(availability_zone)}
+                if availability_zone
+                else {}
+            ),
         }
 
         return self._request("POST", f"{self.api_url}/servers", json=payload)
@@ -700,7 +704,7 @@ class TimewebCloud(TimewebCloudBase):
         )
 
     # -----------------------------------------------------------------------
-    # Databases
+    # Managed databases
 
     def get_databases(self, limit: int = 100, offset: int = 0):
         """Get databases list."""
@@ -1486,7 +1490,7 @@ class TimewebCloud(TimewebCloudBase):
         name: str,
         subnet: IPv4Network,
         location: ServiceRegion,
-        zone: Optional[ServiceAvailabilityZone] = None,
+        availability_zone: Optional[ServiceAvailabilityZone] = None,
         description: Optional[str] = None,
     ):
         """Create new virtual private network."""
@@ -1494,7 +1498,11 @@ class TimewebCloud(TimewebCloudBase):
             "name": name,
             "subnet_v4": subnet,
             "location": location,
-            **({"availability_zone": zone} if zone else {}),
+            **(
+                {"availability_zone": str(availability_zone)}
+                if availability_zone
+                else {}
+            ),
             **({"description": description} if description else {}),
         }
         return self._request("POST", f"{self.api_url_v2}/vpcs", json=payload)
@@ -1694,4 +1702,68 @@ class TimewebCloud(TimewebCloudBase):
             "GET",
             f"{self.api_url}/firewall/service/{resource_type}/{resource_id}",
             params=params,
+        )
+
+    # -----------------------------------------------------------------------
+    # Floating IPs
+
+    def get_floating_ips(self):
+        return self._request("GET", f"{self.api_url_v1}/floating-ips")
+
+    def get_floating_ip(self, floating_ip_id: str):
+        return self._request(
+            "GET", f"{self.api_url_v1}/floating-ips/{floating_ip_id}"
+        )
+
+    def create_floating_ip(
+        self,
+        availability_zone: ServiceAvailabilityZone,
+        ddos_protection: bool = False,
+    ):
+        payload = {
+            "is_ddos_guard": ddos_protection,
+            "availability_zone": str(availability_zone),
+        }
+        return self._request(
+            "POST", f"{self.api_url_v1}/floating-ips", json=payload
+        )
+
+    def update_floating_ip(
+        self,
+        floating_ip_id: str,
+        comment: Optional[str] = None,
+        ptr: Optional[str] = None,
+    ):
+        payload = {}
+        if comment:
+            payload["comment"] = comment
+        if ptr:
+            payload["ptr"] = ptr
+        return self._request(
+            "PATCH",
+            f"{self.api_url_v1}/floating-ips/{floating_ip_id}",
+            json=payload,
+        )
+
+    def delete_floating_ip(self, floating_ip_id: str):
+        return self._request(
+            "DELETE", f"{self.api_url_v1}/floating-ips/{floating_ip_id}"
+        )
+
+    def attach_floating_ip(
+        self,
+        floating_ip_id: str,
+        resource_type: ResourceType,
+        resource_id: str,
+    ):
+        payload = {"resource_type": resource_type, "resource_id": resource_id}
+        return self._request(
+            "POST",
+            f"{self.api_url_v1}/floating-ips/{floating_ip_id}/bind",
+            json=payload,
+        )
+
+    def detach_floating_ip(self, floating_ip_id: str):
+        return self._request(
+            "POST", f"{self.api_url_v1}/floating-ips/{floating_ip_id}/unbind"
         )
