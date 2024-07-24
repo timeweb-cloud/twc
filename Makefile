@@ -5,11 +5,12 @@ ZIPAPP = .zipapp
 
 .PHONY: docs
 
-all: format lint build zipapp docs
+all: version format lint build zipapp docs
 
 help:
 	@echo Targets:
 	@echo '	all			run format, lint, build, zipapp, docs'
+	@echo '	version			apply version from pyproject.toml to twc module'
 	@echo '	format			run code formatter'
 	@echo '	format-dryrun		run code formatter in dry-run mode'
 	@echo '	lint			run code linter'
@@ -19,6 +20,10 @@ help:
 	@echo '	publish-testpypi	publish twc-cli Python package on test PyPI'
 	@echo '	docs			build markdown documentation'
 	@echo '	clean			clean temporary files (including build artifacts)'
+
+version:
+	VERSION=$$(awk '/^version/{print $$3}' pyproject.toml); \
+		sed "s/__version__ =.*/__version__ = $$VERSION/" -i $(SRC)/__version__.py;
 
 format:
 	poetry run black $(SRC)
