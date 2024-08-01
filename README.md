@@ -1,5 +1,3 @@
-![TWC CLI](https://github.com/timeweb-cloud/twc/blob/master/artwork/light.svg)
-
 Timeweb Cloud Command Line Interface and simple SDK 💫
 
 > [Руководство пользователя](https://github.com/timeweb-cloud/twc/blob/master/docs/ru/README.md) 🇷🇺  
