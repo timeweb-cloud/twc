@@ -13,7 +13,7 @@ packages = [{ include = "twc", from = "." }]
 [tool.poetry.dependencies]
 python = "^3.8.19"
 requests = "^2.32.3"
-typer = "^0.12.3"
+typer-slim = "^0.12.3"
 shellingham = "^1.5.4"
 colorama = "^0.4.6"
 toml = "^0.10.2"
