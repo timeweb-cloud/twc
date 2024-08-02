@@ -8,14 +8,25 @@
 
 Timeweb Cloud Command Line Interface and simple SDK 💫
 
-> [Руководство пользователя](https://github.com/timeweb-cloud/twc/blob/master/docs/ru/README.md) 🇷🇺  
-> [Command Line Interface (CLI) Reference](https://github.com/timeweb-cloud/twc/blob/master/docs/ru/CLI_REFERENCE.md) 📜
+* [Руководство пользователя](https://github.com/timeweb-cloud/twc/blob/master/docs/ru/README.md) 🇷🇺
+* [Command Line Interface (CLI) Reference](https://github.com/timeweb-cloud/twc/blob/master/docs/ru/CLI_REFERENCE.md)
 
 # Installation
+
+From PyPI registry via pip:
 
 ```
 pip install twc-cli
 ```
+
+Using [pipx](https://pipx.pypa.io/stable/):
+
+```
+pipx install twc-cli
+```
+
+Or install [zippap](https://docs.python.org/3/library/zipapp.html) in your PATH.
+Look for prebuilt `.pyz` archives on [releases page](https://github.com/timeweb-cloud/twc/releases/latest).
 
 # Getting started
 
