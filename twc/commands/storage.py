@@ -18,7 +18,6 @@ from twc import fmt
 from twc.typerx import TyperAlias
 from twc.apiwrap import create_client
 from twc.api import TimewebCloud, ServiceRegion, BucketType
-from twc.vars import S3_ENDPOINT
 from .common import (
     verbose_option,
     config_option,
@@ -613,10 +612,16 @@ def storage_genconfig(
         "rclone": RCLONE_CONFIG_TEMPLATE.strip(),
     }
 
+    endpoint = "s3.timeweb.cloud"
+    if not access_key.isupper():
+        # Legacy object storage service have lowercase usernames only.
+        # New storage, on the contrary, always has keys in uppercase.
+        endpoint = "s3.timeweb.com"
+
     file_content = templates[s3_client].format(
         access_key=access_key,
         secret_key=secret_key,
-        endpoint=S3_ENDPOINT,
+        endpoint=endpoint,
     )
 
     if save_to:

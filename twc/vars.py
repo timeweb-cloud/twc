@@ -6,8 +6,6 @@ expand or other infrastructure or product changes occur.
 
 # Service URLs
 CONTROL_PANEL_URL = "https://timeweb.cloud/my"
-S3_ENDPOINT_DEPRECATED = "s3.timeweb.com"
-S3_ENDPOINT = "s3.timeweb.cloud"
 
 # Location specific parameters. May change later.
 REGIONS_WITH_IPV6 = ["ru-1", "pl-1"]
