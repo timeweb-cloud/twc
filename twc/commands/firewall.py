@@ -18,7 +18,7 @@ import yaml
 from requests import Response
 
 from twc import fmt
-from twc.api import TimewebCloud, FirewallProto
+from twc.api import TimewebCloud, FirewallProto, FirewallPolicy
 from twc.typerx import TyperAlias
 from twc.apiwrap import create_client
 from .common import (
@@ -73,7 +73,7 @@ def print_firewall_status(data: list):
         rules_total += len(group["rules"])
     print("Rules total:", rules_total)
     for group in data:
-        info = f"Group: {group['name']} ({group['id']})"
+        info = f"Group: {group['name']} ({group['id']}) {group['policy']}"
         for rule in group["rules"]:
             info += "\n" + textwrap.indent(
                 textwrap.dedent(
@@ -140,7 +140,7 @@ def print_rules_by_service(rules, filters):
 @firewall.command("show")
 def firewall_status(
     resource_type: _ResourceType2 = typer.Argument(
-        ...,
+        _ResourceType2.ALL,
         metavar="(server|database|balancer|all)",
     ),
     resource_id: str = typer.Argument(None),
@@ -184,6 +184,7 @@ def firewall_status(
                 {
                     "id": group["id"],
                     "name": group["name"],
+                    "policy": group["policy"],
                     "rules": rules,
                     "resources": resources,
                 }
@@ -212,18 +213,19 @@ def firewall_status(
 def print_firewall_groups(response: Response):
     groups = response.json()["groups"]
     table = fmt.Table()
-    table.header(["ID", "NAME"])
+    table.header(["ID", "POLICY", "NAME"])
     for group in groups:
         table.row(
             [
                 group["id"],
+                group["policy"],
                 group["name"],
             ]
         )
     table.print()
 
 
-@firewall_group.command("list")
+@firewall_group.command("list", "ls")
 def firewall_group_list(
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
@@ -241,6 +243,43 @@ def firewall_group_list(
 
 
 # ------------------------------------------------------------- #
+# $ twc firewall group get                                      #
+# ------------------------------------------------------------- #
+
+
+def print_firewall_group(response: Response):
+    group = response.json()["group"]
+    table = fmt.Table()
+    table.header(["ID", "POLICY", "NAME"])
+    table.row(
+        [
+            group["id"],
+            group["policy"],
+            group["name"],
+        ]
+    )
+    table.print()
+
+
+@firewall_group.command("get")
+def firewall_group_get(
+    group_id: UUID,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """Get firewall fules group."""
+    client = create_client(config, profile)
+    response = client.get_firewall_group(group_id)
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=print_firewall_group,
+    )
+
+
+# ------------------------------------------------------------- #
 # $ twc firewall group create                                   #
 # ------------------------------------------------------------- #
 
@@ -253,12 +292,18 @@ def firewall_group_create(
     output_format: Optional[str] = output_format_option,
     name: str = typer.Option(..., help="Group display name."),
     desc: Optional[str] = typer.Option(None, help="Description."),
+    policy: Optional[FirewallPolicy] = typer.Option(
+        FirewallPolicy.DROP,
+        case_sensitive=False,
+        help="Default firewall policy",
+    ),
 ):
     """Create new group of firewall rules."""
     client = create_client(config, profile)
     response = client.create_firewall_group(
         name=name,
         description=desc,
+        policy=policy,
     )
     fmt.printer(
         response,
@@ -322,6 +367,149 @@ def firewall_group_set(
         output_format=output_format,
         func=lambda response: print(response.json()["group"]["id"]),
     )
+
+
+# ------------------------------------------------------------- #
+# $ twc firewall group dump                                     #
+# ------------------------------------------------------------- #
+
+
+@firewall_group.command("dump")
+def firewall_group_dump(
+    group_id: UUID,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+):
+    """Dump firewall rules."""
+    client = create_client(config, profile)
+    group = client.get_firewall_group(group_id).json()["group"]
+    rules = client.get_firewall_rules(group_id, limit=1000).json()["rules"]
+    dump = {"group": group, "rules": rules}
+    fmt.print_colored(json.dumps(dump), lang="json")
+
+
+# ------------------------------------------------------------- #
+# $ twc firewall group restore                                  #
+# ------------------------------------------------------------- #
+
+
+def _get_rules_diff(
+    rules_local: List[dict], rules_remote: List[dict]
+) -> Tuple[List[dict], List[dict]]:
+    loc = [rule.copy() for rule in rules_local]
+    rem = [rule.copy() for rule in rules_remote]
+
+    for l in loc:
+        del l["id"]
+        del l["group_id"]
+    for r in rem:
+        del r["id"]
+        del r["group_id"]
+
+    # Rules from rules_local that not present in rules_remote
+    to_create = []
+    for idx, rule in enumerate(loc):
+        if rule not in rem:
+            to_create.append(rules_local[idx])
+
+    # Rules from rules_remote that not present in rules_local
+    to_delete = []
+    for idx, rule in enumerate(rem):
+        if rule not in loc:
+            to_delete.append(rules_remote[idx])
+
+    return to_create, to_delete
+
+
+@firewall_group.command("restore")
+def firewall_group_restore(
+    group_id: UUID,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    dump_file: Optional[typer.FileText] = typer.Option(
+        None, "-f", "--file", help="Firewall rules dump in JSON format."
+    ),
+    rules_only: Optional[bool] = typer.Option(
+        False,
+        "--rules-only",
+        help="Do not restore group name and description.",
+    ),
+    dry_run: Optional[bool] = typer.Option(
+        False, "--dry-run", help="Does not make any changes."
+    ),
+):
+    """Restore firewall rules group from dump file."""
+    try:
+        dump = json.load(dump_file)
+    except json.JSONDecodeError as e:
+        sys.exit(f"Error: Cannot load dump file: {dump_file.name}: {e}")
+
+    client = create_client(config, profile)
+    group = client.get_firewall_group(group_id).json()["group"]
+    rules = client.get_firewall_rules(group_id, limit=1000).json()["rules"]
+    if group["policy"].lower() != dump["group"]["policy"].lower():
+        sys.exit(
+            f"Error: Cannot restore rules to group with {group['policy']} policy. "
+            "Create new rules group instead."
+        )
+
+    # Make list of rules to be created, updated or deleted
+    # fmt: off
+    rules_to_add, rules_to_del = _get_rules_diff(dump['rules'], rules)
+    rules_to_upd = [r for r in rules_to_add if r['id'] in [r['id'] for r in rules]]
+    rules_to_add = [r for r in rules_to_add if r not in rules_to_upd]
+    rules_to_del = [r for r in rules_to_del if r['id'] not in [r['id'] for r in rules_to_upd]]
+    # fmt: on
+
+    if rules_to_add == rules_to_upd == rules_to_del == []:
+        sys.exit("Nothing to do")
+
+    if dry_run:
+        fstring = "{sign} {id:<37} {direction:<8} {portproto:<18} {cidr}"
+        rules_lists = [
+            (rules_to_add, "Following new rules will be created:", "+"),
+            (rules_to_upd, "Following rules will be updated:", "+"),
+            (rules_to_del, "Following rules will be deleted:", "-"),
+        ]
+        for rules_list in rules_lists:
+            if rules_list[0]:
+                print(rules_list[1])
+                for rule in rules_list[0]:
+                    rule_id = rule["id"]
+                    if rules_list == rules_lists[0]:
+                        rule_id = "known-after-create"
+                    print(
+                        " "
+                        + fstring.format(
+                            sign=rules_list[2],
+                            id=rule_id,
+                            direction=rule["direction"],
+                            portproto=f"{rule['port']}/{rule['protocol']}",
+                            cidr=rule["cidr"],
+                        )
+                    )
+        return
+
+    if rules_only is False and dry_run is False:
+        client.update_firewall_group(
+            group_id,
+            name=dump["group"]["name"],
+            description=dump["group"]["description"],
+        )
+
+    for rule in rules_to_add:
+        del rule["id"]
+        del rule["group_id"]
+        client.create_firewall_rule(group_id, **rule)
+
+    for rule in rules_to_upd:
+        client.update_firewall_rule(**rule)
+
+    for rule in rules_to_del:
+        client.delete_firewall_rule(group_id, rule["id"])
 
 
 # ------------------------------------------------------------- #
@@ -460,16 +648,17 @@ def filrewall_rule_list(
 def port_proto_callback(values) -> List[Tuple[Optional[str], str]]:
     new_values = []
     for value in values:
-        if not re.match(r"((^\d+(-\d+)?/)?(tcp|udp)$)|(^icmp$)", value, re.I):
+        if not re.match(r"((^\d+(-\d+)?\/)?((tcp|udp|icmp)6?)$)", value, re.I):
             sys.exit(
                 f"Error: Malformed argument: '{value}': "
                 "correct patterns: '22/TCP', '2000-3000/UDP', 'ICMP', etc."
             )
-        if re.match(r"^icmp$", value, re.I):
-            new_values.append((None, "icmp"))
+        pair = value.split("/")
+        if len(pair) == 1:
+            ports, proto = None, pair[0]
         else:
-            ports, proto = value.split("/")
-            new_values.append((ports, proto.lower()))
+            ports, proto = pair
+        new_values.append((ports, proto.lower()))
     return new_values
 
 
@@ -510,14 +699,19 @@ def firewall_rule_create(
         None,
         help="Rules group name, can be used with '--make-group'",
     ),
+    group_policy: Optional[FirewallPolicy] = typer.Option(
+        FirewallPolicy.DROP,
+        case_sensitive=False,
+        help="Default firewall policy, can be used with '--make-group'",
+    ),
     direction_: bool = typer.Option(
         True, "--ingress/--egress", help="Traffic direction."
     ),
     cidr: Optional[str] = typer.Option(
-        "0.0.0.0/0",
+        None,
         metavar="IP_NETWORK",
         callback=validate_cidr_callback,
-        help="IPv4 or IPv6 CIDR.",
+        help="IPv4 or IPv6 CIDR. [default: 0.0.0.0/0 or ::/0]",
     ),
 ):
     """Create new firewall rule."""
@@ -535,7 +729,9 @@ def firewall_rule_create(
             group_name = "Firewall Group " + datetime.now().strftime(
                 "%Y.%m.%d-%H:%M:%S"
             )
-        group_resp = client.create_firewall_group(group_name)
+        group_resp = client.create_firewall_group(
+            group_name, policy=group_policy
+        )
         group = group_resp.json()["group"]["id"]
         logging.debug("New firewall rules group: %s", group)
         fmt.printer(
@@ -543,7 +739,17 @@ def firewall_rule_create(
             output_format=output_format,
             func=lambda x: print("Created rules group:", group),
         )
-    for port in ports:
+    for rule in ports:
+        port, proto = rule
+        if not cidr:
+            if proto in [
+                FirewallProto.TCP6,
+                FirewallProto.UDP6,
+                FirewallProto.ICMP6,
+            ]:
+                cidr = "::/0"
+            else:
+                cidr = "0.0.0.0/0"
         if direction_ is True:
             direction = "ingress"
         else:
@@ -551,8 +757,8 @@ def firewall_rule_create(
         response = client.create_firewall_rule(
             group,
             direction=direction,
-            port=port[0],  # :str port or port range
-            proto=port[1],  # :str protocol name
+            port=port,
+            protocol=proto,
             cidr=cidr,
         )
         fmt.printer(
@@ -579,19 +785,20 @@ def get_group_id_by_rule(client: TimewebCloud, rule_id: UUID) -> str:
 
 @firewall_rule.command("remove", "rm")
 def firewall_rule_remove(
-    rule_id: UUID,
+    rules_ids: List[UUID] = typer.Argument(..., metavar="RULE_ID..."),
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
 ):
     """Remove firewall rule."""
     client = create_client(config, profile)
-    group_id = get_group_id_by_rule(client, rule_id)
-    response = client.delete_firewall_rule(group_id, rule_id)
-    if response.status_code == 204:
-        print(rule_id)
-    else:
-        sys.exit(fmt.printer(response))
+    for rule_id in rules_ids:
+        group_id = get_group_id_by_rule(client, rule_id)
+        response = client.delete_firewall_rule(group_id, rule_id)
+        if response.status_code == 204:
+            print(rule_id)
+        else:
+            sys.exit(fmt.printer(response))
 
 
 # ------------------------------------------------------------- #
@@ -622,7 +829,9 @@ def filrewa_rule_update(
         metavar="PORT[-PORT]",
         help="Port or ports range e.g. 22, 2000-3000",
     ),
-    proto: Optional[FirewallProto] = typer.Option(None, help="Protocol."),
+    proto: Optional[FirewallProto] = typer.Option(
+        None, case_sensitive=False, help="Protocol."
+    ),
 ):
     """Change firewall rule."""
     client = create_client(config, profile)
@@ -643,7 +852,7 @@ def filrewa_rule_update(
         "rule_id": rule_id,
         "direction": direction,
         "port": port,
-        "proto": proto,
+        "protocol": proto,
         "cidr": cidr,
     }
     response = client.update_firewall_rule(**payload)

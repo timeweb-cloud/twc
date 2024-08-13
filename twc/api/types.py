@@ -228,6 +228,9 @@ class FirewallProto(str, Enum):
     TCP = "tcp"
     UDP = "udp"
     ICMP = "icmp"
+    TCP6 = "tcp6"
+    UDP6 = "udp6"
+    ICMP6 = "icmp6"
 
 
 class FirewallDirection(str, Enum):
@@ -235,3 +238,10 @@ class FirewallDirection(str, Enum):
 
     INGRESS = "ingress"
     EGRESS = "egress"
+
+
+class FirewallPolicy(str, Enum):
+    """Firewall default policy."""
+
+    DROP = "DROP"
+    ACCEPT = "ACCEPT"

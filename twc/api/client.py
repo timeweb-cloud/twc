@@ -26,6 +26,7 @@ from .types import (
     LoadBalancerAlgo,
     FirewallProto,
     FirewallDirection,
+    FirewallPolicy,
 )
 
 
@@ -1549,14 +1550,20 @@ class TimewebCloud(TimewebCloudBase):
         )
 
     def create_firewall_group(
-        self, name: str, description: Optional[str] = None
+        self,
+        name: str,
+        description: Optional[str] = None,
+        policy: Optional[FirewallPolicy] = FirewallPolicy.DROP,
     ):
         payload = {
             "name": name,
             **({"description": description} if description else {}),
         }
         return self._request(
-            "POST", f"{self.api_url}/firewall/groups", json=payload
+            "POST",
+            f"{self.api_url}/firewall/groups",
+            json=payload,
+            params={"policy": policy},
         )
 
     def get_firewall_group(self, group_id: UUID):
@@ -1636,16 +1643,16 @@ class TimewebCloud(TimewebCloudBase):
         self,
         group_id: UUID,
         direction: FirewallDirection,
-        proto: FirewallProto,
+        protocol: FirewallProto,
         cidr: Union[IPv4Network, IPv6Network],
         port: Optional[str] = None,
         description: Optional[str] = None,
     ):
         payload = {
             **({"description": description} if description else {}),
-            **({} if proto == FirewallProto.ICMP.value else {"port": port}),
+            **({} if protocol == FirewallProto.ICMP.value else {"port": port}),
             "direction": direction,
-            "protocol": proto,
+            "protocol": protocol,
             "cidr": cidr,
         }
         return self._request(
@@ -1670,16 +1677,16 @@ class TimewebCloud(TimewebCloudBase):
         group_id: UUID,
         rule_id: UUID,
         direction: FirewallDirection,
-        proto: FirewallProto,
+        protocol: FirewallProto,
         cidr: Union[IPv4Network, IPv6Network],
         port: Optional[str] = None,
         description: Optional[str] = None,
     ):
         payload = {
             **({"description": description} if description else {}),
-            **({} if proto == FirewallProto.ICMP.value else {"port": port}),
+            **({} if protocol == FirewallProto.ICMP.value else {"port": port}),
             "direction": direction,
-            "protocol": proto,
+            "protocol": protocol,
             "cidr": cidr,
         }
         return self._request(
