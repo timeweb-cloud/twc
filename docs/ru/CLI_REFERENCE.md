@@ -1633,8 +1633,11 @@ $ twc firewall group [OPTIONS] COMMAND [ARGS]...
 **Commands**:
 
 * `create`: Create new group of firewall rules.
-* `list`: List groups.
+* `dump`: Dump firewall rules.
+* `get`: Get firewall fules group.
+* `list`: List groups. (aliases: ls)
 * `remove`: Remove rules group. All rules in group will lost. (aliases: rm)
+* `restore`: Restore firewall rules group from dump file.
 * `set`: Set rules group properties.
 
 #### `twc firewall group create`
@@ -1655,6 +1658,50 @@ $ twc firewall group create [OPTIONS]
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `--name TEXT`: Group display name.  [required]
 * `--desc TEXT`: Description.
+* `--policy [DROP|ACCEPT]`: Default firewall policy  [default: DROP]
+* `--help`: Show this message and exit.
+
+#### `twc firewall group dump`
+
+Dump firewall rules.
+
+**Usage**:
+
+```console
+$ twc firewall group dump [OPTIONS] GROUP_ID
+```
+
+**Arguments**:
+
+* `GROUP_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `--help`: Show this message and exit.
+
+#### `twc firewall group get`
+
+Get firewall fules group.
+
+**Usage**:
+
+```console
+$ twc firewall group get [OPTIONS] GROUP_ID
+```
+
+**Arguments**:
+
+* `GROUP_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `--help`: Show this message and exit.
 
 #### `twc firewall group list`
@@ -1695,6 +1742,31 @@ $ twc firewall group remove [OPTIONS] GROUP_ID...
 * `-c, --config FILE`: Use config.
 * `-p, --profile NAME`: Use profile.
 * `-y, --yes`: Confirm the action without prompting.
+* `--help`: Show this message and exit.
+
+#### `twc firewall group restore`
+
+Restore firewall rules group from dump file.
+
+**Usage**:
+
+```console
+$ twc firewall group restore [OPTIONS] GROUP_ID
+```
+
+**Arguments**:
+
+* `GROUP_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `-f, --file FILENAME`: Firewall rules dump in JSON format.
+* `--rules-only`: Do not restore group name and description.
+* `--dry-run`: Does not make any changes.
 * `--help`: Show this message and exit.
 
 #### `twc firewall group set`
@@ -1789,8 +1861,9 @@ $ twc firewall rule create [OPTIONS] [PORT[-PORT]/]PROTO...
 * `-g, --group UUID`: Firewall rules group UUID.
 * `-G, --make-group`: Add rules in new rules group.
 * `--group-name TEXT`: Rules group name, can be used with '--make-group'
+* `--group-policy [DROP|ACCEPT]`: Default firewall policy, can be used with '--make-group'  [default: DROP]
 * `--ingress / --egress`: Traffic direction.  [default: ingress]
-* `--cidr IP_NETWORK`: IPv4 or IPv6 CIDR.  [default: 0.0.0.0/0]
+* `--cidr IP_NETWORK`: IPv4 or IPv6 CIDR. [default: 0.0.0.0/0 or ::/0]
 * `--help`: Show this message and exit.
 
 #### `twc firewall rule list`
@@ -1822,12 +1895,12 @@ Remove firewall rule.
 **Usage**:
 
 ```console
-$ twc firewall rule remove [OPTIONS] RULE_ID
+$ twc firewall rule remove [OPTIONS] RULE_ID...
 ```
 
 **Arguments**:
 
-* `RULE_ID`: [required]
+* `RULE_ID...`: [required]
 
 **Options**:
 
@@ -1859,7 +1932,7 @@ $ twc firewall rule update [OPTIONS] RULE_ID
 * `--ingress / --egress`: Traffic direction.
 * `--cidr IP_NETWORK`: IPv4 or IPv6 CIDR.
 * `--port PORT[-PORT]`: Port or ports range e.g. 22, 2000-3000
-* `--proto [tcp|udp|icmp]`: Protocol.
+* `--proto [tcp|udp|icmp|tcp6|udp6|icmp6]`: Protocol.
 * `--help`: Show this message and exit.
 
 ### `twc firewall show`
@@ -1874,7 +1947,7 @@ $ twc firewall show [OPTIONS] (server|database|balancer|all) [RESOURCE_ID]
 
 **Arguments**:
 
-* `(server|database|balancer|all)`: [required]
+* `(server|database|balancer|all)`: [default: all]
 * `[RESOURCE_ID]`
 
 **Options**:
