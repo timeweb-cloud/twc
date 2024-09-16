@@ -188,17 +188,11 @@ def print_resources(response: Response):
     for key in resource_keys:
         if resources[key]:
             for resource in resources[key]:
-                try:
-                    location = resource["location"]
-                except KeyError:
-                    # Balancers, clusters, and databases has no 'location' field.
-                    # These services is available only in 'ru-1' location.
-                    location = "ru-1"
                 table.row(
                     [
                         resource["id"],
-                        resource["name"],
-                        location,
+                        resource.get("name", resource.get("fqdn")),
+                        resource.get("location", "ru-1"),
                         key[:-1],  # this is resource name e.g. 'server'
                     ]
                 )
