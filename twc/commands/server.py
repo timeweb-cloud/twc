@@ -584,9 +584,7 @@ def server_create(
             net = IPv4Network(
                 client.get_vpc(network).json()["vpc"]["subnet_v4"]
             )
-            if IPv4Address(private_ip) > IPv4Address(
-                int(net.network_address) + 4
-            ):
+            if IPv4Address(private_ip) >= net.network_address + 4:
                 payload["network"]["ip"] = private_ip
             else:
                 # First 3 addresses is reserved for networks OVN based networks
@@ -664,6 +662,7 @@ def server_create(
         ]:
             sys.exit(f"Wrong project ID: Project '{project_id}' not found.")
 
+    sys.exit(payload)
     # Create Cloud Server
     debug("Create Cloud Server...")
     response = client.create_server(**payload)
