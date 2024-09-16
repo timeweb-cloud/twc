@@ -4,7 +4,7 @@ import os
 import sys
 import textwrap
 from pathlib import Path
-from logging import debug
+from logging import debug, warning
 
 from .api import TimewebCloud
 from .api import exceptions as exc
@@ -70,6 +70,11 @@ def create_client(config: Path, profile: str, **kwargs) -> TimewebCloud:
     """
     token = os.getenv("TWC_TOKEN")
     log_settings = os.getenv("TWC_LOG")
+    api_endpoint = os.getenv("TWC_ENDPOINT")
+
+    if api_endpoint:
+        warning('Using API URL from environment: %s', api_endpoint)
+        kwargs['api_base_url'] = api_endpoint
 
     if log_settings:
         for param in log_settings.split(","):
