@@ -67,6 +67,9 @@ class Printer:
 
     def raw(self):
         """Print raw API response text (mostly raw JSON)."""
+        if isinstance(self._data, dict):
+            typer.echo(json.dumps(self._data))
+            return
         typer.echo(self._data.text)
 
     def colorize(self, data: str, lexer: object = JsonLexer()):
@@ -77,9 +80,12 @@ class Printer:
         """Print colorized JSON output. Fallback to non-color output if
         Pygments not installed and fallback to raw output on JSONDecodeError.
         """
+        data = self._data
+        if not isinstance(self._data, dict):
+            data = self._data.json()
         try:
             json_data = json.dumps(
-                self._data.json(), indent=4, sort_keys=True, ensure_ascii=False
+                data, indent=4, sort_keys=True, ensure_ascii=False
             )
             self.colorize(json_data, lexer=JsonLexer())
         except json.JSONDecodeError:
@@ -89,10 +95,11 @@ class Printer:
         """Print colorized YAML output. Fallback to non-color output if
         Pygments not installed and fallback to raw output on YAMLError.
         """
+        data = self._data
+        if not isinstance(self._data, dict):
+            data = self._data.json()
         try:
-            yaml_data = yaml.dump(
-                self._data.json(), sort_keys=True, allow_unicode=True
-            )
+            yaml_data = yaml.dump(data, sort_keys=True, allow_unicode=True)
             self.colorize(yaml_data, lexer=YamlLexer())
         except yaml.YAMLError:
             self.raw()
