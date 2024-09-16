@@ -500,7 +500,6 @@ def storage_subdomain_remove(
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
-    output_format: Optional[str] = output_format_option,
     yes: Optional[bool] = yes_option,
 ):
     """Remove subdomains."""
@@ -509,11 +508,10 @@ def storage_subdomain_remove(
     client = create_client(config, profile)
     bucket_id = resolve_bucket_id(client, bucket)
     response = client.delete_bucket_subdomains(bucket_id, subdomains)
-    fmt.printer(
-        response,
-        output_format=output_format,
-        func=print_subdomains_state,
-    )
+    if response.status_code == 204:
+        print(subdomain)
+    else:
+        sys.exit(fmt.printer(response))
 
 
 # ------------------------------------------------------------- #
@@ -532,7 +530,7 @@ def storage_subdomain_gencert(
     client = create_client(config, profile)
     for subdomain in subdomains:
         response = client.gen_cert_for_bucket_subdomain(subdomain)
-        if response.status_code == 201:
+        if response.status_code == 204:
             print(subdomain)
         else:
             sys.exit(fmt.printer(response))
