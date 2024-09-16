@@ -18,6 +18,35 @@ from .common import (
 )
 
 
+whoami = TyperAlias(help="Display current login.", no_args_is_help=False)
+
+
+# ------------------------------------------------------------- #
+# $ twc whoami                                                  #
+# ------------------------------------------------------------- #
+
+
+@whoami.callback(invoke_without_command=True)
+def whoami_callback(
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """Display current login."""
+    client = create_client(config, profile)
+    response = client.get_account_status()
+    login = response.json()["status"]["login"]
+    fmt.printer(
+        {"login": login, "profile": profile},
+        output_format=output_format,
+        func=lambda data: print(data["login"]),
+    )
+
+
+# ------------------------------------------------------------- #
+
+
 account = TyperAlias(help=__doc__)
 account_access = TyperAlias(help="Manage account access restrictions.")
 account.add_typer(account_access, name="access")
@@ -33,6 +62,7 @@ def print_account_status(response: Response):
     status = response.json()["status"]
     output = dedent(
         f"""
+        Login: {status["login"]}
         Provider: {status["company_info"]["name"]}
         Yandex.Metrika ID: {status["ym_client_id"]}
         Blocked: {status["is_blocked"]}

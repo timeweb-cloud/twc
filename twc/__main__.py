@@ -21,6 +21,7 @@ from .commands import (
     vpc,
     firewall,
     floating_ip,
+    whoami,
 )
 from .commands.common import version_callback, version_option, verbose_option
 
@@ -46,6 +47,7 @@ cli.add_typer(domain, name="domain", aliases=["domains", "d"])
 cli.add_typer(vpc, name="vpc", aliases=["vpcs", "network", "networks"])
 cli.add_typer(firewall, name="firewall", aliases=["fw"])
 cli.add_typer(floating_ip, name="ip", aliases=["ips"])
+cli.add_typer(whoami, name="whoami", aliases=[])
 
 
 @cli.command("version")

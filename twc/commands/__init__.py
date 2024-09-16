@@ -1,6 +1,6 @@
 """Commands."""
 
-from .account import account
+from .account import account, whoami
 from .config import config
 from .server import server
 from .ssh_key import ssh_key
