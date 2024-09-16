@@ -662,7 +662,6 @@ def server_create(
         ]:
             sys.exit(f"Wrong project ID: Project '{project_id}' not found.")
 
-    sys.exit(payload)
     # Create Cloud Server
     debug("Create Cloud Server...")
     response = client.create_server(**payload)
