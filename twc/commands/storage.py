@@ -509,7 +509,8 @@ def storage_subdomain_remove(
     bucket_id = resolve_bucket_id(client, bucket)
     response = client.delete_bucket_subdomains(bucket_id, subdomains)
     if response.status_code == 204:
-        print(subdomain)
+        for subdomain in subdomains:
+            print(subdomain)
     else:
         sys.exit(fmt.printer(response))
 

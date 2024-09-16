@@ -73,8 +73,8 @@ def create_client(config: Path, profile: str, **kwargs) -> TimewebCloud:
     api_endpoint = os.getenv("TWC_ENDPOINT")
 
     if api_endpoint:
-        warning('Using API URL from environment: %s', api_endpoint)
-        kwargs['api_base_url'] = api_endpoint
+        warning("Using API URL from environment: %s", api_endpoint)
+        kwargs["api_base_url"] = api_endpoint
 
     if log_settings:
         for param in log_settings.split(","):
