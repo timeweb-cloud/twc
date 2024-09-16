@@ -469,14 +469,11 @@ class TimewebCloud(TimewebCloudBase):
     # -----------------------------------------------------------------------
     # Images
 
-    def get_images(
-        self, limit: int = 100, offset: int = 0, with_deleted: bool = False
-    ):
+    def get_images(self, limit: int = 100, offset: int = 0):
         """Get list of images."""
         params = {
             "limit": limit,
             "offset": offset,
-            "with_deleted": with_deleted,
         }
         return self._request("GET", f"{self.api_url}/images", params=params)
 
