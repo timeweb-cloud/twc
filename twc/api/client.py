@@ -1413,6 +1413,8 @@ class TimewebCloud(TimewebCloudBase):
         value: str,
         subdomain: Optional[str] = None,
         priority: Optional[int] = None,
+        *,
+        null_subdomain: bool = False,
     ):
         """Add DNS record to domain."""
         payload = {
@@ -1421,6 +1423,8 @@ class TimewebCloud(TimewebCloudBase):
             **({"subdomain": subdomain} if subdomain else {}),
             **({"priority": priority} if priority else {}),
         }
+        if null_subdomain:
+            payload['subdomain'] = None
         return self._request(
             "POST",
             f"{self.api_url}/domains/{fqdn}/dns-records",

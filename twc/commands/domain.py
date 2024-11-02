@@ -346,29 +346,39 @@ def domain_add_dns_record(
     """Add dns record for domain or subdomain."""
     client = create_client(config, profile)
 
+    null_subdomain = False
+
     if second_ld:
         offset = 3
     else:
         offset = 2
 
     subdomain = domain_name
+    original_domain_name = domain_name
     domain_name = ".".join(domain_name.split(".")[-offset:])
 
     if subdomain == domain_name:
         subdomain = None
 
-    # API issue: see text below
-    # API can add TXT record (only TXT, why?) with non-existent subdomain,
-    # but 'subdomain' option must not be passed as FQDN!
-    # API issue: You cannot create subdomains with underscore. Why?
-    # Use previous described bug for this! Pass your subdomain with
-    # underscores to this function.
     if record_type.lower() == "txt":
-        # 'ftp.example.org' --> 'ftp'
-        subdomain = ".".join(subdomain.split(".")[:-offset])
+        if subdomain is None:
+            null_subdomain = True
+        else:
+            # 'ftp.example.org' --> 'ftp'
+            subdomain = ".".join(subdomain.split(".")[:-offset])
+    else:
+        subdomain = ".".join(original_domain_name.split(".")[:-offset])
+        if subdomain != '':
+            domain_name = original_domain_name
+            subdomain = None
 
     response = client.add_domain_dns_record(
-        domain_name, record_type, value, subdomain, priority
+        domain_name,
+        record_type,
+        value,
+        subdomain,
+        priority,
+        null_subdomain=null_subdomain,
     )
     fmt.printer(
         response,
@@ -422,6 +432,12 @@ def domain_update_dns_records(
     domain_name = ".".join(domain_name.split(".")[-offset:])
 
     if subdomain == domain_name:
+        subdomain = None
+
+    if record_type.lower() == 'txt' and subdomain is not None:
+        subdomain = ".".join(subdomain.split(".")[:-offset])
+    elif subdomain is not None:
+        domain_name = subdomain
         subdomain = None
 
     response = client.update_domain_dns_record(
