@@ -35,6 +35,7 @@ $ twc [OPTIONS] COMMAND [ARGS]...
 * `storage`: Manage object storage buckets. (aliases: storages, s3)
 * `version`: Show version and exit.
 * `vpc`: Manage virtual networks. (aliases: vpcs, network, networks)
+* `whoami`: Display current login.
 
 ## `twc account`
 
@@ -1310,7 +1311,7 @@ $ twc domain [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
-* `add`: Add domain to account.
+* `add`: Add domain to account. (aliases: create)
 * `info`: Get domain info.
 * `list`: List domains. (aliases: ls)
 * `record`: Manage DNS records. (aliases: records, rec)
@@ -1397,7 +1398,7 @@ $ twc domain record [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
-* `add`: Add dns record for domain or subdomain.
+* `add`: Add dns record for domain or subdomain. (aliases: create)
 * `list`: List DNS-records on domain. (aliases: ls)
 * `remove`: Delete one DNS-record on domain. (aliases: rm)
 * `update`: Update DNS record. (aliases: upd)
@@ -1542,7 +1543,7 @@ $ twc domain subdomain [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
-* `add`: Create subdomain.
+* `add`: Create subdomain. (aliases: create)
 * `remove`: Delete subdomain with they DNS records. (aliases: rm)
 
 #### `twc domain subdomain add`
@@ -3909,7 +3910,6 @@ $ twc storage subdomain remove [OPTIONS] BUCKET SUBDOMAIN...
 * `-v, --verbose`: Enable verbose mode.
 * `-c, --config FILE`: Use config.
 * `-p, --profile NAME`: Use profile.
-* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `-y, --yes`: Confirm the action without prompting.
 * `--help`: Show this message and exit.
 
@@ -4164,6 +4164,24 @@ $ twc vpc show [OPTIONS] VPC_ID
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `-f, --filter KEY:VALUE`: Filter output.
+* `--help`: Show this message and exit.
+
+## `twc whoami`
+
+Display current login.
+
+**Usage**:
+
+```console
+$ twc whoami [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `--help`: Show this message and exit.
 
 
