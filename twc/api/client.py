@@ -1424,7 +1424,7 @@ class TimewebCloud(TimewebCloudBase):
             **({"priority": priority} if priority else {}),
         }
         if null_subdomain:
-            payload['subdomain'] = None
+            payload["subdomain"] = None
         return self._request(
             "POST",
             f"{self.api_url}/domains/{fqdn}/dns-records",

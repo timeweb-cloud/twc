@@ -368,7 +368,7 @@ def domain_add_dns_record(
             subdomain = ".".join(subdomain.split(".")[:-offset])
     else:
         subdomain = ".".join(original_domain_name.split(".")[:-offset])
-        if subdomain != '':
+        if subdomain != "":
             domain_name = original_domain_name
             subdomain = None
 
@@ -434,7 +434,7 @@ def domain_update_dns_records(
     if subdomain == domain_name:
         subdomain = None
 
-    if record_type.lower() == 'txt' and subdomain is not None:
+    if record_type.lower() == "txt" and subdomain is not None:
         subdomain = ".".join(subdomain.split(".")[:-offset])
     elif subdomain is not None:
         domain_name = subdomain
