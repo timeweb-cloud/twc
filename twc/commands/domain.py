@@ -195,7 +195,7 @@ def domain_delete(
 # ------------------------------------------------------------- #
 
 
-@domain.command("add")
+@domain.command("add", "create")
 def domain_add(
     domain_name: str,
     verbose: Optional[bool] = verbose_option,
@@ -316,7 +316,7 @@ def domain_remove_dns_record(
 # ------------------------------------------------------------- #
 
 
-@domain_record.command("add")
+@domain_record.command("add", "create")
 def domain_add_dns_record(
     domain_name: str,
     verbose: Optional[bool] = verbose_option,
@@ -455,7 +455,7 @@ def domain_update_dns_records(
 # ------------------------------------------------------------- #
 
 
-@domain_subdomain.command("add")
+@domain_subdomain.command("add", "create")
 def domain_add_subdomain(
     subdomain: str = typer.Argument(..., metavar="FQDN"),
     verbose: Optional[bool] = verbose_option,
