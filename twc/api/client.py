@@ -1410,18 +1410,28 @@ class TimewebCloud(TimewebCloudBase):
         self,
         fqdn: str,
         dns_record_type: DNSRecordType,
-        value: str,
+        value: Optional[str] = None,
         subdomain: Optional[str] = None,
         priority: Optional[int] = None,
+        ttl: Optional[int] = None,
+        protocol: Optional[str] = None,
+        service: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
         *,
         null_subdomain: bool = False,
     ):
         """Add DNS record to domain."""
         payload = {
             "type": dns_record_type,
-            "value": value,
+            **({"value": value} if value else {}),
             **({"subdomain": subdomain} if subdomain else {}),
-            **({"priority": priority} if priority else {}),
+            **({"priority": priority} if priority is not None else {}),
+            **({"ttl": ttl} if ttl else {}),
+            **({"protocol": protocol} if protocol else {}),
+            **({"service": service} if service else {}),
+            **({"host": host} if host else {}),
+            **({"port": port} if port else {}),
         }
         if null_subdomain:
             payload["subdomain"] = None

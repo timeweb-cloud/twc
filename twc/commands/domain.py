@@ -2,6 +2,7 @@
 
 import re
 import sys
+from enum import Enum
 from typing import Optional, List
 from pathlib import Path
 
@@ -316,6 +317,14 @@ def domain_remove_dns_record(
 # ------------------------------------------------------------- #
 
 
+class SRVProtocol(str, Enum):
+    """Supported protocols for SRV records."""
+
+    TCP = "TCP"
+    UPD = "UDP"
+    TLS = "TLS"
+
+
 @domain_record.command("add", "create")
 def domain_add_dns_record(
     domain_name: str,
@@ -331,11 +340,39 @@ def domain_add_dns_record(
         metavar="TYPE",
         help=f"[{'|'.join([k.value for k in DNSRecordType])}]",
     ),
-    value: Optional[str] = typer.Option(...),
+    value: Optional[str] = typer.Option(
+        None,
+        help="Record value. Skip it for SRV records.",
+    ),
     priority: Optional[int] = typer.Option(
         None,
         "--prio",
         help="Record priority. Supported for MX, SRV records.",
+    ),
+    service: Optional[str] = typer.Option(
+        None,
+        "--service",
+        help="Service for SRV record e.g '_matrix'.",
+    ),
+    proto: Optional[SRVProtocol] = typer.Option(
+        None,
+        "--proto",
+        help="Protocol for SRV record.",
+    ),
+    host: Optional[str] = typer.Option(
+        None,
+        "--host",
+        help="Host for SRV record.",
+    ),
+    port: Optional[int] = typer.Option(
+        None,
+        "--port",
+        help="Port for SRV record.",
+        min=1,
+        max=65535,
+    ),
+    ttl: Optional[int] = typer.Option(
+        None, "--ttl", help="Time-To-Live for DNS record."
     ),
     second_ld: Optional[bool] = typer.Option(
         False,
@@ -345,6 +382,9 @@ def domain_add_dns_record(
 ):
     """Add dns record for domain or subdomain."""
     client = create_client(config, profile)
+
+    if record_type != "SRV" and not value:
+        sys.exit("Error: --value is expected for non-SRV DNS records")
 
     null_subdomain = False
 
@@ -372,14 +412,21 @@ def domain_add_dns_record(
             domain_name = original_domain_name
             subdomain = None
 
-    response = client.add_domain_dns_record(
-        domain_name,
-        record_type,
-        value,
-        subdomain,
-        priority,
-        null_subdomain=null_subdomain,
-    )
+    payload = {
+        "fqdn": domain_name,
+        "dns_record_type": record_type,
+        "value": value,
+        "subdomain": subdomain,
+        "priority": priority,
+        "ttl": ttl,
+        "protocol": "_" + proto if proto else None,
+        "service": service,
+        "host": host,
+        "port": port,
+        "null_subdomain": null_subdomain,
+    }
+
+    response = client.add_domain_dns_record(**payload)
     fmt.printer(
         response,
         output_format=output_format,

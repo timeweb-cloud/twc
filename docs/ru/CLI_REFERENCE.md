@@ -1425,8 +1425,13 @@ $ twc domain record add [OPTIONS] DOMAIN_NAME
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `-f, --filter KEY:VALUE`: Filter output.
 * `--type TYPE`: [TXT|SRV|CNAME|AAAA|MX|A]  [required]
-* `--value TEXT`: [required]
+* `--value TEXT`: Record value. Skip it for SRV records.
 * `--prio INTEGER`: Record priority. Supported for MX, SRV records.
+* `--service TEXT`: Service for SRV record e.g '_matrix'.
+* `--proto [TCP|UDP|TLS]`: Protocol for SRV record.
+* `--host TEXT`: Host for SRV record.
+* `--port INTEGER RANGE`: Port for SRV record.  [1<=x<=65535]
+* `--ttl INTEGER`: Time-To-Live for DNS record.
 * `--2ld`: Parse subdomain as 2LD.
 * `--help`: Show this message and exit.
 
