@@ -76,6 +76,7 @@ class TimewebCloud(TimewebCloudBase):
         is_ddos_guard: bool = False,
         network: Optional[dict] = None,
         availability_zone: Optional[ServiceAvailabilityZone] = None,
+        is_root_password_required: Optional[bool] = None,
     ):
         """Create new Cloud Server. Note:
 
@@ -111,6 +112,11 @@ class TimewebCloud(TimewebCloudBase):
             **(
                 {"availability_zone": str(availability_zone)}
                 if availability_zone
+                else {}
+            ),
+            **(
+                {"is_root_password_required": is_root_password_required}
+                if is_root_password_required is not None
                 else {}
             ),
         }
@@ -185,6 +191,10 @@ class TimewebCloud(TimewebCloudBase):
         return self._request(
             "POST", f"{self.api_url}/servers/{server_id}/clone", json={}
         )
+
+    def get_server_preset_types(self):
+        """List all available preset and configurator IDs by their types."""
+        return self._request("GET", f"{self.api_url}/presets/types/servers")
 
     def get_server_configurators(self):
         """List configurators."""

@@ -3,6 +3,7 @@
 import re
 import sys
 import webbrowser
+from enum import Enum
 from logging import debug
 from typing import Optional, List, Union
 from pathlib import Path
@@ -466,15 +467,31 @@ def process_ssh_key(client: TimewebCloud, ssh_key: str) -> int:
     sys.exit(f"Error: SSH-key '{ssh_key}' not found.")
 
 
-def select_configurator(client: TimewebCloud, region: str) -> int:
+def select_configurator(client: TimewebCloud, kind: str, region: str) -> int:
     """Find and return configurator_id by location name."""
-    configurators = client.get_server_configurators().json()[
-        "server_configurators"
+    kind = kind.replace("-", "_")
+    configurators_by_type = client.get_server_preset_types().json()[
+        "configurators"
     ]
-    for configurator in configurators:
+    available_configurators = configurators_by_type.get(kind, None)
+    if not available_configurators:
+        sys.exit(
+            f"Error: Unable to select server configurator_id: no configurators with type '{kind}'"
+        )
+    for configurator in available_configurators:
         if configurator["location"] == region:
             return configurator["id"]
-    sys.exit(f"Unable to select location: '{region}' not found.")
+    sys.exit(
+        f"Error: Unable to select configurator_id: no configurators for region {region}"
+    )
+
+
+class InstanceKind(str, Enum):
+    """Instance types used to select configurator."""
+
+    STANDARD = "standard"
+    PREMIUM = "premium"
+    DEDICATED_CPU = "dedicated-cpu"
 
 
 @server.command("create")
@@ -491,7 +508,17 @@ def server_create(
         None,
         help="Cloud Server configuration preset ID. "
         "NOTE: This argument is mutually exclusive with arguments: "
-        "['--cpu', '--ram', '--disk'].",
+        "['--cpu', '--ram', '--disk', '--gpus'].",
+    ),
+    configurator_id: int = typer.Option(
+        None, help="ID of configuration constraints set."
+    ),
+    instance_kind: Optional[InstanceKind] = typer.Option(
+        InstanceKind.PREMIUM,
+        "--type",
+        help="Cloud Server type. "
+        "Servers with GPU always is 'premium'. "
+        "This option will be ignored if '--gpus' or '--preset-id' is set.",
     ),
     cpu: int = typer.Option(None, help="Number of vCPUs."),
     ram: str = typer.Option(
@@ -499,6 +526,12 @@ def server_create(
     ),
     disk: str = typer.Option(
         None, metavar="SIZE", help="System disk size, e.g. 10240M, 10G."
+    ),
+    gpus: Optional[int] = typer.Option(
+        None,
+        min=0,
+        max=4,
+        help="Number of GPUs to attach.",
     ),
     bandwidth: int = typer.Option(
         None, callback=bandwidth_callback, help="Network bandwidth."
@@ -549,6 +582,11 @@ def server_create(
         callback=load_from_config_callback,
         help="Add server to specific project.",
     ),
+    disable_ssh_password_auth: Optional[bool] = typer.Option(
+        False,
+        "--disable-ssh-password-auth",
+        help="Disable sshd password authentication.",
+    ),
 ):
     """Create Cloud Server."""
     client = create_client(config, profile)
@@ -560,12 +598,27 @@ def server_create(
         "is_ddos_guard": ddos_protection,
         "availability_zone": availability_zone,
         "network": {},
-        **(
-            {"is_local_network": local_network}
-            if local_network is not None
-            else {}
-        ),
     }
+
+    if local_network is not None:
+        print(
+            "Option --local-network is deprecated and will be removed soon",
+            file=sys.stderr,
+        )
+        payload["is_local_network"] = local_network
+
+    if disable_ssh_password_auth:
+        if not ssh_keys:
+            print(
+                "You applied --disable-ssh-password-auth, but no ssh keys is set. "
+                "Pass keys to --ssh-key option or setup master ssh key.",
+                file=sys.stderr,
+            )
+        payload["is_root_password_required"] = False
+
+    instance_kind = instance_kind.value
+    if gpus:
+        instance_kind = "gpu"
 
     # Check availability zone
     usable_zones = ServiceRegion.get_zones(region)
@@ -587,7 +640,7 @@ def server_create(
             if IPv4Address(private_ip) >= net.network_address + 4:
                 payload["network"]["ip"] = private_ip
             else:
-                # First 3 addresses is reserved for networks OVN based networks
+                # First 3 addresses is reserved by Timeweb Cloud for gateway and future use.
                 sys.exit(
                     f"Error: Private address '{private_ip}' is not allowed. "
                     "IP must be at least the fourth in order in the network."
@@ -600,15 +653,15 @@ def server_create(
             sys.exit(f"Error: '{public_ip}' is not valid IPv4 address.")
     else:
         # New public IPv4 address will be automatically requested with
-        # correct availability zone. This is official dirty hack.
+        # correct availability zone. This is an official dirty hack.
         if no_public_ip is False:
             payload["network"]["floating_ip"] = "create_ip"
 
     # Set server configuration parameters
-    if preset_id and (cpu or ram or disk):
+    if preset_id and (cpu or ram or disk or gpus):
         raise UsageError(
             "'--preset-id' is mutually exclusive with: "
-            + "['--cpu', '--ram', '--disk']."
+            + "['--cpu', '--ram', '--disk', '--gpus']."
         )
     if not preset_id and not (cpu or ram or disk):
         raise UsageError(
@@ -620,7 +673,10 @@ def server_create(
             if not locals()[param]:
                 raise UsageError(f"Missing parameter: '--{param}'.")
         # Select configurator_id by region
-        configurator_id = select_configurator(client, region)
+        if not configurator_id:
+            configurator_id = select_configurator(
+                client, kind=instance_kind, region=region
+            )
         requirements = get_requirements(client, configurator_id)
         payload["configuration"] = {
             "configurator_id": configurator_id,
@@ -628,6 +684,8 @@ def server_create(
             "ram": validate_ram(requirements, size_to_mb(ram)),
             "disk": validate_disk(requirements, size_to_mb(disk)),
         }
+        if gpus:
+            payload["configuration"]["gpus"] = gpus
         if bandwidth:
             payload["bandwidth"] = validate_bandwidth(requirements, bandwidth)
         else:
@@ -655,23 +713,12 @@ def server_create(
     if user_data:
         payload["cloud_init"] = user_data.read()
 
-    # Check project_id before creating server
     if project_id:
-        if not project_id in [
-            prj["id"] for prj in client.get_projects().json()["projects"]
-        ]:
-            sys.exit(f"Wrong project ID: Project '{project_id}' not found.")
+        payload["project_id"] = project_id
 
     # Create Cloud Server
     debug("Create Cloud Server...")
     response = client.create_server(**payload)
-
-    if project_id:
-        debug(f"Add Server to project '{project_id}'...")
-        client.add_server_to_project(
-            response.json()["server"]["id"],
-            project_id,
-        )
 
     if nat_mode:
         debug(f"Set NAT mode to '{nat_mode}'")
@@ -793,7 +840,9 @@ def server_resize(
         debug("Get configurator_id...")
         if not configurator_id:
             configurator_id = select_configurator(
-                client, old_state["location"]
+                client,
+                region=old_state["location"],
+                kind="premium",
             )
 
         # Get configurator by configurator_id

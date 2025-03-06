@@ -2843,10 +2843,13 @@ $ twc server create [OPTIONS]
 * `--comment TEXT`: Comment.
 * `--avatar-id TEXT`: Avatar ID.
 * `--image TEXT`: OS ID, OS name or image UUID.  [required]
-* `--preset-id INTEGER`: Cloud Server configuration preset ID. NOTE: This argument is mutually exclusive with arguments: ['--cpu', '--ram', '--disk'].
+* `--preset-id INTEGER`: Cloud Server configuration preset ID. NOTE: This argument is mutually exclusive with arguments: ['--cpu', '--ram', '--disk', '--gpus'].
+* `--configurator-id INTEGER`: ID of configuration constraints set.
+* `--type [standard|premium|dedicated-cpu]`: Cloud Server type. Servers with GPU always is 'premium'. This option will be ignored if '--gpus' or '--preset-id' is set.  [default: premium]
 * `--cpu INTEGER`: Number of vCPUs.
 * `--ram SIZE`: RAM size, e.g. 1024M, 1G.
 * `--disk SIZE`: System disk size, e.g. 10240M, 10G.
+* `--gpus INTEGER RANGE`: Number of GPUs to attach.  [0<=x<=4]
 * `--bandwidth INTEGER`: Network bandwidth.
 * `--software-id INTEGER`: Software ID to install.
 * `--ssh-key TEXT`: SSH-key file, name or ID. Can be multiple.
@@ -2860,6 +2863,7 @@ $ twc server create [OPTIONS]
 * `--region REGION`: Region (location).  [default: ru-1]
 * `--availability-zone ZONE`: Availability zone.
 * `--project-id INTEGER`: Add server to specific project.
+* `--disable-ssh-password-auth`: Disable sshd password authentication.
 * `--help`: Show this message and exit.
 
 ### `twc server dash`
