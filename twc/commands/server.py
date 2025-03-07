@@ -508,7 +508,7 @@ def server_create(
         None,
         help="Cloud Server configuration preset ID. "
         "NOTE: This argument is mutually exclusive with arguments: "
-        "['--cpu', '--ram', '--disk', '--gpus'].",
+        "['--cpu', '--ram', '--disk', '--gpu'].",
     ),
     configurator_id: int = typer.Option(
         None, help="ID of configuration constraints set."
@@ -518,7 +518,7 @@ def server_create(
         "--type",
         help="Cloud Server type. "
         "Servers with GPU always is 'premium'. "
-        "This option will be ignored if '--gpus' or '--preset-id' is set.",
+        "This option will be ignored if '--gpu' or '--preset-id' is set.",
     ),
     cpu: int = typer.Option(None, help="Number of vCPUs."),
     ram: str = typer.Option(
@@ -527,7 +527,8 @@ def server_create(
     disk: str = typer.Option(
         None, metavar="SIZE", help="System disk size, e.g. 10240M, 10G."
     ),
-    gpus: Optional[int] = typer.Option(
+    gpus: Optional[int] = typer.Option(None, min=0, max=4, hidden=True),
+    gpu: Optional[int] = typer.Option(
         None,
         min=0,
         max=4,
@@ -618,6 +619,8 @@ def server_create(
 
     instance_kind = instance_kind.value
     if gpus:
+        gpu = gpus
+    if gpu:
         instance_kind = "gpu"
 
     # Check availability zone
@@ -658,10 +661,10 @@ def server_create(
             payload["network"]["floating_ip"] = "create_ip"
 
     # Set server configuration parameters
-    if preset_id and (cpu or ram or disk or gpus):
+    if preset_id and (cpu or ram or disk or gpu):
         raise UsageError(
             "'--preset-id' is mutually exclusive with: "
-            + "['--cpu', '--ram', '--disk', '--gpus']."
+            + "['--cpu', '--ram', '--disk', '--gpu']."
         )
     if not preset_id and not (cpu or ram or disk):
         raise UsageError(
@@ -684,8 +687,8 @@ def server_create(
             "ram": validate_ram(requirements, size_to_mb(ram)),
             "disk": validate_disk(requirements, size_to_mb(disk)),
         }
-        if gpus:
-            payload["configuration"]["gpus"] = gpus
+        if gpu:
+            payload["configuration"]["gpu"] = gpu
         if bandwidth:
             payload["bandwidth"] = validate_bandwidth(requirements, bandwidth)
         else:

@@ -124,6 +124,7 @@ class ServerConfiguration(TypedDict):
     disk: int
     cpu: int
     ram: int
+    gpu: int
 
 
 class ServerOSType(str, Enum):
