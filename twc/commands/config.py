@@ -38,7 +38,7 @@ def write_to_file(data: dict, filepath: Path) -> None:
         if os.name == "nt":
             hidden_file_attr = 0x02
             ctypes.windll.kernel32.SetFileAttributesW(
-                filepath, hidden_file_attr
+                str(filepath), hidden_file_attr
             )
         print(f"Done! Configuration is saved in {filepath}")
         sys.exit(0)

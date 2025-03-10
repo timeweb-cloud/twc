@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "twc-cli"
-version = "2.9.1"
+version = "2.9.2"
 description = "Timeweb Cloud Command Line Interface."
 authors = ["ge <dev@timeweb.cloud>"]
 homepage = "https://github.com/timeweb-cloud/twc"
