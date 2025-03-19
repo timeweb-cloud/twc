@@ -13,6 +13,7 @@ class ServiceRegion(str, Enum):
     KZ_1 = "kz-1"
     PL_1 = "pl-1"
     NL_1 = "nl-1"
+    DE_1 = 'de-1'
 
     @classmethod
     def get_zones(cls, region: str) -> List[str]:
@@ -29,6 +30,8 @@ class ServiceRegion(str, Enum):
             return ["gdn-1"]
         if region == cls.NL_1:
             return ["ams-1"]
+        if region == cls.DE_1:
+            return ["fra-1"]
         return []
 
 
@@ -44,6 +47,7 @@ class ServiceAvailabilityZone(str, Enum):
     ALA_1 = "ala-1"
     GDN_1 = "gdn-1"
     AMS_1 = "ams-1"
+    FRA_1 = "fra-1"
 
     @classmethod
     def get_region(cls, zone: str) -> Optional[str]:
@@ -60,6 +64,8 @@ class ServiceAvailabilityZone(str, Enum):
             return ServiceRegion.PL_1
         if zone == cls.AMS_1:
             return ServiceRegion.NL_1
+        if zone == cls.FRA_1:
+            return ServiceRegion.DE_1
         return None
 
 
