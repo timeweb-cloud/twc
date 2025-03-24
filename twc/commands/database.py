@@ -2,15 +2,18 @@
 
 import re
 import sys
+import textwrap
+from datetime import date, datetime
 from typing import Optional, List
 from pathlib import Path
+from ipaddress import IPv4Address, IPv4Network
 
 import typer
 from requests import Response
 
 from twc import fmt
 from twc.typerx import TyperAlias
-from twc.api import ServiceRegion, DBMS, MySQLAuthPlugin
+from twc.api import ServiceRegion, MySQLAuthPlugin, BackupInterval
 from twc.apiwrap import create_client
 from twc.utils import merge_dicts
 from .common import (
@@ -27,6 +30,12 @@ from .common import (
 database = TyperAlias(help=__doc__)
 database_backup = TyperAlias(help="Manage database backups.")
 database.add_typer(database_backup, name="backup")
+database_user = TyperAlias(help="Manage database users.")
+database.add_typer(database_user, name="user")
+database_instance = TyperAlias(
+    help="Manage instances in cluster (databases/topics/etc)."
+)
+database.add_typer(database_instance, name="instance", aliases=["db"])
 
 
 # ------------------------------------------------------------- #
@@ -207,6 +216,34 @@ def database_list_presets(
 
 
 # ------------------------------------------------------------- #
+# $ twc database list-types                                     #
+# ------------------------------------------------------------- #
+
+
+@database.command("list-types", "lt")
+def database_list_types(
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """List database configuration presets."""
+    client = create_client(config, profile)
+    response = client.get_database_types().json()
+    table = fmt.Table()
+    table.header(["TYPE", "DATABASE", "VERSION"])
+    for service in response["types"]:
+        table.row(
+            [
+                service["type"],
+                service["name"],
+                service["version"],
+            ]
+        )
+    table.print()
+
+
+# ------------------------------------------------------------- #
 # $ twc database create                                         #
 # ------------------------------------------------------------- #
 
@@ -228,6 +265,12 @@ def set_params(params: list) -> dict:
     return parameters
 
 
+def dbms_parameters_callback(value: str) -> List[str]:
+    if value:
+        return value.split(",")
+    return []
+
+
 @database.command("create")
 def database_create(
     verbose: Optional[bool] = verbose_option,
@@ -235,80 +278,185 @@ def database_create(
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
     preset_id: int = typer.Option(..., help="Database configuration preset."),
-    dbms: DBMS = typer.Option(
+    dbms: str = typer.Option(
         ...,
         "--type",
-        case_sensitive=False,
-        help="Database management system.",
+        help="Database management system. See TYPE in `twc database list-types`.",
     ),
     hash_type: Optional[MySQLAuthPlugin] = typer.Option(
         MySQLAuthPlugin.CACHING_SHA2.value,
         case_sensitive=False,
         help="Authentication plugin for MySQL.",
     ),
-    name: str = typer.Option(..., help="Database instance display name."),
+    name: str = typer.Option(..., help="Database cluster display name."),
     params: Optional[List[str]] = typer.Option(
         None,
         "--param",
         metavar="PARAM=VALUE",
-        help="Database parameters, can be multiple.",
+        help="Database config parameters, can be multiple.",
     ),
-    login: Optional[str] = typer.Option(None, help="Database user login."),
-    password: str = typer.Option(
-        ...,
-        prompt="Database user password",
-        confirmation_prompt=True,
-        hide_input=True,
+    login: Optional[str] = typer.Option(
+        # DEPRECATED
+        None,
+        hidden=True,
+        help="Database user login.",
+    ),
+    password: Optional[str] = typer.Option(
+        # DEPRECATED
+        None,
+        hidden=True,
+    ),
+    user_login: Optional[str] = typer.Option(None, help="User login."),
+    user_password: Optional[str] = typer.Option(None, help="User password."),
+    user_host: Optional[str] = typer.Option(
+        "%", help="User host for MySQL, Postgres"
+    ),
+    user_privileges: Optional[str] = typer.Option(
+        [],
+        help="Comma-separated list of user privileges.",
+        callback=dbms_parameters_callback,
+    ),
+    user_desc: Optional[str] = typer.Option(None, help="Comment for user."),
+    db_name: Optional[str] = typer.Option(None, help="Database name."),
+    db_desc: Optional[str] = typer.Option(None, help="Database comment."),
+    network_id: Optional[str] = typer.Option(None, help="Private network ID."),
+    private_ip: Optional[str] = typer.Option(
+        None, help="Private IPv4 address."
+    ),
+    public_ip: Optional[str] = typer.Option(
+        None, help="Public IPv4 address. New address by default."
+    ),
+    no_public_ip: Optional[bool] = typer.Option(
+        False, "--no-public-ip", help="Do not add public IPv4 address."
     ),
     project_id: Optional[int] = typer.Option(
         None,
         envvar="TWC_PROJECT",
         show_envvar=False,
         callback=load_from_config_callback,
-        help="Add database to specific project.",
+        help="Add database cluster to specific project.",
+    ),
+    enable_backups: Optional[bool] = typer.Option(
+        False,
+        "--enable-backups",
+        help="Enable atomatic backups of database cluster.",
+    ),
+    backup_keep: Optional[int] = typer.Option(
+        1,
+        show_default=True,
+        help="Number of backups to keep.",
+    ),
+    backup_start_date: Optional[datetime] = typer.Option(
+        date.today().strftime("%Y-%m-%d"),
+        formats=["%Y-%m-%d"],
+        show_default=False,
+        help="Start date of the first backup creation [default: today].",
+    ),
+    backup_interval: Optional[BackupInterval] = typer.Option(
+        BackupInterval.DAY.value,
+        "--backup-interval",
+        help="Backup interval.",
+    ),
+    backup_day_of_week: Optional[int] = typer.Option(
+        1,
+        min=1,
+        max=7,
+        help="The day of the week on which backups will be created."
+        " NOTE: This option works only with interval 'week'."
+        " First day of week is monday.",
     ),
 ):
-    """Create managed database instance."""
+    """Create managed database cluster."""
     client = create_client(config, profile)
-
-    # Check preset_id
-    for preset in client.get_database_presets().json()["databases_presets"]:
-        if preset["id"] == preset_id:
-            _dbms = re.sub(
-                r"[0-9]+", "", dbms
-            )  # transform 'mysql5' to 'mysql', etc.
-            if not preset["type"].startswith(_dbms):
-                sys.exit(
-                    f"Error: DBMS '{dbms}' doesn't match with preset_id type."
-                )
 
     payload = {
         "dbms": dbms,
         "preset_id": preset_id,
         "name": name,
         "hash_type": hash_type,
-        "login": login,
-        "password": password,
         "config_parameters": {},
+        "network": {},
     }
+
+    if enable_backups:
+        backup_start_date = backup_start_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+        payload["auto_backups"] = {
+            "copy_count": backup_keep,
+            "creation_started_at": backup_start_date,
+            "interval": backup_interval,
+            "day_of_week": backup_day_of_week,
+        }
+
+    if network_id:
+        payload["network"]["id"] = network_id
+        if private_ip:
+            net = IPv4Network(
+                client.get_vpc(network_id).json()["vpc"]["subnet_v4"]
+            )
+            if IPv4Address(private_ip) >= net.network_address + 4:
+                payload["network"]["ip"] = private_ip
+            else:
+                # First 3 addresses is reserved by Timeweb Cloud for gateway and future use.
+                sys.exit(
+                    f"Error: Private address '{private_ip}' is not allowed. "
+                    "IP must be at least the fourth in order in the network."
+                )
+    if public_ip:
+        try:
+            _ = IPv4Address(public_ip)
+            payload["network"]["floating_ip"] = public_ip
+        except ValueError:
+            sys.exit(f"Error: '{public_ip}' is not valid IPv4 address.")
+    else:
+        # New public IPv4 address will be automatically requested with
+        # correct availability zone. This is an official dirty hack.
+        if no_public_ip is False:
+            payload["network"]["floating_ip"] = "create_ip"
+
+    if login:
+        print(
+            "--login is deprecated use --user-login instead", file=sys.stderr
+        )
+        user_login = login
+
+    if password:
+        print(
+            "--password is deprecated use --user-password instead",
+            file=sys.stderr,
+        )
+        user_password = password
+
+    if user_password and not user_login:
+        sys.exit("Error: --user-login required if --user-password is set.")
+
+    if user_login:
+        if not user_password:
+            user_password = typer.prompt(
+                "Database user password",
+                hide_input=True,
+                confirmation_prompt=True,
+            )
+        payload["admin"] = {
+            "login": user_login,
+            "password": user_password,
+            "host": user_host,
+            "privileges": user_privileges,
+            "description": user_desc or "",
+        }
+
+    if db_name:
+        payload["instance"] = {
+            "name": db_name,
+            "description": db_desc or "",
+        }
 
     if params:
         payload["config_parameters"] = set_params(params)
 
     if project_id:
-        if not project_id in [
-            prj["id"] for prj in client.get_projects().json()["projects"]
-        ]:
-            sys.exit(f"Wrong project ID: Project '{project_id}' not found.")
+        payload["project_id"] = project_id
 
-    response = client.create_database(**payload)
-
-    # Add created DB to project if set
-    if project_id:
-        client.add_database_to_project(
-            response.json()["db"]["id"],
-            project_id,
-        )
+    response = client.create_database2(**payload)
 
     fmt.printer(
         response,
@@ -537,4 +685,344 @@ def database_backup_restore(
 # $ twc database backup schedule                                #
 # ------------------------------------------------------------- #
 
-# FUTURE: Waiting for API endpoint release.
+
+def print_autobackup_settings(response: Response):
+    """Print backup settings info."""
+    table = fmt.Table()
+    settings = response.json()["auto_backups_settings"]
+    translated_keys = {
+        "copy_count": "Keep copies",
+        "creation_start_at": "Backup start date",
+        "is_enabled": "Enabled",
+        "interval": "Interval",
+        "day_of_week": "Day of week",
+    }
+    for key in settings.keys():
+        table.row([translated_keys[key], ":", settings[key]])
+    table.print()
+
+
+@database_backup.command("schedule")
+def database_backup_schedule(
+    db_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    status: bool = typer.Option(
+        False,
+        "--status",
+        help="Display automatic backups status.",
+    ),
+    enable: Optional[bool] = typer.Option(
+        None,
+        "--enable/--disable",
+        show_default=False,
+        help="Enable or disable automatic backups.",
+    ),
+    keep: int = typer.Option(
+        1,
+        show_default=True,
+        help="Number of backups to keep.",
+    ),
+    start_date: datetime = typer.Option(
+        date.today().strftime("%Y-%m-%d"),
+        formats=["%Y-%m-%d"],
+        show_default=False,
+        help="Start date of the first backup creation [default: today].",
+    ),
+    interval: BackupInterval = typer.Option(
+        BackupInterval.DAY.value,
+        "--interval",
+        help="Backup interval.",
+    ),
+    day_of_week: Optional[int] = typer.Option(
+        1,
+        min=1,
+        max=7,
+        help="The day of the week on which backups will be created."
+        " NOTE: This option works only with interval 'week'."
+        " First day of week is monday.",
+    ),
+):
+    """Manage database cluster automatic backup settings."""
+    client = create_client(config, profile)
+
+    if status:
+        response = client.get_database_autobackup_settings(db_id)
+        fmt.printer(
+            response,
+            output_format=output_format,
+            func=print_autobackup_settings,
+        )
+        if response.json()["auto_backups_settings"]["is_enabled"]:
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
+    start_date = start_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    response = client.update_database_autobackup_settings(
+        db_id,
+        is_enabled=enable,
+        copy_count=keep,
+        creation_start_at=start_date,
+        interval=interval,
+        day_of_week=day_of_week,
+    )
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=print_autobackup_settings,
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc database user list                                      #
+# ------------------------------------------------------------- #
+
+
+def _print_database_users(response: Response):
+    users = response.json()["admins"]
+    table = fmt.Table()
+    table.header(["ID", "LOGIN", "HOST", "CREATED"])
+    for user in users:
+        table.row(
+            [
+                user["id"],
+                user["login"],
+                user["host"],
+                user["created_at"],
+            ]
+        )
+    table.print()
+
+
+@database_user.command("list", "ls")
+def database_user_list(
+    db_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """List database users."""
+    client = create_client(config, profile)
+    response = client.get_database_users(db_id)
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=_print_database_users,
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc database user get                                       #
+# ------------------------------------------------------------- #
+
+
+def _print_database_user(response: Response):
+    user = response.json()["admin"]
+    out = textwrap.dedent(
+        f"""
+        Login:       {user['login']}
+        Host:        {user['host']}
+        Created:     {user['created_at']}
+        Description: {user['description']}
+        """
+    ).strip()
+    print(out)
+    print()
+    table = fmt.Table()
+    table.header(["INSTANCE_ID", "PRIVILEGES"])
+    for instance in user["instances"]:
+        table.row(
+            [
+                instance["instance_id"],
+                ", ".join(instance["privileges"]),
+            ]
+        )
+    table.print()
+
+
+@database_user.command("get")
+def database_user_get(
+    db_id: int,
+    user_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """Get database user."""
+    client = create_client(config, profile)
+    response = client.get_database_user(db_id, user_id)
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=_print_database_user,
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc database user create                                    #
+# ------------------------------------------------------------- #
+
+
+@database_user.command("create")
+def database_user_create(
+    db_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    login: str = typer.Option(..., help="User login."),
+    password: str = typer.Option(
+        ...,
+        prompt=True,
+        hide_input=True,
+        confirmation_prompt=True,
+        help="User password.",
+    ),
+    host: Optional[str] = typer.Option(
+        "%", help="User host for MySQL, Postgres"
+    ),
+    instance_id: Optional[int] = typer.Option(
+        None,
+        help="The specific instance ID to which the privileges will be "
+        "applied. If not specified, the privileges will be applied to "
+        "all available instances.",
+    ),
+    privileges: Optional[str] = typer.Option(
+        [],
+        help="Comma-separated list of user privileges.",
+        callback=dbms_parameters_callback,
+    ),
+    desc: Optional[str] = typer.Option(None, help="Comment for user."),
+):
+    """Create database users."""
+    client = create_client(config, profile)
+    response = client.create_database_user(
+        db_id=db_id,
+        login=login,
+        password=password,
+        privileges=privileges,
+        host=host,
+        instance_id=instance_id,
+        description=desc,
+    )
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=lambda response: print(response.json()["admin"]["id"]),
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc database user remove                                    #
+# ------------------------------------------------------------- #
+
+
+@database_user.command("remove", "rm")
+def database_user_remove(
+    db_id: int,
+    user_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+):
+    """Delete database user."""
+    client = create_client(config, profile)
+    response = client.get_database_user(db_id, user_id)
+    if response.status_code == 204:
+        print(user_id)
+    else:
+        sys.exit(fmt.printer(response))
+
+
+# ------------------------------------------------------------- #
+# $ twc database instance list                                  #
+# ------------------------------------------------------------- #
+
+
+def _print_database_instances(response: Response):
+    instances = response.json()["instances"]
+    table = fmt.Table()
+    table.header(["ID", "NAME", "CREATED", "DESCRIPTION"])
+    for i in instances:
+        table.row(
+            [
+                i["id"],
+                i["name"],
+                i["created_at"],
+                i["description"],
+            ]
+        )
+    table.print()
+
+
+@database_instance.command("list", "ls")
+def database_instance_list(
+    db_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+):
+    """List databases in database cluster."""
+    client = create_client(config, profile)
+    response = client.get_database_instances(db_id)
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=_print_database_instances,
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc database instance create                                #
+# ------------------------------------------------------------- #
+
+
+@database_instance.command("create")
+def database_instance_create(
+    db_id: int,
+    name: str,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    desc: Optional[str] = typer.Option(None, help="Comment for database."),
+):
+    """Create database in database cluster."""
+    client = create_client(config, profile)
+    response = client.create_database_instance(
+        db_id, name=name, description=desc
+    )
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=lambda response: print(response.json()["instance"]["id"]),
+    )
+
+
+# ------------------------------------------------------------- #
+# $ twc database instance remove                                #
+# ------------------------------------------------------------- #
+
+
+@database_instance.command("remove", "rm")
+def database_instance_remove(
+    db_id: int,
+    instance_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+):
+    """Delete database from cluster."""
+    client = create_client(config, profile)
+    response = client.get_database_user(db_id, instance_id)
+    if response.status_code == 204:
+        print(instance_id)
+    else:
+        sys.exit(fmt.printer(response))

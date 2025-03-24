@@ -59,6 +59,6 @@ zipapp:
 	poetry export --without-hashes -o $(ZIPAPP)/requirements.txt
 	. $(ZIPAPP)-env/bin/activate; pip install --target $(ZIPAPP) -r $(ZIPAPP)/requirements.txt > /dev/null
 	find $(ZIPAPP) -type d -name "*.dist-info" -exec rm -rf {} \; > /dev/null 2>&1 || true
-	version=$$(awk '/version/{print substr($$3, 2, 5)}' pyproject.toml); python -m zipapp -c -m twc.__main__:cli -p '/usr/bin/env python3' -o $(DIST)/twc_cli-$${version}.pyz $(ZIPAPP)
+	version=$$(awk '/version/{print $$3}' pyproject.toml | sed 's/"//g'); python -m zipapp -c -m twc.__main__:cli -p '/usr/bin/env python3' -o $(DIST)/twc_cli-$${version}.pyz $(ZIPAPP)
 	[ -d $(ZIPAPP) ] && rm -rf $(ZIPAPP) || true
 	[ -d $(ZIPAPP)-env ] && rm -rf $(ZIPAPP)-env || true

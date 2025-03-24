@@ -13,7 +13,7 @@ class ServiceRegion(str, Enum):
     KZ_1 = "kz-1"
     PL_1 = "pl-1"
     NL_1 = "nl-1"
-    DE_1 = 'de-1'
+    DE_1 = "de-1"
 
     @classmethod
     def get_zones(cls, region: str) -> List[str]:
@@ -174,16 +174,6 @@ class ResourceType(str, Enum):
     CLUSTER = "kubernetes"
     BUCKET = "storage"
     DEDICATED_SERVER = "dedicated"
-
-
-class DBMS(str, Enum):
-    """Available DBMS in Timeweb Cloud managed databases service."""
-
-    MYSQL_5 = "mysql5"
-    MYSQL_8 = "mysql8"
-    POSTGRES = "postgres"
-    REDIS = "redis"
-    MONGODB = "mongodb"
 
 
 class MySQLAuthPlugin(str, Enum):

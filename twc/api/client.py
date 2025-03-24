@@ -1,5 +1,7 @@
 """Timeweb Cloud API client."""
 
+from __future__ import annotations
+
 from typing import Optional, Union, List
 from uuid import UUID
 from pathlib import Path
@@ -20,7 +22,6 @@ from .types import (
     ServiceRegion,
     ServiceAvailabilityZone,
     ResourceType,
-    DBMS,
     MySQLAuthPlugin,
     LoadBalancerProto,
     LoadBalancerAlgo,
@@ -727,19 +728,27 @@ class TimewebCloud(TimewebCloudBase):
         """Get database presets list."""
         return self._request("GET", f"{self.api_url}/presets/dbs")
 
+    def get_database_types(self):
+        """Get database types."""
+        return self._request("GET", f"{self.api_url}/database-types")
+
+    def get_database_configrators(self):
+        """Get database_configurators."""
+        return self._request(
+            "GET", f"{self.api_url_v1}/configurator/databases"
+        )
+
     def create_database(
         self,
         name: str,
-        dbms: DBMS,
+        dbms: str,
         preset_id: int,
         password: str,
         login: Optional[str] = None,
         hash_type: Optional[MySQLAuthPlugin] = None,
         config_parameters: Optional[dict] = None,
     ):
-        """Create database."""
-        if dbms == "mysql8":
-            dbms = "mysql"
+        """Create database. DEPRECATED."""
         payload = {
             "name": name,
             "type": dbms,
@@ -750,6 +759,42 @@ class TimewebCloud(TimewebCloudBase):
             "config_parameters": config_parameters,
         }
         return self._request("POST", f"{self.api_url}/dbs", json=payload)
+
+    def create_database2(
+        self,
+        name: str,
+        dbms: str,
+        network: Optional[dict[str, str]] = None,
+        preset_id: Optional[int] = None,
+        configurator_id: Optional[int] = None,
+        admin: Optional[dict[str, str]] = None,
+        instance: Optional[dict[str, str]] = None,
+        auto_backups: Optional[dict[str, str]] = None,
+        hash_type: Optional[MySQLAuthPlugin] = None,
+        config_parameters: Optional[dict] = None,
+        project_id: Optional[int] = None,
+    ):
+        """Create database cluster."""
+        payload = {
+            "name": name,
+            "type": dbms,
+            "hash_type": hash_type,
+            **({"network": network} if network else {}),
+            **(
+                {"config_parameters": config_parameters}
+                if config_parameters
+                else {}
+            ),
+            **({"preset_id": preset_id} if preset_id else {}),
+            **(
+                {"configurator_id": configurator_id} if configurator_id else {}
+            ),
+            **({"admin": admin} if admin else {}),
+            **({"auto_backups": auto_backups} if auto_backups else {}),
+            **({"instance": instance} if instance else {}),
+            **({"project_id": project_id} if project_id else {}),
+        }
+        return self._request("POST", f"{self.api_url}/databases", json=payload)
 
     def update_database(
         self,
@@ -835,6 +880,110 @@ class TimewebCloud(TimewebCloudBase):
         return self._request(
             "PUT",
             f"{self.api_url}/dbs/{db_id}/backups/{backup_id}",
+        )
+
+    def get_database_autobackup_settings(self, db_id: int):
+        """Get database autobackup settings."""
+        return self._request(
+            "GET",
+            f"{self.api_url}/dbs/{db_id}/auto-backups",
+        )
+
+    def update_database_autobackup_settings(
+        self,
+        db_id: int,
+        is_enabled: Optional[bool] = None,
+        copy_count: Optional[int] = None,
+        creation_start_at: Optional[int] = None,
+        interval: Optional[BackupInterval] = None,
+        day_of_week: Optional[int] = None,
+    ):
+        """Set database autobackup settings."""
+        payload = {
+            **({"is_enabled": is_enabled} if is_enabled is not None else {}),
+            **({"copy_count": copy_count} if copy_count else {}),
+            **(
+                {"creation_start_at": creation_start_at}
+                if creation_start_at
+                else {}
+            ),
+            **({"interval": interval} if interval else {}),
+            **({"day_of_week": day_of_week} if day_of_week else {}),
+        }
+        return self._request(
+            "PATCH",
+            f"{self.api_url}/dbs/{db_id}/auto-backups",
+            json=payload,
+        )
+
+    def create_database_user(
+        self,
+        db_id: int,
+        login: str,
+        password: str,
+        privileges: List[str],
+        host: Optional[str] = None,
+        instance_id: Optional[int] = None,
+        description: Optional[str] = None,
+    ):
+        payload = {
+            "login": login,
+            "password": password,
+            "privileges": privileges,
+        }
+        if host:
+            payload["host"] = host
+        if instance_id:
+            payload["instance_id"] = instance_id
+        if description:
+            payload["description"] = description
+        return self._request(
+            "POST", f"{self.api_url}/databases/{db_id}/admins", json=payload
+        )
+
+    def get_database_users(self, db_id: int):
+        """..."""
+        return self._request(
+            "GET", f"{self.api_url_v1}/databases/{db_id}/admins"
+        )
+
+    def get_database_user(self, db_id: int, user_id: int):
+        """..."""
+        return self._request(
+            "GET", f"{self.api_url_v1}/databases/{db_id}/admins/{user_id}"
+        )
+
+    def delete_database_user(self, db_id: int, user_id: int):
+        """..."""
+        return self._request(
+            "DELETE", f"{self.api_url_v1}/databases/{db_id}/admins/{user_id}"
+        )
+
+    def create_database_instance(
+        self,
+        db_id: int,
+        name: str,
+        description: Optional[str] = None,
+    ):
+        """..."""
+        payload = {"name": name}
+        if description:
+            payload["description"] = description
+        return self._request(
+            "POST", f"{self.api_url}/databases/{db_id}/instances"
+        )
+
+    def get_database_instances(self, db_id: int):
+        """..."""
+        return self._request(
+            "GET", f"{self.api_url}/databases/{db_id}/instances"
+        )
+
+    def delete_database_instance(self, db_id: int, instance_id: int):
+        """..."""
+        return self._request(
+            "DELETE",
+            f"{self.api_url}/databases/{db_id}/instances/{instance_id}",
         )
 
     # -----------------------------------------------------------------------

@@ -558,7 +558,10 @@ def server_create(
         help="Enable LAN.",
         hidden=True,
     ),
-    network: Optional[str] = typer.Option(None, help="Private network ID."),
+    network: Optional[str] = typer.Option(
+        None, hidden=True, help="Private network ID."
+    ),
+    network_id: Optional[str] = typer.Option(None, help="Private network ID."),
     private_ip: Optional[str] = typer.Option(
         None, help="Private IPv4 address."
     ),
@@ -631,14 +634,21 @@ def server_create(
         )
 
     # Set network parameters
-    if nat_mode or private_ip:
-        if not network:
-            sys.exit("Error: Pass '--network' option first.")
     if network:
-        payload["network"]["id"] = network
+        print(
+            "Option --network is deprecated and will be removed soon, "
+            "use --network-id instead",
+            file=sys.stderr,
+        )
+        network_id = network
+    if nat_mode or private_ip:
+        if not network_id:
+            sys.exit("Error: Pass '--network-id' option first.")
+    if network_id:
+        payload["network"]["id"] = network_id
         if private_ip:
             net = IPv4Network(
-                client.get_vpc(network).json()["vpc"]["subnet_v4"]
+                client.get_vpc(network_id).json()["vpc"]["subnet_v4"]
             )
             if IPv4Address(private_ip) >= net.network_address + 4:
                 payload["network"]["ip"] = private_ip

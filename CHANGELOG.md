@@ -2,6 +2,26 @@
 
 В этом файле описаны все значимые изменения в Timeweb Cloud CLI. В выпусках мы придерживается правил [семантического версионирования](https://semver.org/lang/ru/).
 
+# Версия 2.10.0 (2025.03.24)
+
+## Добавлено
+
+- Добавлена поддержка региона `de-1` (зона `fra-1`) для облачных серверов.
+- Добавлены новые опции к команде `twc database create`:
+    - для создания пользователя СУБД: `--user-login`, `--user-password`, `--user-host`, `--user-privileges`, `--user-desc`;
+    - для создания первой базы данных: `--db-name`, `--db-desc`;
+    - для настроек сети в класетере СУБД: `--network-id`, `--private-ip`, `--public-ip`, `--no-public-ip`;
+    - для настройки автоматических бэкапов кластера: `--enable-backups`, `--backup-keep`, `--backup-start-date`, `--backup-interval`, `--backup-day-of-week`.
+- Добавлена новая команда `twc database list-types` для вывода доступных к созданию управляемых баз данных.
+- Добавлена новая команда `twc database backup schedule` позволяющая настроить параметры автоматического резервного копирования кластера.
+- Добавлены новые команды для управления пользователями в кластерах СУБД: `twc database user list`, `twc database user get`, `twc database user create`, `twc database user remove`.
+- Добавлены новые команды для управления базами данных в кластерах СУБД: `twc database instance list`, `twc database instance create`, `twc database instance remove`.
+
+## Изменено
+
+- Опция `--network` команды `twc server create` объявлена устаревшей  и скрыта, добавлена эквивалентная опция `--network-id`.
+- Опции `--login` и `--password` команды `twc database create` объявлены устаревшими и скрыты, вместо них теперь нужно использовать `--user-login` и `--user-password`.
+
 # Версия 2.9.2 (2025.03.10)
 
 ## Исправлено

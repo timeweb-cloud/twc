@@ -1038,12 +1038,15 @@ $ twc database [OPTIONS] COMMAND [ARGS]...
 **Commands**:
 
 * `backup`: Manage database backups.
-* `create`: Create managed database instance.
+* `create`: Create managed database cluster.
 * `get`: Get database info.
+* `instance`: Manage instances in cluster (databases/topics/etc). (aliases: db)
 * `list`: List databases. (aliases: ls)
 * `list-presets`: List database configuration presets. (aliases: lp)
+* `list-types`: List database configuration presets. (aliases: lt)
 * `remove`: Remove database. (aliases: rm)
 * `set`: Set database properties and parameters.
+* `user`: Manage database users.
 
 ### `twc database backup`
 
@@ -1065,6 +1068,7 @@ $ twc database backup [OPTIONS] COMMAND [ARGS]...
 * `list`: List backups. (aliases: ls)
 * `remove`: Remove backup. (aliases: rm)
 * `restore`: Restore backup.
+* `schedule`: Manage database cluster automatic backup...
 
 #### `twc database backup create`
 
@@ -1156,9 +1160,37 @@ $ twc database backup restore [OPTIONS] DB_ID BACKUP_ID
 * `-y, --yes`: Confirm the action without prompting.
 * `--help`: Show this message and exit.
 
+#### `twc database backup schedule`
+
+Manage database cluster automatic backup settings.
+
+**Usage**:
+
+```console
+$ twc database backup schedule [OPTIONS] DB_ID
+```
+
+**Arguments**:
+
+* `DB_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--status`: Display automatic backups status.
+* `--enable / --disable`: Enable or disable automatic backups.
+* `--keep INTEGER`: Number of backups to keep.  [default: 1]
+* `--start-date [%Y-%m-%d]`: Start date of the first backup creation [default: today].
+* `--interval [day|week|month]`: Backup interval.  [default: day]
+* `--day-of-week INTEGER RANGE`: The day of the week on which backups will be created. NOTE: This option works only with interval 'week'. First day of week is monday.  [default: 1; 1<=x<=7]
+* `--help`: Show this message and exit.
+
 ### `twc database create`
 
-Create managed database instance.
+Create managed database cluster.
 
 **Usage**:
 
@@ -1173,13 +1205,27 @@ $ twc database create [OPTIONS]
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `--preset-id INTEGER`: Database configuration preset.  [required]
-* `--type [mysql5|mysql8|postgres|redis|mongodb]`: Database management system.  [required]
+* `--type TEXT`: Database management system. See TYPE in `twc database list-types`.  [required]
 * `--hash-type [caching_sha2|mysql_native]`: Authentication plugin for MySQL.  [default: caching_sha2]
-* `--name TEXT`: Database instance display name.  [required]
-* `--param PARAM=VALUE`: Database parameters, can be multiple.
-* `--login TEXT`: Database user login.
-* `--password TEXT`: [required]
-* `--project-id INTEGER`: Add database to specific project.
+* `--name TEXT`: Database cluster display name.  [required]
+* `--param PARAM=VALUE`: Database config parameters, can be multiple.
+* `--user-login TEXT`: User login.
+* `--user-password TEXT`: User password.
+* `--user-host TEXT`: User host for MySQL, Postgres  [default: %]
+* `--user-privileges TEXT`: Comma-separated list of user privileges.
+* `--user-desc TEXT`: Comment for user.
+* `--db-name TEXT`: Database name.
+* `--db-desc TEXT`: Database comment.
+* `--network-id TEXT`: Private network ID.
+* `--private-ip TEXT`: Private IPv4 address.
+* `--public-ip TEXT`: Public IPv4 address. New address by default.
+* `--no-public-ip`: Do not add public IPv4 address.
+* `--project-id INTEGER`: Add database cluster to specific project.
+* `--enable-backups`: Enable atomatic backups of database cluster.
+* `--backup-keep INTEGER`: Number of backups to keep.  [default: 1]
+* `--backup-start-date [%Y-%m-%d]`: Start date of the first backup creation [default: today].
+* `--backup-interval [day|week|month]`: Backup interval.  [default: day]
+* `--backup-day-of-week INTEGER RANGE`: The day of the week on which backups will be created. NOTE: This option works only with interval 'week'. First day of week is monday.  [default: 1; 1<=x<=7]
 * `--help`: Show this message and exit.
 
 ### `twc database get`
@@ -1203,6 +1249,94 @@ $ twc database get [OPTIONS] DB_ID
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `--status`: Display status and exit with 0 if status is 'started'.
+* `--help`: Show this message and exit.
+
+### `twc database instance`
+
+Manage instances in cluster (databases/topics/etc).
+
+**Usage**:
+
+```console
+$ twc database instance [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `create`: Create database in database cluster.
+* `list`: List databases in database cluster. (aliases: ls)
+* `remove`: Delete database from cluster. (aliases: rm)
+
+#### `twc database instance create`
+
+Create database in database cluster.
+
+**Usage**:
+
+```console
+$ twc database instance create [OPTIONS] DB_ID NAME
+```
+
+**Arguments**:
+
+* `DB_ID`: [required]
+* `NAME`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--desc TEXT`: Comment for database.
+* `--help`: Show this message and exit.
+
+#### `twc database instance list`
+
+List databases in database cluster.
+
+**Usage**:
+
+```console
+$ twc database instance list [OPTIONS] DB_ID
+```
+
+**Arguments**:
+
+* `DB_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+#### `twc database instance remove`
+
+Delete database from cluster.
+
+**Usage**:
+
+```console
+$ twc database instance remove [OPTIONS] DB_ID INSTANCE_ID
+```
+
+**Arguments**:
+
+* `DB_ID`: [required]
+* `INSTANCE_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
 * `--help`: Show this message and exit.
 
 ### `twc database list`
@@ -1242,7 +1376,25 @@ $ twc database list-presets [OPTIONS]
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `-f, --filter KEY:VALUE`: Filter output.
-* `--region [ru-1|ru-2|ru-3|kz-1|pl-1|nl-1]`: Use region (location).
+* `--region [ru-1|ru-2|ru-3|kz-1|pl-1|nl-1|de-1]`: Use region (location).
+* `--help`: Show this message and exit.
+
+### `twc database list-types`
+
+List database configuration presets.
+
+**Usage**:
+
+```console
+$ twc database list-types [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `--help`: Show this message and exit.
 
 ### `twc database remove`
@@ -1293,6 +1445,122 @@ $ twc database set [OPTIONS] DB_ID
 * `--param PARAM=VALUE`: Database parameters, can be multiple.
 * `--password TEXT`: Database user password
 * `--prompt-password / --no-prompt-password`: Set database user password interactively.  [default: no-prompt-password]
+* `--help`: Show this message and exit.
+
+### `twc database user`
+
+Manage database users.
+
+**Usage**:
+
+```console
+$ twc database user [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `create`: Create database users.
+* `get`: Get database user.
+* `list`: List database users. (aliases: ls)
+* `remove`: Delete database user. (aliases: rm)
+
+#### `twc database user create`
+
+Create database users.
+
+**Usage**:
+
+```console
+$ twc database user create [OPTIONS] DB_ID
+```
+
+**Arguments**:
+
+* `DB_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--login TEXT`: User login.  [required]
+* `--password TEXT`: User password.  [required]
+* `--host TEXT`: User host for MySQL, Postgres  [default: %]
+* `--instance-id INTEGER`: The specific instance ID to which the privileges will be applied. If not specified, the privileges will be applied to all available instances.
+* `--privileges TEXT`: Comma-separated list of user privileges.
+* `--desc TEXT`: Comment for user.
+* `--help`: Show this message and exit.
+
+#### `twc database user get`
+
+Get database user.
+
+**Usage**:
+
+```console
+$ twc database user get [OPTIONS] DB_ID USER_ID
+```
+
+**Arguments**:
+
+* `DB_ID`: [required]
+* `USER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+#### `twc database user list`
+
+List database users.
+
+**Usage**:
+
+```console
+$ twc database user list [OPTIONS] DB_ID
+```
+
+**Arguments**:
+
+* `DB_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+#### `twc database user remove`
+
+Delete database user.
+
+**Usage**:
+
+```console
+$ twc database user remove [OPTIONS] DB_ID USER_ID
+```
+
+**Arguments**:
+
+* `DB_ID`: [required]
+* `USER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
 * `--help`: Show this message and exit.
 
 ## `twc domain`
@@ -2855,7 +3123,7 @@ $ twc server create [OPTIONS]
 * `--ssh-key TEXT`: SSH-key file, name or ID. Can be multiple.
 * `--user-data FILENAME`: user-data file for cloud-init.
 * `--ddos-protection`: Request public IPv4 with L3/L4 DDoS protection.
-* `--network TEXT`: Private network ID.
+* `--network-id TEXT`: Private network ID.
 * `--private-ip TEXT`: Private IPv4 address.
 * `--public-ip TEXT`: Public IPv4 address. New address by default.
 * `--no-public-ip`: Do not add public IPv4 address.
@@ -3238,7 +3506,7 @@ $ twc server list-presets [OPTIONS]
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `-f, --filter KEY:VALUE`: Filter output.
-* `--region [ru-1|ru-2|ru-3|kz-1|pl-1|nl-1]`: Use region (location).
+* `--region [ru-1|ru-2|ru-3|kz-1|pl-1|nl-1|de-1]`: Use region (location).
 * `--help`: Show this message and exit.
 
 ### `twc server list-software`
@@ -3734,7 +4002,7 @@ $ twc storage list-presets [OPTIONS]
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `-f, --filter KEY:VALUE`: Filter output.
-* `--region [ru-1|ru-2|ru-3|kz-1|pl-1|nl-1]`: Use region (location).
+* `--region [ru-1|ru-2|ru-3|kz-1|pl-1|nl-1|de-1]`: Use region (location).
 * `--help`: Show this message and exit.
 
 ### `twc storage mb`
