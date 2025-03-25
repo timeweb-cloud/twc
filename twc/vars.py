@@ -20,3 +20,13 @@ ZONES_WITH_LAN = [
     "gdn-1",
     "fra-1",
 ]
+# The default availability zones per regions.
+REGION_ZONE_MAP = {
+    "ru-1": "spb-3",
+    "ru-2": "nsk-1",
+    "ru-3": "msk-1",
+    "kz-1": "ala-1",
+    "pl-1": "gdn-1",
+    "nl-1": "ams-1",
+    "de-1": "fra-1",
+}

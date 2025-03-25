@@ -1204,6 +1204,7 @@ $ twc database create [OPTIONS]
 * `-c, --config FILE`: Use config.
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--availability-zone ZONE`: Availability zone.
 * `--preset-id INTEGER`: Database configuration preset.  [required]
 * `--type TEXT`: Database management system. See TYPE in `twc database list-types`.  [required]
 * `--hash-type [caching_sha2|mysql_native]`: Authentication plugin for MySQL.  [default: caching_sha2]

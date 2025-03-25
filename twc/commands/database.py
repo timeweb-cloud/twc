@@ -15,6 +15,7 @@ from twc import fmt
 from twc.typerx import TyperAlias
 from twc.api import ServiceRegion, MySQLAuthPlugin, BackupInterval
 from twc.apiwrap import create_client
+from twc.vars import REGION_ZONE_MAP
 from twc.utils import merge_dicts
 from .common import (
     verbose_option,
@@ -24,6 +25,7 @@ from .common import (
     yes_option,
     output_format_option,
     load_from_config_callback,
+    zone_option,
 )
 
 
@@ -277,6 +279,7 @@ def database_create(
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
+    availability_zone: Optional[str] = zone_option,
     preset_id: int = typer.Option(..., help="Database configuration preset."),
     dbms: str = typer.Option(
         ...,
@@ -408,10 +411,21 @@ def database_create(
         except ValueError:
             sys.exit(f"Error: '{public_ip}' is not valid IPv4 address.")
     else:
-        # New public IPv4 address will be automatically requested with
-        # correct availability zone. This is an official dirty hack.
+        # Get new public IPv4 address.
         if no_public_ip is False:
-            payload["network"]["floating_ip"] = "create_ip"
+            zone = None
+            if preset_id and not availability_zone:
+                for preset in client.get_database_presets().json()[
+                    "databases_presets"
+                ]:
+                    if preset["id"] == preset_id:
+                        zone = REGION_ZONE_MAP[preset["location"]]
+            if availability_zone:
+                zone = availability_zone
+            ip = client.create_floating_ip(availability_zone=zone).json()[
+                "ip"
+            ]["ip"]
+            payload["network"]["floating_ip"] = ip
 
     if login:
         print(
