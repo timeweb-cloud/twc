@@ -1161,6 +1161,7 @@ class TimewebCloud(TimewebCloudBase):
         network: Optional[dict] = None,
         comment: Optional[str] = None,
         project_id: Optional[int] = None,
+        certificates: Optional[dict] = None,
     ):
         """Create load balancer."""
         payload = {
@@ -1181,6 +1182,7 @@ class TimewebCloud(TimewebCloudBase):
             **({"network": network} if network else {}),
             **({"comment": comment} if comment else {}),
             **({"project_id": project_id} if project_id else {}),
+            **({"certificates": certificates} if certificates else {}),
         }
         return self._request("POST", f"{self.api_url}/balancers", json=payload)
 

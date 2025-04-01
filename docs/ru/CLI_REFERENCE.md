@@ -282,6 +282,10 @@ $ twc balancer create [OPTIONS]
 * `--no-public-ip`: Do not add public IPv4 address.
 * `--region REGION`: Region (location).  [default: ru-1]
 * `--availability-zone ZONE`: Availability zone.
+* `--cert-type [custom|lets_encrypt]`: SSL certificate type. Falls to 'custom' if --cert-data and --cert-key set.
+* `--cert-domain TEXT`: Domain name for which the certificate was issued. Note: domain name A-record will set to load balancer's public IP.
+* `--cert-data FILENAME`: Fullchain certificate file.
+* `--cert-key FILENAME`: Certificate key file.
 * `--help`: Show this message and exit.
 
 ### `twc balancer get`

@@ -2,6 +2,7 @@
 
 import re
 import sys
+from enum import Enum
 from typing import Optional, List
 from pathlib import Path
 from logging import debug
@@ -148,6 +149,13 @@ def balancer_get(
 # ------------------------------------------------------------- #
 
 
+class CertType(str, Enum):
+    """..."""
+
+    CUSTOM = "custom"
+    LETS_ENCRYPT = "lets_encrypt"
+
+
 @balancer.command("create")
 def balancer_create(
     verbose: Optional[bool] = verbose_option,
@@ -212,21 +220,25 @@ def balancer_create(
     ),
     region: Optional[str] = region_option,
     availability_zone: Optional[str] = zone_option,
+    cert_type: Optional[CertType] = typer.Option(
+        None,
+        help="SSL certificate type. Falls to 'custom' "
+        "if --cert-data and --cert-key set.",
+    ),
+    cert_domain: Optional[str] = typer.Option(
+        None,
+        help="Domain name for which the certificate was issued. "
+        "Note: domain name A-record will set to load balancer's public IP.",
+    ),
+    cert_data: Optional[typer.FileText] = typer.Option(
+        None, help="Fullchain certificate file."
+    ),
+    cert_key: Optional[typer.FileText] = typer.Option(
+        None, help="Certificate key file."
+    ),
 ):
     """Create load balancer."""
     client = create_client(config, profile)
-
-    if not preset_id:
-        for preset in client.get_load_balancer_presets().json()[
-            "balancers_presets"
-        ]:
-            if (
-                preset["replica_count"] == replicas
-                and preset["location"] == region
-            ):
-                preset_id = preset["id"]
-        if not preset_id:
-            sys.exit(f"Error: Cannot set {replicas} load balancer replicas.")
 
     payload = {
         "name": name,
@@ -246,7 +258,49 @@ def balancer_create(
         "backend_keepalive": backend_keepalive,
         "network": {},
         "project_id": project_id,
+        "certificates": {},
     }
+
+    if cert_type == CertType.CUSTOM:
+        if not cert_data or not cert_key:
+            sys.exit(
+                "Error: --cert-data and --cert-key is required if --cert-type is 'custom'"
+            )
+    elif cert_type == CertType.LETS_ENCRYPT:
+        if cert_data or cert_key:
+            sys.exit(
+                "Error: --cert-data and --cert-key is not allowed with --cert-type 'lets_encrypt'"
+            )
+    if not cert_type:
+        if cert_data and not cert_key:
+            sys.exit("Error: --cert-key is required.")
+        if cert_key and not cert_data:
+            sys.exit("Error: --cert-data is required.")
+        if cert_data and cert_key:
+            cert_type = CertType.CUSTOM
+    if cert_type and not cert_domain:
+        sys.exit(
+            "Error: --cert-domain is required if --cert-type and/or --cert-data, --cert-key is set."
+        )
+    if cert_type:
+        payload["certificates"] = {
+            "type": cert_type.value,
+            "fqdn": cert_domain,
+            **({"cert_data": cert_data.read()} if cert_data else {}),
+            **({"key_data": cert_key.read()} if cert_key else {}),
+        }
+
+    if not preset_id:
+        for preset in client.get_load_balancer_presets().json()[
+            "balancers_presets"
+        ]:
+            if (
+                preset["replica_count"] == replicas
+                and preset["location"] == region
+            ):
+                preset_id = preset["id"]
+        if not preset_id:
+            sys.exit(f"Error: Cannot set {replicas} load balancer replicas.")
 
     if network:
         print(

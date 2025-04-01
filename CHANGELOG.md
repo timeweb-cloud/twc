@@ -6,13 +6,16 @@
 
 ## Добавлено
 
-- Добавлены новые опции к команде `twc balancer create`: `--network-id`, `--public-ip`, `--no-public-ip`, `--private-ip`, `--region`, `--availability-zone`, `--preset-id`, `--desc`.
+- Добавлены новые опции к команде `twc balancer create`:
+    - для настройки сети: `--network-id`, `--public-ip`, `--no-public-ip`, `--private-ip`;
+    - для установки TLS: `--cert-type`, `--cert-domain`, `--cert-data`, `--cert-key`;
+    - выбор локации и пресета: `--region`, `--availability-zone`, `--preset-id`;
+    - дополнительные: `--desc` (описание балансировщика нагрузки).
 - Добавлена новая команда для просмотра списка доступных пресетов балансировщиков нагрузки — `twc balancer list-presets`.
 
 ## Изменено
 
 - Опция `--network` команды `twc balancer create` объявлена устаревшей и скрыта. Вместо неё используйте `--network-id`.
-
 
 ## Исправлено
 

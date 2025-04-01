@@ -15,11 +15,13 @@ class ErrResponse:
         error_code: str = None,
         message: Union[str, List[str]] = None,
         response_id: UUID = None,
+        **kwargs,
     ):
         self.status_code = status_code
         self.error_code = error_code
         self.message = message
         self.response_id = response_id
+        self.kwargs = kwargs
 
 
 class TimewebCloudException(HTTPError):
