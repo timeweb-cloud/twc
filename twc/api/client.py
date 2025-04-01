@@ -78,6 +78,7 @@ class TimewebCloud(TimewebCloudBase):
         network: Optional[dict] = None,
         availability_zone: Optional[ServiceAvailabilityZone] = None,
         is_root_password_required: Optional[bool] = None,
+        project_id: Optional[int] = None,
     ):
         """Create new Cloud Server. Note:
 
@@ -120,6 +121,7 @@ class TimewebCloud(TimewebCloudBase):
                 if is_root_password_required is not None
                 else {}
             ),
+            **({"project_id": project_id} if project_id else {}),
         }
 
         return self._request("POST", f"{self.api_url}/servers", json=payload)
