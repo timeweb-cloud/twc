@@ -147,17 +147,18 @@ $ twc balancer [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
-* `backend`: Manage load balancer backends. (aliases: backends)
+* `backend`: Manage load balancer backend servers. (aliases: backends)
 * `create`: Create load balancer.
 * `get`: Get load balancer info.
 * `list`: List load balancers. (aliases: ls)
+* `list-presets`: List configuration presets. (aliases: lp)
 * `remove`: Remove load balancer. (aliases: rm)
 * `rule`: Manage load balancer rules. (aliases: rules)
 * `set`: Change load balancer parameters.
 
 ### `twc balancer backend`
 
-Manage load balancer backends.
+Manage load balancer backend servers.
 
 **Usage**:
 
@@ -182,13 +183,13 @@ Add new backend servers to balancer.
 **Usage**:
 
 ```console
-$ twc balancer backend add [OPTIONS] BALANCER_ID BACKEND...
+$ twc balancer backend add [OPTIONS] BALANCER_ID BACKEND_IP...
 ```
 
 **Arguments**:
 
 * `BALANCER_ID`: [required]
-* `BACKEND...`: [required]
+* `BACKEND_IP...`: [required]
 
 **Options**:
 
@@ -259,7 +260,9 @@ $ twc balancer create [OPTIONS]
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `--name TEXT`: Load balancer display name.  [required]
-* `--replicas INTEGER RANGE`: Load balancer replica count.  [default: 1; 1<=x<=2]
+* `--desc TEXT`: Load balancer description.
+* `--preset-id INTEGER`: Load balancer preset ID.
+* `--replicas INTEGER RANGE`: Load balancer replica count. Ignored if --preset-id set.  [default: 1; 1<=x<=2]
 * `--algo [roundrobin|leastconn]`: Balancer algorythm.  [default: roundrobin]
 * `--port INTEGER`: Load balancer listen port.  [default: 80]
 * `--path TEXT`: URL path.  [default: /]
@@ -273,7 +276,12 @@ $ twc balancer create [OPTIONS]
 * `--force-https / --no-force-https`: [default: no-force-https]
 * `--backend-keepalive / --no-backend-keepalive`: [default: no-backend-keepalive]
 * `--project-id INTEGER`: Add load balancer to specific project.
-* `--network TEXT`: Private network ID.
+* `--network-id TEXT`: Private network ID.
+* `--private-ip TEXT`: Private IPv4 address.
+* `--public-ip TEXT`: Public IPv4 address. New address by default.
+* `--no-public-ip`: Do not add public IPv4 address.
+* `--region REGION`: Region (location).  [default: ru-1]
+* `--availability-zone ZONE`: Availability zone.
 * `--help`: Show this message and exit.
 
 ### `twc balancer get`
@@ -316,6 +324,26 @@ $ twc balancer list [OPTIONS]
 * `-p, --profile NAME`: Use profile.
 * `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
 * `-f, --filter KEY:VALUE`: Filter output.
+* `--help`: Show this message and exit.
+
+### `twc balancer list-presets`
+
+List configuration presets.
+
+**Usage**:
+
+```console
+$ twc balancer list-presets [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `-f, --filter KEY:VALUE`: Filter output.
+* `--region [ru-1|ru-2|ru-3|kz-1|pl-1|nl-1|de-1]`: Use region (location).
 * `--help`: Show this message and exit.
 
 ### `twc balancer remove`
