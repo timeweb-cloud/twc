@@ -5,6 +5,7 @@ import sys
 from typing import Optional, List
 from pathlib import Path
 from logging import debug
+from ipaddress import IPv4Address, IPv4Network
 
 import typer
 from requests import Response
@@ -13,20 +14,23 @@ from twc import fmt
 from twc.typerx import TyperAlias
 from twc.apiwrap import create_client
 from twc.api import TimewebCloud
-from twc.api.types import LoadBalancerAlgo, LoadBalancerProto
+from twc.vars import REGION_ZONE_MAP
+from twc.api.types import LoadBalancerAlgo, LoadBalancerProto, ServiceRegion
 from .common import (
     verbose_option,
     config_option,
     profile_option,
     filter_option,
     yes_option,
+    region_option,
+    zone_option,
     output_format_option,
     load_from_config_callback,
 )
 
 
 balancer = TyperAlias(help=__doc__)
-balancer_backend = TyperAlias(help="Manage load balancer backends.")
+balancer_backend = TyperAlias(help="Manage load balancer backend servers.")
 balancer_rule = TyperAlias(help="Manage load balancer rules.")
 balancer.add_typer(balancer_backend, name="backend", aliases=["backends"])
 balancer.add_typer(balancer_rule, name="rule", aliases=["rules"])
@@ -151,11 +155,17 @@ def balancer_create(
     profile: Optional[str] = profile_option,
     output_format: Optional[str] = output_format_option,
     name: str = typer.Option(..., help="Load balancer display name."),
+    desc: Optional[str] = typer.Option(
+        None, help="Load balancer description."
+    ),
+    preset_id: Optional[int] = typer.Option(
+        None, help="Load balancer preset ID."
+    ),
     replicas: int = typer.Option(
         1,
         min=1,
         max=2,
-        help="Load balancer replica count.",
+        help="Load balancer replica count. Ignored if --preset-id set.",
     ),
     algo: LoadBalancerAlgo = typer.Option(
         LoadBalancerAlgo.ROUND_ROBIN.value,
@@ -187,28 +197,40 @@ def balancer_create(
         callback=load_from_config_callback,
         help="Add load balancer to specific project.",
     ),
-    network: Optional[str] = typer.Option(None, help="Private network ID."),
+    network: Optional[str] = typer.Option(
+        None, hidden=True, help="Private network ID."
+    ),
+    network_id: Optional[str] = typer.Option(None, help="Private network ID."),
+    private_ip: Optional[str] = typer.Option(
+        None, help="Private IPv4 address."
+    ),
+    public_ip: Optional[str] = typer.Option(
+        None, help="Public IPv4 address. New address by default."
+    ),
+    no_public_ip: Optional[bool] = typer.Option(
+        False, "--no-public-ip", help="Do not add public IPv4 address."
+    ),
+    region: Optional[str] = region_option,
+    availability_zone: Optional[str] = zone_option,
 ):
     """Create load balancer."""
     client = create_client(config, profile)
 
-    preset_id = None
-    for preset in client.get_load_balancer_presets().json()[
-        "balancers_presets"
-    ]:
-        if preset["replica_count"] == replicas:
-            preset_id = preset["id"]
     if not preset_id:
-        sys.exit(f"Error: Cannot set {replicas} load balancer replicas.")
-
-    if project_id:
-        if not project_id in [
-            prj["id"] for prj in client.get_projects().json()["projects"]
+        for preset in client.get_load_balancer_presets().json()[
+            "balancers_presets"
         ]:
-            sys.exit(f"Wrong project ID: Project '{project_id}' not found.")
+            if (
+                preset["replica_count"] == replicas
+                and preset["location"] == region
+            ):
+                preset_id = preset["id"]
+        if not preset_id:
+            sys.exit(f"Error: Cannot set {replicas} load balancer replicas.")
 
     payload = {
         "name": name,
+        "comment": desc,
         "preset_id": preset_id,
         "algo": algo,
         "proto": proto,
@@ -222,20 +244,65 @@ def balancer_create(
         "proxy_protocol": proxy_protocol,
         "force_https": force_https,
         "backend_keepalive": backend_keepalive,
+        "network": {},
+        "project_id": project_id,
     }
 
     if network:
-        payload["network"] = {"id": network}
+        print(
+            "Option --network is deprecated and will be removed soon, "
+            "use --network-id instead",
+            file=sys.stderr,
+        )
+        network_id = network
+
+    if network_id:
+        payload["network"]["id"] = network_id
+        if private_ip:
+            net = IPv4Network(
+                client.get_vpc(network_id).json()["vpc"]["subnet_v4"]
+            )
+            if IPv4Address(private_ip) >= net.network_address + 4:
+                payload["network"]["ip"] = private_ip
+            else:
+                # First 3 addresses is reserved by Timeweb Cloud for gateway and future use.
+                sys.exit(
+                    f"Error: Private address '{private_ip}' is not allowed. "
+                    "IP must be at least the fourth in order in the network."
+                )
+    if public_ip:
+        try:
+            _ = IPv4Address(public_ip)
+            payload["network"]["floating_ip"] = public_ip
+        except ValueError:
+            sys.exit(f"Error: '{public_ip}' is not valid IPv4 address.")
+    else:
+        # Get new public IPv4 address.
+        if no_public_ip is False:
+            zone = None
+            if not preset_id and not availability_zone and not region:
+                sys.exit(
+                    "Error: Unable to get IPv4 address, at least one of "
+                    "[--preset-id, --region, --availability-zone] "
+                    "must be set to determine correct location."
+                )
+            if region:
+                zone = REGION_ZONE_MAP[region]
+            if preset_id and not availability_zone:
+                for preset in client.get_database_presets().json()[
+                    "databases_presets"
+                ]:
+                    if preset["id"] == preset_id:
+                        zone = REGION_ZONE_MAP[preset["location"]]
+            if availability_zone:
+                zone = availability_zone
+            ip = client.create_floating_ip(availability_zone=zone).json()[
+                "ip"
+            ]["ip"]
+            payload["network"]["floating_ip"] = ip
 
     # Create LB
     response = client.create_load_balancer(**payload)
-
-    # Add created LB to project if set
-    if project_id:
-        client.add_balancer_to_project(
-            response.json()["balancer"]["id"],
-            project_id,
-        )
 
     fmt.printer(
         response,
@@ -385,6 +452,64 @@ def blancer_backend_list(
 
 
 # ------------------------------------------------------------- #
+# $ twc balancer list-presets                                     #
+# ------------------------------------------------------------- #
+
+
+def _print_presets(response: Response, filters: Optional[str] = None):
+    presets = response.json()["balancers_presets"]
+    if filters:
+        presets = fmt.filter_list(presets, filters)
+    table = fmt.Table()
+    table.header(
+        [
+            "ID",
+            "REGION",
+            "PRICE",
+            "REPLICAS",
+            "BANDW",
+            "RPS",
+        ]
+    )
+    for preset in presets:
+        table.row(
+            [
+                preset["id"],
+                preset["location"],
+                preset["price"],
+                preset["replica_count"],
+                preset["bandwidth"],
+                preset["request_per_second"],
+            ]
+        )
+    table.print()
+
+
+@balancer.command("list-presets", "lp")
+def balancer_list_presets(
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    filters: Optional[str] = filter_option,
+    region: Optional[ServiceRegion] = typer.Option(
+        None, help="Use region (location)."
+    ),
+):
+    """List configuration presets."""
+    if region:
+        filters = f"{filters},location:{region}"
+    client = create_client(config, profile)
+    response = client.get_load_balancer_presets()
+    fmt.printer(
+        response,
+        output_format=output_format,
+        filters=filters,
+        func=_print_presets,
+    )
+
+
+# ------------------------------------------------------------- #
 # $ twc balancer backend add                                    #
 # ------------------------------------------------------------- #
 
@@ -392,7 +517,7 @@ def blancer_backend_list(
 @balancer_backend.command("add")
 def blancer_backend_add(
     balancer_id: int = typer.Argument(...),
-    backends: List[str] = typer.Argument(..., metavar="BACKEND..."),
+    backends: List[str] = typer.Argument(..., metavar="BACKEND_IP..."),
     verbose: Optional[bool] = verbose_option,
     config: Optional[Path] = config_option,
     profile: Optional[str] = profile_option,
