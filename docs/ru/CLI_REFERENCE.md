@@ -275,6 +275,11 @@ $ twc balancer create [OPTIONS]
 * `--proxy-protocol / --no-proxy-protocol`: [default: no-proxy-protocol]
 * `--force-https / --no-force-https`: [default: no-force-https]
 * `--backend-keepalive / --no-backend-keepalive`: [default: no-backend-keepalive]
+* `--max-connections INTEGER`: Backend server's maximum number of concurrent connections.
+* `--connect-timeout INTEGER`: Maximum time to wait for a connection attempt to a backend server to succeed.
+* `--client-timeout INTEGER`: Maximum inactivity time on the client side.
+* `--server-timeout INTEGER`: Maximum time for pending data staying into output buffer.
+* `--http-timeout INTEGER`: Maximum allowed time to wait for a complete HTTP request.
 * `--project-id INTEGER`: Add load balancer to specific project.
 * `--network-id TEXT`: Private network ID.
 * `--private-ip TEXT`: Private IPv4 address.
@@ -519,6 +524,11 @@ $ twc balancer set [OPTIONS] BALANCER_ID
 * `--proxy-protocol / --no-proxy-protocol`
 * `--force-https / --no-force-https`
 * `--backend-keepalive / --no-backend-keepalive`
+* `--max-connections INTEGER`: Backend server's maximum number of concurrent connections.
+* `--connect-timeout INTEGER`: Maximum time to wait for a connection attempt to a backend server to succeed.
+* `--client-timeout INTEGER`: Maximum inactivity time on the client side.
+* `--server-timeout INTEGER`: Maximum time for pending data staying into output buffer.
+* `--http-timeout INTEGER`: Maximum allowed time to wait for a complete HTTP request.
 * `--help`: Show this message and exit.
 
 ## `twc cluster`
