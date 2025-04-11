@@ -611,7 +611,7 @@ def storage_genconfig(
         "rclone": RCLONE_CONFIG_TEMPLATE.strip(),
     }
 
-    endpoint = "s3.timeweb.cloud"
+    endpoint = "s3.twcstorage.ru"
     if not access_key.isupper():
         # Legacy object storage service have lowercase usernames only.
         # New storage, on the contrary, always has keys in uppercase.
