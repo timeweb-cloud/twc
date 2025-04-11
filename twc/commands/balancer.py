@@ -198,6 +198,22 @@ def balancer_create(
     proxy_protocol: bool = typer.Option(False),
     force_https: bool = typer.Option(False),
     backend_keepalive: bool = typer.Option(False),
+    max_connections: Optional[int] = typer.Option(
+        None, help="Backend server's maximum number of concurrent connections."
+    ),
+    connect_timeout: Optional[int] = typer.Option(
+        None,
+        help="Maximum time to wait for a connection attempt to a backend server to succeed.",
+    ),
+    client_timeout: Optional[int] = typer.Option(
+        None, help="Maximum inactivity time on the client side."
+    ),
+    server_timeout: Optional[int] = typer.Option(
+        None, help="Maximum time for pending data staying into output buffer."
+    ),
+    http_timeout: Optional[int] = typer.Option(
+        None, help="Maximum allowed time to wait for a complete HTTP request."
+    ),
     project_id: Optional[int] = typer.Option(
         None,
         envvar="TWC_PROJECT",
@@ -259,6 +275,11 @@ def balancer_create(
         "network": {},
         "project_id": project_id,
         "certificates": {},
+        "max_connections": max_connections,
+        "connect_timeout": connect_timeout,
+        "client_timeout": client_timeout,
+        "server_timeout": server_timeout,
+        "http_timeout": http_timeout,
     }
 
     if cert_type == CertType.CUSTOM:
@@ -412,6 +433,22 @@ def balancer_set(
     proxy_protocol: Optional[bool] = typer.Option(None),
     force_https: Optional[bool] = typer.Option(None),
     backend_keepalive: Optional[bool] = typer.Option(None),
+    max_connections: Optional[int] = typer.Option(
+        None, help="Backend server's maximum number of concurrent connections."
+    ),
+    connect_timeout: Optional[int] = typer.Option(
+        None,
+        help="Maximum time to wait for a connection attempt to a backend server to succeed.",
+    ),
+    client_timeout: Optional[int] = typer.Option(
+        None, help="Maximum inactivity time on the client side."
+    ),
+    server_timeout: Optional[int] = typer.Option(
+        None, help="Maximum time for pending data staying into output buffer."
+    ),
+    http_timeout: Optional[int] = typer.Option(
+        None, help="Maximum allowed time to wait for a complete HTTP request."
+    ),
 ):
     """Change load balancer parameters."""
     client = create_client(config, profile)
@@ -442,6 +479,11 @@ def balancer_set(
         proxy_protocol=proxy_protocol,
         force_https=force_https,
         backend_keepalive=backend_keepalive,
+        max_connections=max_connections,
+        connect_timeout=connect_timeout,
+        client_timeout=client_timeout,
+        server_timeout=server_timeout,
+        http_timeout=http_timeout,
     )
 
     fmt.printer(

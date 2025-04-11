@@ -1162,6 +1162,11 @@ class TimewebCloud(TimewebCloudBase):
         comment: Optional[str] = None,
         project_id: Optional[int] = None,
         certificates: Optional[dict] = None,
+        max_connections: Optional[int] = None,
+        connect_timeout: Optional[int] = None,
+        client_timeout: Optional[int] = None,
+        server_timeout: Optional[int] = None,
+        http_timeout: Optional[int] = None,
     ):
         """Create load balancer."""
         payload = {
@@ -1183,6 +1188,31 @@ class TimewebCloud(TimewebCloudBase):
             **({"comment": comment} if comment else {}),
             **({"project_id": project_id} if project_id else {}),
             **({"certificates": certificates} if certificates else {}),
+            **(
+                {"maxconn": max_connections}
+                if max_connections is not None
+                else {}
+            ),
+            **(
+                {"connect_timeout": connect_timeout}
+                if connect_timeout is not None
+                else {}
+            ),
+            **(
+                {"client_timeout": client_timeout}
+                if client_timeout is not None
+                else {}
+            ),
+            **(
+                {"server_timeout": server_timeout}
+                if server_timeout is not None
+                else {}
+            ),
+            **(
+                {"httprequest_timeout": http_timeout}
+                if http_timeout is not None
+                else {}
+            ),
         }
         return self._request("POST", f"{self.api_url}/balancers", json=payload)
 
@@ -1203,6 +1233,11 @@ class TimewebCloud(TimewebCloudBase):
         proxy_protocol: Optional[bool] = None,
         force_https: Optional[bool] = None,
         backend_keepalive: Optional[bool] = None,
+        max_connections: Optional[int] = None,
+        connect_timeout: Optional[int] = None,
+        client_timeout: Optional[int] = None,
+        server_timeout: Optional[int] = None,
+        http_timeout: Optional[int] = None,
     ):
         """Update load balancer settings."""
         payload = {
@@ -1226,6 +1261,31 @@ class TimewebCloud(TimewebCloudBase):
             **(
                 {"is_keepalive": backend_keepalive}
                 if backend_keepalive is not None
+                else {}
+            ),
+            **(
+                {"maxconn": max_connections}
+                if max_connections is not None
+                else {}
+            ),
+            **(
+                {"connect_timeout": connect_timeout}
+                if connect_timeout is not None
+                else {}
+            ),
+            **(
+                {"client_timeout": client_timeout}
+                if client_timeout is not None
+                else {}
+            ),
+            **(
+                {"server_timeout": server_timeout}
+                if server_timeout is not None
+                else {}
+            ),
+            **(
+                {"httprequest_timeout": http_timeout}
+                if http_timeout is not None
                 else {}
             ),
         }
