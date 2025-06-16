@@ -1,6 +1,7 @@
 """Commands."""
 
 from .account import account, whoami
+from .apps import apps, apps_user
 from .config import config
 from .server import server
 from .ssh_key import ssh_key
@@ -14,3 +15,4 @@ from .domain import domain
 from .vpc import vpc
 from .firewall import firewall
 from .floating_ip import floating_ip
+

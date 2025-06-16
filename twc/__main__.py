@@ -22,6 +22,7 @@ from .commands import (
     firewall,
     floating_ip,
     whoami,
+    apps,
 )
 from .commands.common import version_callback, version_option, verbose_option
 
@@ -33,6 +34,7 @@ cli = TyperAlias(
 )
 cli.add_typer(config, name="config")
 cli.add_typer(account, name="account")
+cli.add_typer(apps, name="apps")
 cli.add_typer(server, name="server", aliases=["servers", "s"])
 cli.add_typer(ssh_key, name="ssh-key", aliases=["ssh-keys", "k"])
 cli.add_typer(image, name="image", aliases=["images", "i"])
