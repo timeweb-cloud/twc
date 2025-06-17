@@ -49,6 +49,10 @@ class TimewebCloud(TimewebCloudBase):
         payload = payload['app']
         return self._request("POST", f"{self.api_url}/apps", json=payload)
 
+    def get_app(self, app_id: int):
+        """Return Timeweb Cloud app."""
+        return self._request("GET", f"{self.api_url}/apps/{app_id}")
+
     def get_vcs_providers(self):
         """Return Timeweb Cloud vcs providers."""
         return self._request("GET", f"{self.api_url}/vcs-provider")

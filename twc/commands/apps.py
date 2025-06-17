@@ -20,10 +20,6 @@ from .common import (
 
 
 apps = TyperAlias(help=__doc__)
-apps_instance = TyperAlias(
-    help="Manage instances in cluster (databases/topics/etc)."
-)
-apps.add_typer(apps_instance, name="instance", aliases=["apps"])
 
 
 # ------------------------------------------------------------- #
@@ -79,25 +75,6 @@ def apps_list(
     )
 
 
-def print_app_create_response(response: Response):
-    """Print table with apps list."""
-    # pylint: disable=invalid-name
-    app = response.json()["app"]
-    table = fmt.Table()
-    table.header(
-        [
-            "ID",
-        ]
-    )
-    table.row(
-        [
-            app["id"],
-        ]
-    )
-    table.print()
-
-
-
 @apps.command("create")
 def app_create(
     yml_config_path: str,
@@ -114,7 +91,11 @@ def app_create(
     """Create app"""
     client = create_client(config, profile)
     response = client.create_app(yml_config_path)
-    fmt.printer(response, output_format=output_format, func=print_app_create_response)
+    fmt.printer(
+        response,
+        output_format=output_format,
+        func=lambda response: print(response.json()["app"]["id"])
+    )
 
 
 def print_vcs_providers(response: Response):
@@ -300,7 +281,52 @@ def delete_app(
         profile: Optional[str] = profile_option,
         output_format: Optional[str] = output_format_option,
 ):
-    """Get repositories."""
+    """Delete apps."""
     client = create_client(config, profile)
     response = client.delete_app(id)
     fmt.printer(response, output_format=output_format, app_id=id, func=print_app_delete_response)
+
+
+def get_app(response: Response):
+    """Print table with apps list."""
+    # pylint: disable=invalid-name
+    app = response.json()["app"]
+    table = fmt.Table()
+    table.header(
+        [
+            "ID",
+            "LOCATION",
+            "STATUS",
+            "TYPE",
+            "IPV4",
+        ]
+    )
+    table.row(
+        [
+            app["id"],
+            app["location"],
+            app["status"],
+            app["type"],
+            app["ip"],
+        ]
+    )
+    table.print()
+
+
+@apps.command("get")
+def app_get(
+    app_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    status: Optional[bool] = typer.Option(
+        False,
+        "--status",
+        help="Display status and exit with 0 if status is 'started'.",
+    )
+):
+    """Get database info."""
+    client = create_client(config, profile)
+    response = client.get_app(app_id)
+    fmt.printer(response, output_format=output_format, func=get_app)
