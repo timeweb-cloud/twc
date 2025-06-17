@@ -42,10 +42,6 @@ class TimewebCloud(TimewebCloudBase):
         """Return Timeweb Cloud apps list."""
         return self._request("GET", f"{self.api_url}/apps")
 
-    def get_app(self, app_id: int):
-        """Return Timeweb Cloud app."""
-        return self._request("GET", f"{self.api_url}/apps/{app_id}")
-
     def create_app(self, yaml_config_path: str):
         """Create Timeweb Cloud app."""
 

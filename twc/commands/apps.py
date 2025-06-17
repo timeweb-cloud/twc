@@ -9,19 +9,13 @@ import typer
 
 from twc import fmt
 from twc.typerx import TyperAlias
-from twc.api import ServiceRegion, MySQLAuthPlugin, BackupInterval
 from twc.apiwrap import create_client
-from twc.vars import REGION_ZONE_MAP
-from twc.utils import merge_dicts
 from .common import (
     verbose_option,
     config_option,
     profile_option,
     filter_option,
-    yes_option,
     output_format_option,
-    load_from_config_callback,
-    zone_option,
 )
 
 
@@ -85,51 +79,6 @@ def apps_list(
         filters=filters,
         func=print_apps,
     )
-
-
-def print_app(response: Response):
-    """Print table with apps list."""
-    # pylint: disable=invalid-name
-    app = response.json()["app"]
-    table = fmt.Table()
-    table.header(
-        [
-            "ID",
-            "NAME",
-            "STATUS",
-            "TYPE",
-            "IPV4",
-        ]
-    )
-    table.row(
-        [
-            app["id"],
-            app["name"],
-            app["status"],
-            app["type"],
-            app["ip"],
-        ]
-    )
-    table.print()
-
-
-@apps.command("get")
-def app_get(
-    app_id: int,
-    verbose: Optional[bool] = verbose_option,
-    config: Optional[Path] = config_option,
-    profile: Optional[str] = profile_option,
-    output_format: Optional[str] = output_format_option,
-    status: Optional[bool] = typer.Option(
-        False,
-        "--status",
-        help="Display status and exit with 0 if status is 'started'.",
-    )
-):
-    """Get database info."""
-    client = create_client(config, profile)
-    response = client.get_app(app_id)
-    fmt.printer(response, output_format=output_format, func=print_app)
 
 
 def print_app_create_response(response: Response):
@@ -333,33 +282,16 @@ def print_app_delete_response(response: Response, app_id: int):
     """Print table with apps list."""
     # pylint: disable=invalid-name
     table = fmt.Table()
-
-    if response.status_code == '200' or response.status_code == '204':
-        table.header(
-            [
-                "ID",
-                "DELETED"
-            ]
-        )
-        table.row(
-            [
-                app_id,
-                True
-            ]
-        )
-    else:
-        table.header(
-            [
-                "ID",
-                "DELETED"
-            ]
-        )
-        table.row(
-            [
-                app_id,
-                f"Error occured, http status {response.status_code}"
-            ]
-        )
+    table.header(
+        [
+            "ID",
+        ]
+    )
+    table.row(
+        [
+            app_id,
+        ]
+    )
     table.print()
 
 

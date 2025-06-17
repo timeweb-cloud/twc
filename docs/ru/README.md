@@ -1398,3 +1398,35 @@ ssh_keys = client.get_ssh_keys().json()
 См. расширенный пример в модуле [`twc.apiwrap`](../../twc/apiwrap.py).
 
 Методы задокументированы в коде в докстрингах, а также на [https://timeweb.cloud/api-docs](https://timeweb.cloud/api-docs).
+
+
+# Создание Apps через twc
+
+Для создания Apps необходимо описать его конфигурацию через yml. Пример конфигурации:
+
+```yml
+app:
+  provider_id: "00000000-0000-0000-0000-000000000"
+  type: "backend"
+  repository_id: "00000000-0000-0000-0000-000000000"
+  build_cmd: "uvicorn main:app"
+  branch_name: "master"
+  is_auto_deploy: true
+  commit_sha: 00000000000000000000000000
+  name: "my_super_duper_hooper_app"
+  comment: "my super duper comment"
+  preset_id: 1005
+  framework: "fastapi"
+  run_cmd: "uvicorn main:app"
+```
+
+* provider_id - айди VCS провайдера, можно получить через ```twc apps get-vcs-providers```
+* type - тип Apps
+* repository_id - айди репозитория, можно получить через ```twc apps get-repositories "айди vcs провайдера"```
+* build_cmd - команда билда
+* branch_name - название ветки
+* is_auto_deploy - автоматический деплой
+* commit_sha - хеш деплоемуего коммита
+* preset_id - айди тарифа, модно получить через ```twc apps get-tarifs тип_тарифа_тут``` тарифы бывают: backend или frontend
+* framework - название фреймворка на английском в нижнем регистре. Этот ключ равнозначен выбору фреймворка в панели
+* run_cmd - команда запуска
