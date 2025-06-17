@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union, List
-import yaml
-from uuid import UUID
-from pathlib import Path
 from ipaddress import IPv4Address, IPv6Address, IPv4Network, IPv6Network
+from typing import Optional, Union, List
+from pathlib import Path
+from uuid import UUID
+
+import yaml
 
 from .base import TimewebCloudBase
 from .types import (
@@ -45,8 +46,9 @@ class TimewebCloud(TimewebCloudBase):
     def create_app(self, yaml_config_path: str):
         """Create Timeweb Cloud app."""
 
-        payload = yaml.safe_load(open(yaml_config_path))
-        payload = payload['app']
+        with open(yaml_config_path, "r", encoding="utf-8") as f:
+            payload = yaml.safe_load(f)
+        payload = payload["app"]
         return self._request("POST", f"{self.api_url}/apps", json=payload)
 
     def get_app(self, app_id: int):
@@ -59,7 +61,9 @@ class TimewebCloud(TimewebCloudBase):
 
     def get_repositories(self, vcs_provider_id: str):
         """Return Timeweb Cloud user vcs repositories."""
-        return self._request("GET", f"{self.api_url}/vcs-provider/{vcs_provider_id}")
+        return self._request(
+            "GET", f"{self.api_url}/vcs-provider/{vcs_provider_id}"
+        )
 
     def get_apps_tarifs(self):
         """Return Timeweb Cloud Apps tarifs"""

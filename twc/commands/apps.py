@@ -1,11 +1,10 @@
 """Manage apps."""
 
 from typing import Optional
-
-from requests import Response
 from pathlib import Path
 
 import typer
+from requests import Response
 
 from twc import fmt
 from twc.typerx import TyperAlias
@@ -30,9 +29,9 @@ apps = TyperAlias(help=__doc__)
 def print_apps(response: Response, filters: Optional[str]):
     """Print table with apps list."""
     # pylint: disable=invalid-name
-    apps = response.json()["apps"]
+    _apps = response.json()["apps"]
     if filters:
-        apps = fmt.filter_list(apps, filters)
+        _apps = fmt.filter_list(_apps, filters)
     table = fmt.Table()
     table.header(
         [
@@ -43,7 +42,7 @@ def print_apps(response: Response, filters: Optional[str]):
             "IPV4",
         ]
     )
-    for app in apps:
+    for app in _apps:
         table.row(
             [
                 app["id"],
@@ -86,7 +85,7 @@ def app_create(
         False,
         "--status",
         help="Display status and exit with 0 if status is 'started'.",
-    )
+    ),
 ):
     """Create app"""
     client = create_client(config, profile)
@@ -94,7 +93,7 @@ def app_create(
     fmt.printer(
         response,
         output_format=output_format,
-        func=lambda response: print(response.json()["app"]["id"])
+        func=lambda response: print(response.json()["app"]["id"]),
     )
 
 
@@ -131,7 +130,9 @@ def app_get_vcs_providers(
     """Get VCS providers."""
     client = create_client(config, profile)
     response = client.get_vcs_providers()
-    fmt.printer(response, output_format=output_format, func=print_vcs_providers)
+    fmt.printer(
+        response, output_format=output_format, func=print_vcs_providers
+    )
 
 
 def print_vcs_repositories(response: Response):
@@ -139,15 +140,7 @@ def print_vcs_repositories(response: Response):
     # pylint: disable=invalid-name
     providers = response.json()["repositories"]
     table = fmt.Table()
-    table.header(
-        [
-            "FULL NAME",
-            "ID",
-            "NAME",
-            "URL",
-            "IS PRIVATE"
-        ]
-    )
+    table.header(["FULL NAME", "ID", "NAME", "URL", "IS PRIVATE"])
     for provider in providers:
         table.row(
             [
@@ -155,7 +148,7 @@ def print_vcs_repositories(response: Response):
                 provider["id"],
                 provider["name"],
                 provider["url"],
-                provider["is_private"]
+                provider["is_private"],
             ]
         )
     table.print()
@@ -172,15 +165,17 @@ def app_get_repositories(
     """Get repositories."""
     client = create_client(config, profile)
     response = client.get_repositories(vcs_provider_id)
-    fmt.printer(response, output_format=output_format, func=print_vcs_repositories)
+    fmt.printer(
+        response, output_format=output_format, func=print_vcs_repositories
+    )
 
 
-def print_apps_tarifs(response: Response, type: str):
+def print_apps_tarifs(response: Response, typ: str):
     """Print Timeweb Cloud Apps tarifs."""
     # pylint: disable=invalid-name
-    if type == "backend":
+    if typ == "backend":
         key = "backend_presets"
-    elif type == "frontend":
+    elif typ == "frontend":
         key = "frontend_presets"
     else:
         raise KeyError("Tarifs can be only backend or frontend")
@@ -198,7 +193,7 @@ def print_apps_tarifs(response: Response, type: str):
                 "ID",
                 "LOCATION",
                 "PRICE",
-                "RAM"
+                "RAM",
             ]
         )
         for provider in providers:
@@ -224,7 +219,7 @@ def print_apps_tarifs(response: Response, type: str):
                 "ID",
                 "LOCATION",
                 "PRICE",
-                "REQUESTS"
+                "REQUESTS",
             ]
         )
         for provider in providers:
@@ -244,16 +239,21 @@ def print_apps_tarifs(response: Response, type: str):
 
 @apps.command("list-presets")
 def get_apps_tarifs(
-        type: str,
-        verbose: Optional[bool] = verbose_option,
-        config: Optional[Path] = config_option,
-        profile: Optional[str] = profile_option,
-        output_format: Optional[str] = output_format_option,
+    _type: str = typer.Argument(..., metavar="TYPE"),
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
 ):
     """Get tarifs; backend or frontend"""
     client = create_client(config, profile)
     response = client.get_apps_tarifs()
-    fmt.printer(response, output_format=output_format, type=type, func=print_apps_tarifs)
+    fmt.printer(
+        response,
+        output_format=output_format,
+        typ=_type,
+        func=print_apps_tarifs,
+    )
 
 
 def print_app_delete_response(response: Response, app_id: int):
@@ -275,16 +275,21 @@ def print_app_delete_response(response: Response, app_id: int):
 
 @apps.command("delete")
 def delete_app(
-        id: int,
-        verbose: Optional[bool] = verbose_option,
-        config: Optional[Path] = config_option,
-        profile: Optional[str] = profile_option,
-        output_format: Optional[str] = output_format_option,
+    app_id: int,
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
 ):
     """Delete apps."""
     client = create_client(config, profile)
-    response = client.delete_app(id)
-    fmt.printer(response, output_format=output_format, app_id=id, func=print_app_delete_response)
+    response = client.delete_app(app_id)
+    fmt.printer(
+        response,
+        output_format=output_format,
+        app_id=app_id,
+        func=print_app_delete_response,
+    )
 
 
 def get_app(response: Response):
@@ -324,7 +329,7 @@ def app_get(
         False,
         "--status",
         help="Display status and exit with 0 if status is 'started'.",
-    )
+    ),
 ):
     """Get database info."""
     client = create_client(config, profile)

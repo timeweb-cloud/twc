@@ -186,12 +186,12 @@ Delete apps.
 **Usage**:
 
 ```console
-$ twc apps delete [OPTIONS] ID
+$ twc apps delete [OPTIONS] APP_ID
 ```
 
 **Arguments**:
 
-* `ID`: [required]
+* `APP_ID`: [required]
 
 **Options**:
 

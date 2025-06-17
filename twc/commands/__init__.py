@@ -15,4 +15,3 @@ from .domain import domain
 from .vpc import vpc
 from .firewall import firewall
 from .floating_ip import floating_ip
-
