@@ -1,7 +1,7 @@
 """Commands."""
 
 from .account import account, whoami
-from .apps import apps, apps_user
+from .apps import apps
 from .config import config
 from .server import server
 from .ssh_key import ssh_key

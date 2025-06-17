@@ -20,8 +20,6 @@ from .common import (
 
 
 apps = TyperAlias(help=__doc__)
-apps_user = TyperAlias(help="Manage apps users.")
-apps.add_typer(apps_user, name="user")
 apps_instance = TyperAlias(
     help="Manage instances in cluster (databases/topics/etc)."
 )
@@ -199,9 +197,16 @@ def app_get_repositories(
 def print_apps_tarifs(response: Response, type: str):
     """Print Timeweb Cloud Apps tarifs."""
     # pylint: disable=invalid-name
-    providers = response.json()[type]
+    if type == "backend":
+        key = "backend_presets"
+    elif type == "frontend":
+        key = "frontend_presets"
+    else:
+        raise KeyError("Tarifs can be only backend or frontend")
+
+    providers = response.json()[key]
     table = fmt.Table()
-    if type == "backend_presets":
+    if key == "backend_presets":
         table.header(
             [
                 "CPU",
@@ -229,7 +234,7 @@ def print_apps_tarifs(response: Response, type: str):
                     provider["ram"],
                 ]
             )
-    elif type == "frontend_presets":
+    elif key == "frontend_presets":
         table.header(
             [
                 "DESCRIPTION",
@@ -256,7 +261,7 @@ def print_apps_tarifs(response: Response, type: str):
     table.print()
 
 
-@apps.command("get-tarifs")
+@apps.command("list-presets")
 def get_apps_tarifs(
         type: str,
         verbose: Optional[bool] = verbose_option,
@@ -264,7 +269,7 @@ def get_apps_tarifs(
         profile: Optional[str] = profile_option,
         output_format: Optional[str] = output_format_option,
 ):
-    """Get repositories."""
+    """Get tarifs; backend or frontend"""
     client = create_client(config, profile)
     response = client.get_apps_tarifs()
     fmt.printer(response, output_format=output_format, type=type, func=print_apps_tarifs)
