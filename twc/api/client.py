@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Optional, Union, List
+import yaml
 from uuid import UUID
 from pathlib import Path
 from ipaddress import IPv4Address, IPv6Address, IPv4Network, IPv6Network
@@ -33,6 +34,40 @@ from .types import (
 
 class TimewebCloud(TimewebCloudBase):
     """Timeweb Cloud API client class."""
+
+    # -----------------------------------------------------------------------
+    # Apps
+
+    def get_apps(self):
+        """Return Timeweb Cloud apps list."""
+        return self._request("GET", f"{self.api_url}/apps")
+
+    def create_app(self, yaml_config_path: str):
+        """Create Timeweb Cloud app."""
+
+        payload = yaml.safe_load(open(yaml_config_path))
+        payload = payload['app']
+        return self._request("POST", f"{self.api_url}/apps", json=payload)
+
+    def get_app(self, app_id: int):
+        """Return Timeweb Cloud app."""
+        return self._request("GET", f"{self.api_url}/apps/{app_id}")
+
+    def get_vcs_providers(self):
+        """Return Timeweb Cloud vcs providers."""
+        return self._request("GET", f"{self.api_url}/vcs-provider")
+
+    def get_repositories(self, vcs_provider_id: str):
+        """Return Timeweb Cloud user vcs repositories."""
+        return self._request("GET", f"{self.api_url}/vcs-provider/{vcs_provider_id}")
+
+    def get_apps_tarifs(self):
+        """Return Timeweb Cloud Apps tarifs"""
+        return self._request("GET", f"{self.api_url}/presets/apps")
+
+    def delete_app(self, app_id: int):
+        """Delete Timeweb Cloud app."""
+        return self._request("DELETE", f"{self.api_url}/apps/{app_id}")
 
     # -----------------------------------------------------------------------
     # Account
