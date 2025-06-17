@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "twc-cli"
-version = "2.12.0"
+version = "2.13.0"
 description = "Timeweb Cloud Command Line Interface."
 authors = ["ge <dev@timeweb.cloud>"]
 homepage = "https://github.com/timeweb-cloud/twc"
@@ -12,7 +12,7 @@ packages = [{ include = "twc", from = "." }]
 
 [tool.poetry.dependencies]
 python = "^3.8.19"
-requests = "^2.32.3"
+requests = "^2.32.4"
 typer-slim = "^0.12.3"
 shellingham = "^1.5.4"
 colorama = "^0.4.6"
