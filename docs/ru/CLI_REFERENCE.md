@@ -21,6 +21,7 @@ $ twc [OPTIONS] COMMAND [ARGS]...
 **Commands**:
 
 * `account`: Manage Timeweb Cloud account.
+* `apps`: Manage apps.
 * `balancer`: Manage load balancers. (aliases: balancers, lb)
 * `cluster`: Manage Kubernetes clusters. (aliases: clusters, kubernetes, k8s)
 * `config`: Manage CLI configuration.
@@ -122,6 +123,179 @@ Display account status.
 ```console
 $ twc account status [OPTIONS]
 ```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+## `twc apps`
+
+Manage apps.
+
+**Usage**:
+
+```console
+$ twc apps [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `create`: Create app
+* `delete`: Delete apps.
+* `get`: Get database info.
+* `get-repositories`: Get repositories.
+* `get-vcs-providers`: Get VCS providers.
+* `list`: List apps. (aliases: ls)
+* `list-presets`: Get tarifs; backend or frontend
+
+### `twc apps create`
+
+Create app
+
+**Usage**:
+
+```console
+$ twc apps create [OPTIONS] YML_CONFIG_PATH
+```
+
+**Arguments**:
+
+* `YML_CONFIG_PATH`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--status`: Display status and exit with 0 if status is 'started'.
+* `--help`: Show this message and exit.
+
+### `twc apps delete`
+
+Delete apps.
+
+**Usage**:
+
+```console
+$ twc apps delete [OPTIONS] ID
+```
+
+**Arguments**:
+
+* `ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+### `twc apps get`
+
+Get database info.
+
+**Usage**:
+
+```console
+$ twc apps get [OPTIONS] APP_ID
+```
+
+**Arguments**:
+
+* `APP_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--status`: Display status and exit with 0 if status is 'started'.
+* `--help`: Show this message and exit.
+
+### `twc apps get-repositories`
+
+Get repositories.
+
+**Usage**:
+
+```console
+$ twc apps get-repositories [OPTIONS] VCS_PROVIDER_ID
+```
+
+**Arguments**:
+
+* `VCS_PROVIDER_ID`: [required]
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+### `twc apps get-vcs-providers`
+
+Get VCS providers.
+
+**Usage**:
+
+```console
+$ twc apps get-vcs-providers [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `--help`: Show this message and exit.
+
+### `twc apps list`
+
+List apps.
+
+**Usage**:
+
+```console
+$ twc apps list [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `-f, --filter KEY:VALUE`: Filter output.
+* `--help`: Show this message and exit.
+
+### `twc apps list-presets`
+
+Get tarifs; backend or frontend
+
+**Usage**:
+
+```console
+$ twc apps list-presets [OPTIONS] TYPE
+```
+
+**Arguments**:
+
+* `TYPE`: [required]
 
 **Options**:
 
