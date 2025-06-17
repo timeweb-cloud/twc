@@ -89,19 +89,11 @@ def print_app_create_response(response: Response):
     table.header(
         [
             "ID",
-            "NAME",
-            "STATUS",
-            "TYPE",
-            "IPV4",
         ]
     )
     table.row(
         [
             app["id"],
-            app["name"],
-            app["status"],
-            app["type"],
-            app["ip"],
         ]
     )
     table.print()
