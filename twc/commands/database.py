@@ -315,7 +315,7 @@ def database_create(
         "%", help="User host for MySQL, Postgres"
     ),
     user_privileges: Optional[str] = typer.Option(
-        [],
+        None,
         help="Comma-separated list of user privileges.",
         callback=dbms_parameters_callback,
     ),
