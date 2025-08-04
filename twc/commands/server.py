@@ -1270,7 +1270,10 @@ def server_list_presets(
 ):
     """List configuration presets."""
     if region:
-        filters = f"{filters},location:{region}"
+        if filters:
+            filters = f"{filters},location:{region.value}"
+        else:
+            filters = f"location:{region.value}"
     client = create_client(config, profile)
     response = client.get_server_presets()
     fmt.printer(
