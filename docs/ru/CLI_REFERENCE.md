@@ -3015,6 +3015,7 @@ $ twc server [OPTIONS] COMMAND [ARGS]...
 * `history`: View Cloud Server events log.
 * `ip`: (Deprecated) Manage public IPs.
 * `list`: List Cloud Servers. (aliases: ls)
+* `list-configurators`: List Cloud Server configurators (sets of configuration constraints). (aliases: lc)
 * `list-os-images`: List prebuilt operating system images. (aliases: li)
 * `list-presets`: List configuration presets. (aliases: lp)
 * `list-software`: List software. (aliases: lsw)
@@ -3685,6 +3686,26 @@ $ twc server list [OPTIONS]
 * `-f, --filter KEY:VALUE`: Filter output.
 * `--limit INTEGER`: Items to display.  [default: 500]
 * `--ids / --no-ids`: Print only server IDs.  [default: no-ids]
+* `--help`: Show this message and exit.
+
+### `twc server list-configurators`
+
+List Cloud Server configurators (sets of configuration constraints).
+
+**Usage**:
+
+```console
+$ twc server list-configurators [OPTIONS]
+```
+
+**Options**:
+
+* `-v, --verbose`: Enable verbose mode.
+* `-c, --config FILE`: Use config.
+* `-p, --profile NAME`: Use profile.
+* `-o, --output FORMAT`: Output format, one of: [default|raw|json|yaml].
+* `-f, --filter KEY:VALUE`: Filter output.
+* `--region [ru-1|ru-2|ru-3|kz-1|pl-1|nl-1|de-1]`: Use region (location).
 * `--help`: Show this message and exit.
 
 ### `twc server list-os-images`
