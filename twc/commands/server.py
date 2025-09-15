@@ -1285,6 +1285,72 @@ def server_list_presets(
 
 
 # ------------------------------------------------------------- #
+# $ twc server list-configurators                               #
+# ------------------------------------------------------------- #
+
+
+def _print_configurators(response: Response, filters: Optional[str] = None):
+    confs = response.json()["server_configurators"]
+    if filters:
+        confs = fmt.filter_list(confs, filters)
+    table = fmt.Table()
+    table.header(
+        [
+            "ID",
+            "REGION",
+            "TYPE",
+            "CPU(MIN/MAX)",
+            "RAM(MIN/MAX)",
+            "DISK(MIN/MAX)",
+            "BW(MIN/MAX)",
+        ]
+    )
+    for conf in confs:
+        table.row(
+            [
+                conf["id"],
+                conf["location"],
+                conf["disk_type"],
+                f"{conf['requirements']['cpu_min']}/{conf['requirements']['cpu_max']}",
+                f"{conf['requirements']['ram_min']}/{conf['requirements']['ram_max']}",
+                f"{conf['requirements']['disk_min']}/{conf['requirements']['disk_max']}",
+                (
+                    f"{conf['requirements']['network_bandwidth_min']}/"
+                    f"{conf['requirements']['network_bandwidth_max']}"
+                ),
+            ]
+        )
+    table.print()
+
+
+@server.command("list-configurators", "lc")
+def server_list_configurators(
+    verbose: Optional[bool] = verbose_option,
+    config: Optional[Path] = config_option,
+    profile: Optional[str] = profile_option,
+    output_format: Optional[str] = output_format_option,
+    filters: Optional[str] = filter_option,
+    region: Optional[ServiceRegion] = typer.Option(
+        None, help="Use region (location)."
+    ),
+):
+    """List Cloud Server configurators (sets of configuration constraints)."""
+    if region:
+        if filters:
+            filters = f"{filters},location:{region.value}"
+        else:
+            filters = f"location:{region.value}"
+    client = create_client(config, profile)
+    response = client.get_server_configurators()
+    fmt.printer(
+        response,
+        output_format=output_format,
+        filters=filters,
+        func=_print_configurators,
+    )
+
+
+# ------------------------------------------------------------- #
 # $ twc server list-os-images                                   #
 # ------------------------------------------------------------- #
 
