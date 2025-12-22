@@ -3339,6 +3339,7 @@ $ twc server create [OPTIONS]
 * `--bandwidth INTEGER`: Network bandwidth.
 * `--software-id INTEGER`: Software ID to install.
 * `--ssh-key TEXT`: SSH-key file, name or ID. Can be multiple.
+* `--hostname TEXT`: Cloud Server hostname.
 * `--user-data FILENAME`: user-data file for cloud-init.
 * `--ddos-protection`: Request public IPv4 with L3/L4 DDoS protection.
 * `--network-id TEXT`: Private network ID.

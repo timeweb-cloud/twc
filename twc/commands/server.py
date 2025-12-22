@@ -541,6 +541,9 @@ def server_create(
     ssh_keys: Optional[List[str]] = typer.Option(
         None, "--ssh-key", help="SSH-key file, name or ID. Can be multiple."
     ),
+    hostname: Optional[str] = typer.Option(
+        None, help="Cloud Server hostname."
+    ),
     user_data: Optional[typer.FileText] = typer.Option(
         None, help="user-data file for cloud-init."
     ),
@@ -602,6 +605,7 @@ def server_create(
         "is_ddos_guard": ddos_protection,
         "availability_zone": availability_zone,
         "network": {},
+        "hostname": hostname,
     }
 
     if local_network is not None:
