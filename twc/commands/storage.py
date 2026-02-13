@@ -244,12 +244,15 @@ def storage_rb(
         bucket_id = resolve_bucket_id(client, bucket)
         response = client.delete_bucket(bucket_id)
         if response.status_code == 200:
-            del_hash = response.json()["bucket_delete"]["hash"]
-            del_code = typer.prompt("Please enter confirmation code", type=int)
-            response = client.delete_bucket(
-                bucket_id, delete_hash=del_hash, code=del_code
-            )
-        if response.status_code == 204:
+            response_json = response.json()
+            del_hash = del_code = None
+            del_hash = response_json["bucket_delete"].get("hash")
+            if del_hash:
+                del_code = typer.prompt("Please enter confirmation code", type=int)
+            if del_hash and del_code:
+                response = client.delete_bucket(
+                    bucket_id, delete_hash=del_hash, code=del_code
+                )
             print(bucket)
         else:
             sys.exit(fmt.printer(response))
