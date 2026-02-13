@@ -70,7 +70,7 @@ class TimewebCloudBase:
             req_body = req_body.decode()
 
         self.log.debug(
-            textwrap.dedent(
+            textwrap.dedent(  # pylint: disable=logging-format-interpolation
                 """
             ---------------- Request ----------------
             {req.method} {req.url}

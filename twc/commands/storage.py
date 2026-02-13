@@ -248,7 +248,9 @@ def storage_rb(
             del_hash = del_code = None
             del_hash = response_json["bucket_delete"].get("hash")
             if del_hash:
-                del_code = typer.prompt("Please enter confirmation code", type=int)
+                del_code = typer.prompt(
+                    "Please enter confirmation code", type=int
+                )
             if del_hash and del_code:
                 response = client.delete_bucket(
                     bucket_id, delete_hash=del_hash, code=del_code
