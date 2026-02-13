@@ -1015,7 +1015,7 @@ class TimewebCloud(TimewebCloudBase):
         if description:
             payload["description"] = description
         return self._request(
-            "POST", f"{self.api_url}/databases/{db_id}/instances"
+            "POST", f"{self.api_url}/databases/{db_id}/instances", json=payload
         )
 
     def get_database_instances(self, db_id: int):
