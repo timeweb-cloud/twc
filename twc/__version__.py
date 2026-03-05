@@ -12,5 +12,5 @@
 import sys
 
 
-__version__ = "2.15.1"
+__version__ = "2.15.2"
 __pyversion__ = sys.version.replace("\n", "")
