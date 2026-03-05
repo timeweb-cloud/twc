@@ -1035,7 +1035,7 @@ def database_instance_remove(
 ):
     """Delete database from cluster."""
     client = create_client(config, profile)
-    response = client.get_database_user(db_id, instance_id)
+    response = client.delete_database_instance(db_id, instance_id)
     if response.status_code == 204:
         print(instance_id)
     else:
