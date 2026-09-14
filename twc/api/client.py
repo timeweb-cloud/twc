@@ -771,7 +771,7 @@ class TimewebCloud(TimewebCloudBase):
 
     def get_database_presets(self):
         """Get database presets list."""
-        return self._request("GET", f"{self.api_url}/presets/dbs")
+        return self._request("GET", f"{self.api_url_v2}/presets/dbs")
 
     def get_database_types(self):
         """Get database types."""
