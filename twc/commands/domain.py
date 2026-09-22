@@ -383,6 +383,8 @@ def domain_add_dns_record(
     """Add dns record for domain or subdomain."""
     client = create_client(config, profile)
 
+    api_method = client.add_domain_dns_record_v2
+
     if record_type != "SRV" and not value:
         sys.exit("Error: --value is expected for non-SRV DNS records")
 
@@ -401,6 +403,7 @@ def domain_add_dns_record(
         subdomain = None
 
     if record_type.lower() == "txt":
+        api_method = client.add_domain_dns_record_v1  # fallback to v1 to keep the TXT record add flow working
         if subdomain is None:
             null_subdomain = True
         else:
@@ -426,7 +429,7 @@ def domain_add_dns_record(
         "null_subdomain": null_subdomain,
     }
 
-    response = client.add_domain_dns_record(**payload)
+    response = api_method(**payload)
     fmt.printer(
         response,
         output_format=output_format,

@@ -1676,7 +1676,7 @@ class TimewebCloud(TimewebCloudBase):
             "GET", f"{self.api_url}/domains/{fqdn}/dns-records", params=params
         )
 
-    def add_domain_dns_record(
+    def add_domain_dns_record_v1(
         self,
         fqdn: str,
         dns_record_type: DNSRecordType,
@@ -1708,6 +1708,41 @@ class TimewebCloud(TimewebCloudBase):
         return self._request(
             "POST",
             f"{self.api_url}/domains/{fqdn}/dns-records",
+            json=payload,
+        )
+
+    def add_domain_dns_record_v2(
+        self,
+        fqdn: str,
+        dns_record_type: DNSRecordType,
+        value: Optional[str] = None,
+        subdomain: Optional[str] = None,
+        priority: Optional[int] = None,
+        ttl: Optional[int] = None,
+        protocol: Optional[str] = None,
+        service: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        *,
+        null_subdomain: bool = False,
+    ):
+        """Add DNS record to domain."""
+        payload = {
+            "type": dns_record_type,
+            **({"value": value} if value else {}),
+            **({"subdomain": subdomain} if subdomain else {}),
+            **({"priority": priority} if priority is not None else {}),
+            **({"ttl": ttl} if ttl else {}),
+            **({"protocol": protocol} if protocol else {}),
+            **({"service": service} if service else {}),
+            **({"host": host} if host else {}),
+            **({"port": port} if port else {}),
+        }
+        if null_subdomain:
+            payload["subdomain"] = None
+        return self._request(
+            "POST",
+            f"{self.api_url_v2}/domains/{fqdn}/dns-records",
             json=payload,
         )
 
