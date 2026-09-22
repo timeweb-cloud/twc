@@ -403,7 +403,9 @@ def domain_add_dns_record(
         subdomain = None
 
     if record_type.lower() == "txt":
-        api_method = client.add_domain_dns_record_v1  # fallback to v1 to keep the TXT record add flow working
+        api_method = (
+            client.add_domain_dns_record_v1
+        )  # fallback to v1 to keep the TXT record add flow working
         if subdomain is None:
             null_subdomain = True
         else:
