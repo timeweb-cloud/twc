@@ -1628,7 +1628,7 @@ class TimewebCloud(TimewebCloudBase):
 
     def get_k8s_network_drivers(self):
         """List available Kubernetes network drivers."""
-        return self._request("GET", f"{self.api_url}/k8s/network_drivers")
+        return self._request("GET", f"{self.api_url}/k8s/network-drivers")
 
     def get_k8s_presets(self):
         """List available Kubernetes nodes presets."""
