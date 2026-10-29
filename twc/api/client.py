@@ -49,7 +49,7 @@ class TimewebCloud(TimewebCloudBase):
         with open(yaml_config_path, "r", encoding="utf-8") as f:
             payload = yaml.safe_load(f)
         payload = payload["app"]
-        return self._request("POST", f"{self.api_url}/apps", json=payload)
+        return self._request("POST", f"{self.api_url_v2}/apps", json=payload)
 
     def get_app(self, app_id: int):
         """Return Timeweb Cloud app."""
